@@ -21,6 +21,12 @@ Docker-first Django REST API scaffold for a toy ecommerce platform.
 
 The API is available at `http://localhost:8000`.
 
+## Product image uploads
+
+In development, uploaded product images are stored in `backend/media` and served
+by Django from `/media/`. Docker Compose bind-mounts this directory into the API
+container so uploads persist between container rebuilds.
+
 ## API endpoints
 
 - Health: `GET /api/v1/health/`
