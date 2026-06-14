@@ -1,0 +1,1 @@
+"""PlayNest Django project configuration."""
