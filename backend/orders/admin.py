@@ -40,14 +40,22 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "status", "total_amount", "created_at", "updated_at")
+    list_display = (
+        "id",
+        "user",
+        "status",
+        "stock_reduced",
+        "total_amount",
+        "created_at",
+        "updated_at",
+    )
     search_fields = (
         "user__phone_number",
         "recipient_name",
         "recipient_phone",
         "postal_code",
     )
-    list_filter = ("status", "created_at", "updated_at")
+    list_filter = ("status", "stock_reduced", "created_at", "updated_at")
     list_select_related = ("user",)
     inlines = (OrderItemInline,)
 

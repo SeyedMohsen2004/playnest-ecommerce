@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -145,7 +146,7 @@ def test_remove_from_cart(client, user, product):
     assert CartItem.objects.filter(pk=item.pk).exists() is False
 
 
-def test_checkout_creates_order_and_reduces_stock(client, user, product):
+def test_checkout_creates_order_without_reducing_stock(client, user, product):
     CartItem.objects.create(
         cart=Cart.objects.create(user=user),
         product=product,
@@ -168,8 +169,59 @@ def test_checkout_creates_order_and_reduces_stock(client, user, product):
     assert order_item.quantity == 3
     assert order_item.line_total == 2400
     assert CartItem.objects.filter(cart__user=user).exists() is False
+    assert order.status == Order.Status.PENDING
+    assert order.stock_reduced is False
     product.refresh_from_db()
+    assert product.stock == 10
+
+
+def test_mark_as_paid_reduces_stock(client, user, product):
+    CartItem.objects.create(
+        cart=Cart.objects.create(user=user),
+        product=product,
+        quantity=3,
+    )
+    client.post(
+        reverse("orders:checkout"),
+        checkout_payload(),
+        content_type="application/json",
+        **auth(user),
+    )
+    order = Order.objects.get(user=user)
+
+    order.mark_as_paid()
+
+    order.refresh_from_db()
+    product.refresh_from_db()
+    assert order.status == Order.Status.PAID
+    assert order.stock_reduced is True
     assert product.stock == 7
+
+
+def test_mark_as_paid_does_not_reduce_stock_twice(user, product):
+    order = create_order(user, product)
+
+    order.mark_as_paid()
+    order.mark_as_paid()
+
+    product.refresh_from_db()
+    assert product.stock == 9
+
+
+def test_mark_as_paid_fails_when_stock_is_insufficient(user, product):
+    order = create_order(user, product)
+    order_item = order.items.get()
+    order_item.quantity = product.stock + 1
+    order_item.save(update_fields=("quantity",))
+
+    with pytest.raises(ValidationError, match="Insufficient stock"):
+        order.mark_as_paid()
+
+    order.refresh_from_db()
+    product.refresh_from_db()
+    assert order.status == Order.Status.PENDING
+    assert order.stock_reduced is False
+    assert product.stock == 10
 
 
 def test_empty_cart_checkout_fails(client, user):

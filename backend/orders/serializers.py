@@ -113,6 +113,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "status",
+            "stock_reduced",
             "total_amount",
             "shipping_address",
             "postal_code",
@@ -175,8 +176,6 @@ class CheckoutSerializer(serializers.Serializer):
                     "line_total": line_total,
                 }
             )
-            product.stock -= item.quantity
-            product.save(update_fields=("stock",))
 
         order = Order.objects.create(
             user=user,

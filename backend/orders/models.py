@@ -87,6 +87,7 @@ class Order(models.Model):
         choices=Status.choices,
         default=Status.PENDING,
     )
+    stock_reduced = models.BooleanField(default=False)
     total_amount = models.PositiveBigIntegerField(default=0)
     shipping_address = models.TextField()
     postal_code = models.CharField(max_length=20)
@@ -100,6 +101,11 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.pk}"
+
+    def mark_as_paid(self):
+        from orders.services import mark_order_as_paid
+
+        return mark_order_as_paid(self)
 
 
 class OrderItem(models.Model):
