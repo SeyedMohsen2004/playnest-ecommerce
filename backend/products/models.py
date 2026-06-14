@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import F, Q
 
@@ -130,3 +132,65 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return self.alt_text or f"Image for {self.product}"
+
+
+class WishlistItem(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="wishlist_items",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="wishlist_items",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "product"),
+                name="unique_wishlist_product_per_user",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.product}"
+
+
+class ProductReview(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="product_reviews",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=(MinValueValidator(1), MaxValueValidator(5))
+    )
+    comment = models.TextField(blank=True)
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "product"),
+                name="unique_review_per_user_product",
+            ),
+            models.CheckConstraint(
+                condition=Q(rating__gte=1, rating__lte=5),
+                name="product_review_rating_between_1_and_5",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.product} review by {self.user}"

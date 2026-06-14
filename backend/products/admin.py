@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from products.models import Brand, Category, Product, ProductImage
+from products.models import (
+    Brand,
+    Category,
+    Product,
+    ProductImage,
+    ProductReview,
+    WishlistItem,
+)
 
 
 class ProductImageInline(admin.TabularInline):
@@ -58,3 +65,32 @@ class ProductImageAdmin(admin.ModelAdmin):
     search_fields = ("product__name", "product__sku", "alt_text")
     list_filter = ("is_main", "created_at")
     list_select_related = ("product",)
+
+
+@admin.register(WishlistItem)
+class WishlistItemAdmin(admin.ModelAdmin):
+    list_display = ("user", "product", "created_at")
+    search_fields = ("user__phone_number", "product__name", "product__sku")
+    list_filter = ("created_at",)
+    list_select_related = ("user", "product")
+
+
+@admin.register(ProductReview)
+class ProductReviewAdmin(admin.ModelAdmin):
+    list_display = (
+        "product",
+        "user",
+        "rating",
+        "is_approved",
+        "created_at",
+        "updated_at",
+    )
+    search_fields = (
+        "user__phone_number",
+        "product__name",
+        "product__sku",
+        "comment",
+    )
+    list_filter = ("is_approved", "rating", "created_at", "updated_at")
+    list_select_related = ("user", "product")
+    list_editable = ("is_approved",)

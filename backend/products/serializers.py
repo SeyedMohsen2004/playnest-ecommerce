@@ -1,7 +1,14 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from products.models import Brand, Category, Product, ProductImage
+from products.models import (
+    Brand,
+    Category,
+    Product,
+    ProductImage,
+    ProductReview,
+    WishlistItem,
+)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -84,6 +91,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     final_price = serializers.IntegerField(read_only=True)
     is_in_stock = serializers.BooleanField(read_only=True)
+    average_rating = serializers.FloatField(read_only=True, allow_null=True)
+    review_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Product
@@ -108,6 +117,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "is_active",
             "is_featured",
             "images",
+            "average_rating",
+            "review_count",
             "created_at",
             "updated_at",
         )
@@ -115,6 +126,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "final_price",
             "is_in_stock",
             "images",
+            "average_rating",
+            "review_count",
             "created_at",
             "updated_at",
         )
@@ -129,4 +142,60 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"discount_price": "Discount price must be less than price."}
             )
+        return attrs
+
+
+class WishlistItemSerializer(serializers.ModelSerializer):
+    product_detail = ProductListSerializer(source="product", read_only=True)
+
+    class Meta:
+        model = WishlistItem
+        fields = ("id", "product", "product_detail", "created_at")
+        read_only_fields = ("id", "product_detail", "created_at")
+
+    def validate_product(self, product):
+        if not product.is_active:
+            raise serializers.ValidationError("Inactive products cannot be wishlisted.")
+        return product
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        product = attrs.get("product")
+        if WishlistItem.objects.filter(user=request.user, product=product).exists():
+            raise serializers.ValidationError(
+                {"product": "This product is already in your wishlist."}
+            )
+        return attrs
+
+
+class ProductReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.get_full_name", read_only=True)
+    product = serializers.SlugRelatedField(read_only=True, slug_field="slug")
+
+    class Meta:
+        model = ProductReview
+        fields = (
+            "id",
+            "user_name",
+            "product",
+            "rating",
+            "comment",
+            "is_approved",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "user_name",
+            "product",
+            "is_approved",
+            "created_at",
+            "updated_at",
+        )
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        product = self.context["product"]
+        if ProductReview.objects.filter(user=request.user, product=product).exists():
+            raise serializers.ValidationError("You have already reviewed this product.")
         return attrs
