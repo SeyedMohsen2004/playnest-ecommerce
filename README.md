@@ -27,6 +27,14 @@ In development, uploaded product images are stored in `backend/media` and served
 by Django from `/media/`. Docker Compose bind-mounts this directory into the API
 container so uploads persist between container rebuilds.
 
+## Development payment flow
+
+Checkout creates a pending order without reducing stock. Request a mock ZarinPal
+payment with `POST /api/v1/payments/request/`; the response includes a development
+`payment_url`. Confirm it with `POST /api/v1/payments/verify/` using the returned
+authority and `status: "OK"`. Successful verification marks the order paid and
+reduces stock atomically.
+
 ## API endpoints
 
 - Health: `GET /api/v1/health/`
