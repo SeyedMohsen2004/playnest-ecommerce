@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from orders.views import (
+    ApplyCouponView,
     CartItemCreateView,
     CartItemDetailView,
     CartView,
@@ -16,6 +17,7 @@ router.register("orders", OrderViewSet, basename="order")
 
 urlpatterns = [
     path("cart/", CartView.as_view(), name="cart"),
+    path("cart/apply-coupon/", ApplyCouponView.as_view(), name="apply-coupon"),
     path("cart/items/", CartItemCreateView.as_view(), name="cart-item-list"),
     path(
         "cart/items/<int:pk>/",

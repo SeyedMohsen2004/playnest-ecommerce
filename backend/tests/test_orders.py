@@ -163,7 +163,10 @@ def test_checkout_creates_order_without_reducing_stock(client, user, product):
     assert response.status_code == 201
     order = Order.objects.get(user=user)
     order_item = order.items.get()
-    assert order.total_amount == 2400
+    assert order.subtotal_amount == 2400
+    assert order.discount_amount == 0
+    assert order.shipping_cost == 50000
+    assert order.total_amount == 52400
     assert order_item.product_name == product.name
     assert order_item.product_price == 800
     assert order_item.quantity == 3

@@ -1,6 +1,22 @@
 from django.contrib import admin
 
-from orders.models import Cart, CartItem, Order, OrderItem
+from orders.models import Cart, CartItem, Coupon, Order, OrderItem
+
+
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = (
+        "code",
+        "discount_type",
+        "discount_value",
+        "used_count",
+        "usage_limit",
+        "is_active",
+        "starts_at",
+        "expires_at",
+    )
+    search_fields = ("code",)
+    list_filter = ("discount_type", "is_active", "starts_at", "expires_at")
 
 
 class CartItemInline(admin.TabularInline):
@@ -45,6 +61,10 @@ class OrderAdmin(admin.ModelAdmin):
         "user",
         "status",
         "stock_reduced",
+        "coupon",
+        "subtotal_amount",
+        "discount_amount",
+        "shipping_cost",
         "total_amount",
         "created_at",
         "updated_at",
@@ -56,7 +76,7 @@ class OrderAdmin(admin.ModelAdmin):
         "postal_code",
     )
     list_filter = ("status", "stock_reduced", "created_at", "updated_at")
-    list_select_related = ("user",)
+    list_select_related = ("user", "coupon")
     inlines = (OrderItemInline,)
 
 

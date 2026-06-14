@@ -1,7 +1,9 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
-from orders.models import Cart, CartItem, Order, OrderItem
+from orders.models import Cart, CartItem, Coupon, Order, OrderItem
+from orders.pricing import calculate_order_totals
 from products.models import Product
 
 
@@ -33,6 +35,33 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart
         fields = ("items", "total_items", "total_price", "created_at", "updated_at")
         read_only_fields = fields
+
+
+class CartSummarySerializer(serializers.Serializer):
+    subtotal = serializers.IntegerField(read_only=True)
+    discount_amount = serializers.IntegerField(read_only=True)
+    shipping_cost = serializers.IntegerField(read_only=True)
+    total_amount = serializers.IntegerField(read_only=True)
+
+
+class ApplyCouponSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=50)
+
+    def validate_code(self, value):
+        coupon = Coupon.objects.filter(code__iexact=value.strip()).first()
+        if coupon is None:
+            raise serializers.ValidationError("Coupon was not found.")
+        self.coupon = coupon
+        return value
+
+    def create(self, validated_data):
+        try:
+            return calculate_order_totals(
+                self.context["cart"].subtotal,
+                self.coupon,
+            )
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict) from exc
 
 
 class CartItemCreateSerializer(serializers.Serializer):
@@ -114,6 +143,10 @@ class OrderSerializer(serializers.ModelSerializer):
             "id",
             "status",
             "stock_reduced",
+            "coupon",
+            "subtotal_amount",
+            "discount_amount",
+            "shipping_cost",
             "total_amount",
             "shipping_address",
             "postal_code",
@@ -131,6 +164,12 @@ class CheckoutSerializer(serializers.Serializer):
     postal_code = serializers.CharField(max_length=20)
     recipient_name = serializers.CharField(max_length=255)
     recipient_phone = serializers.CharField(max_length=20)
+    coupon_code = serializers.CharField(
+        max_length=50,
+        required=False,
+        allow_blank=True,
+        write_only=True,
+    )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -151,7 +190,7 @@ class CheckoutSerializer(serializers.Serializer):
                 id__in=[item.product_id for item in cart_items]
             )
         }
-        total_amount = 0
+        subtotal_amount = 0
         order_lines = []
         for item in cart_items:
             product = products[item.product_id]
@@ -166,7 +205,7 @@ class CheckoutSerializer(serializers.Serializer):
 
             price = product.final_price
             line_total = price * item.quantity
-            total_amount += line_total
+            subtotal_amount += line_total
             order_lines.append(
                 {
                     "product": product,
@@ -177,9 +216,26 @@ class CheckoutSerializer(serializers.Serializer):
                 }
             )
 
+        coupon_code = validated_data.pop("coupon_code", "").strip()
+        coupon = None
+        if coupon_code:
+            coupon = Coupon.objects.filter(code__iexact=coupon_code).first()
+            if coupon is None:
+                raise serializers.ValidationError(
+                    {"coupon_code": "Coupon was not found."}
+                )
+        try:
+            totals = calculate_order_totals(subtotal_amount, coupon)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict) from exc
+
         order = Order.objects.create(
             user=user,
-            total_amount=total_amount,
+            coupon=coupon,
+            subtotal_amount=totals["subtotal"],
+            discount_amount=totals["discount_amount"],
+            shipping_cost=totals["shipping_cost"],
+            total_amount=totals["total_amount"],
             **validated_data,
         )
         OrderItem.objects.bulk_create(

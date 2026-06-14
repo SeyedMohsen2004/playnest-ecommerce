@@ -6,6 +6,48 @@ from django.db import models
 from products.models import Product
 
 
+class Coupon(models.Model):
+    class DiscountType(models.TextChoices):
+        PERCENTAGE = "percentage", "Percentage"
+        FIXED = "fixed", "Fixed"
+
+    code = models.CharField(max_length=50, unique=True)
+    discount_type = models.CharField(max_length=20, choices=DiscountType.choices)
+    discount_value = models.PositiveIntegerField()
+    max_discount_amount = models.PositiveIntegerField(blank=True, null=True)
+    min_order_amount = models.PositiveIntegerField(default=0)
+    usage_limit = models.PositiveIntegerField(blank=True, null=True)
+    used_count = models.PositiveIntegerField(default=0)
+    starts_at = models.DateTimeField(blank=True, null=True)
+    expires_at = models.DateTimeField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("code",)
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(discount_type="fixed")
+                | models.Q(discount_value__lte=100),
+                name="coupon_percentage_maximum_100",
+            )
+        ]
+
+    def __str__(self):
+        return self.code
+
+    def clean(self):
+        super().clean()
+        if (
+            self.discount_type == self.DiscountType.PERCENTAGE
+            and self.discount_value > 100
+        ):
+            raise ValidationError(
+                {"discount_value": "Percentage discount cannot exceed 100."}
+            )
+
+
 class Cart(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -88,6 +130,16 @@ class Order(models.Model):
         default=Status.PENDING,
     )
     stock_reduced = models.BooleanField(default=False)
+    coupon = models.ForeignKey(
+        Coupon,
+        on_delete=models.PROTECT,
+        related_name="orders",
+        blank=True,
+        null=True,
+    )
+    subtotal_amount = models.PositiveBigIntegerField(default=0)
+    discount_amount = models.PositiveBigIntegerField(default=0)
+    shipping_cost = models.PositiveBigIntegerField(default=0)
     total_amount = models.PositiveBigIntegerField(default=0)
     shipping_address = models.TextField()
     postal_code = models.CharField(max_length=20)

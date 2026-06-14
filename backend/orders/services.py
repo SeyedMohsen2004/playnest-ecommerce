@@ -1,7 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from orders.models import Order
+from orders.models import Coupon, Order
+from orders.pricing import validate_coupon
 from products.models import Product
 
 
@@ -31,6 +32,12 @@ def mark_order_as_paid(order):
         product = products[item.product_id]
         product.stock -= item.quantity
         product.save(update_fields=("stock",))
+
+    if locked_order.coupon_id:
+        coupon = Coupon.objects.select_for_update().get(pk=locked_order.coupon_id)
+        validate_coupon(coupon, locked_order.subtotal_amount)
+        coupon.used_count += 1
+        coupon.save(update_fields=("used_count", "updated_at"))
 
     locked_order.stock_reduced = True
     locked_order.status = Order.Status.PAID

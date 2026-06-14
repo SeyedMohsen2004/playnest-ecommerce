@@ -6,10 +6,12 @@ from rest_framework.views import APIView
 
 from orders.models import Cart, CartItem, Order
 from orders.serializers import (
+    ApplyCouponSerializer,
     CartItemCreateSerializer,
     CartItemSerializer,
     CartItemUpdateSerializer,
     CartSerializer,
+    CartSummarySerializer,
     CheckoutSerializer,
     OrderSerializer,
 )
@@ -25,6 +27,23 @@ class CartView(APIView):
     @extend_schema(responses={200: CartSerializer})
     def get(self, request):
         return Response(CartSerializer(get_user_cart(request.user)).data)
+
+
+class ApplyCouponView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        request=ApplyCouponSerializer,
+        responses={200: CartSummarySerializer},
+    )
+    def post(self, request):
+        cart = get_user_cart(request.user)
+        serializer = ApplyCouponSerializer(
+            data=request.data,
+            context={"cart": cart},
+        )
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.save())
 
 
 class CartItemCreateView(generics.CreateAPIView):
