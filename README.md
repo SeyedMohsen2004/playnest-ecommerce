@@ -52,3 +52,8 @@ docker compose run --rm api pytest
 docker compose run --rm api black --check .
 docker compose run --rm api flake8 .
 ```
+
+## Continuous integration
+
+GitHub Actions runs the Django system check, PostgreSQL-backed pytest suite,
+Black formatting check, and flake8 linting on every push and pull request.
