@@ -1,9 +1,12 @@
 from unittest.mock import patch
 
 import pytest
+from django.core.exceptions import ImproperlyConfigured
+from django.test import override_settings
 from django.urls import reverse
 
 from accounts.models import PhoneOTP, User
+from accounts.services import send_sms_otp
 
 pytestmark = pytest.mark.django_db
 
@@ -39,6 +42,78 @@ def test_register_sends_otp(send_sms_otp, client):
     assert len(otp.code) == 6
     assert otp.code.isdigit()
     send_sms_otp.assert_called_once_with(PHONE_NUMBER, otp.code)
+
+
+@override_settings(SMS_PROVIDER="console")
+def test_console_sms_provider_prints_without_external_api(capsys):
+    send_sms_otp(PHONE_NUMBER, "123456")
+
+    output = capsys.readouterr().out
+    assert PHONE_NUMBER in output
+    assert "123456" in output
+
+
+@override_settings(
+    SMS_PROVIDER="kavenegar",
+    KAVENEGAR_API_KEY="",
+    KAVENEGAR_SENDER="10004346",
+    KAVENEGAR_VERIFY_TEMPLATE="",
+)
+def test_kavenegar_sms_provider_requires_api_key():
+    with pytest.raises(ImproperlyConfigured, match="KAVENEGAR_API_KEY"):
+        send_sms_otp(PHONE_NUMBER, "123456")
+
+
+@override_settings(
+    SMS_PROVIDER="kavenegar",
+    KAVENEGAR_API_KEY="test-api-key",
+    KAVENEGAR_SENDER="",
+    KAVENEGAR_VERIFY_TEMPLATE="playnest-otp",
+)
+@patch("kavenegar.KavenegarAPI")
+def test_kavenegar_template_delivery_is_mocked(kavenegar_api):
+    send_sms_otp(PHONE_NUMBER, "123456")
+
+    kavenegar_api.assert_called_once_with("test-api-key")
+    kavenegar_api.return_value.verify_lookup.assert_called_once_with(
+        {
+            "receptor": PHONE_NUMBER,
+            "token": "123456",
+            "template": "playnest-otp",
+        }
+    )
+
+
+@override_settings(
+    SMS_PROVIDER="kavenegar",
+    KAVENEGAR_API_KEY="test-api-key",
+    KAVENEGAR_SENDER="10004346",
+    KAVENEGAR_VERIFY_TEMPLATE="",
+)
+@patch("kavenegar.KavenegarAPI")
+def test_kavenegar_regular_sms_delivery_is_mocked(kavenegar_api):
+    send_sms_otp(PHONE_NUMBER, "123456")
+
+    kavenegar_api.return_value.sms_send.assert_called_once_with(
+        {
+            "sender": "10004346",
+            "receptor": PHONE_NUMBER,
+            "message": "PlayNest verification code: 123456",
+        }
+    )
+
+
+@override_settings(SMS_PROVIDER="console")
+def test_registration_response_does_not_expose_otp(client):
+    response = client.post(
+        reverse("accounts:register"),
+        registration_payload(),
+        content_type="application/json",
+    )
+    otp = PhoneOTP.objects.get(phone_number=PHONE_NUMBER)
+
+    assert response.status_code == 201
+    assert otp.code not in response.content.decode()
 
 
 def test_verify_otp_activates_user_and_returns_tokens(client):

@@ -99,6 +99,11 @@ CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS", default="http://localhost:3000", cast=Csv()
 )
 
+SMS_PROVIDER = config("SMS_PROVIDER", default="console").lower()
+KAVENEGAR_API_KEY = config("KAVENEGAR_API_KEY", default="")
+KAVENEGAR_SENDER = config("KAVENEGAR_SENDER", default="")
+KAVENEGAR_VERIFY_TEMPLATE = config("KAVENEGAR_VERIFY_TEMPLATE", default="")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",

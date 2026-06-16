@@ -21,6 +21,18 @@ Docker-first Django REST API scaffold for a toy ecommerce platform.
 
 The API is available at `http://localhost:8000`.
 
+## Development seed data
+
+Populate an idempotent development catalog with users, categories, brands, 20
+products with placeholder images, and sample coupons:
+
+```bash
+docker compose exec api python manage.py seed_data
+```
+
+The coupon model only supports percentage and fixed discounts, so a dedicated
+`FREESHIP` coupon is not seeded.
+
 ## Product image uploads
 
 In development, uploaded product images are stored in `backend/media` and served
@@ -34,6 +46,17 @@ payment with `POST /api/v1/payments/request/`; the response includes a developme
 `payment_url`. Confirm it with `POST /api/v1/payments/verify/` using the returned
 authority and `status: "OK"`. Successful verification marks the order paid and
 reduces stock atomically.
+
+## SMS providers
+
+Development uses `SMS_PROVIDER=console`, which prints registration OTP codes to
+the API console without contacting an external service.
+
+For production Kavenegar delivery, set `SMS_PROVIDER=kavenegar` and provide
+`KAVENEGAR_API_KEY`. Set `KAVENEGAR_VERIFY_TEMPLATE` to use Kavenegar
+VerifyLookup template delivery, or provide `KAVENEGAR_SENDER` for regular SMS
+delivery. Real delivery requires a valid Kavenegar API key and an approved
+sender line or verification template.
 
 ## API endpoints
 
