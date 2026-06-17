@@ -9,20 +9,20 @@ export function NewsletterSection() {
         <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-white/75">
-              PlayNest offers
+              پیشنهادهای PlayNest
             </p>
             <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
-              Get playful deals and gift ideas in your inbox.
+              پیشنهادهای ویژه و ایده‌های هدیه را زودتر ببینید.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-white/80">
-              Join the PlayNest list for seasonal toy picks, new arrivals, and
-              family-friendly offers.
+              با عضویت در خبرنامه، از محصولات جدید، تخفیف‌ها و پیشنهادهای مناسب
+              کودکان باخبر شوید.
             </p>
           </div>
           <form className="rounded-3xl bg-white p-3 shadow-soft">
             <div className="flex flex-col gap-3 sm:flex-row">
               <label className="sr-only" htmlFor="newsletter-email">
-                Email address
+                آدرس ایمیل
               </label>
               <div className="flex min-h-12 flex-1 items-center gap-3 rounded-full bg-cream px-4 text-ink">
                 <Mail className="size-5 text-coral" />
@@ -34,7 +34,7 @@ export function NewsletterSection() {
                 />
               </div>
               <Button type="button" variant="default">
-                Join now
+                عضویت
               </Button>
             </div>
           </form>

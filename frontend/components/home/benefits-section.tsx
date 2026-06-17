@@ -12,10 +12,10 @@ export function BenefitsSection() {
         <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-sunshine">
-              Why families choose us
+              چرا خانواده‌ها PlayNest را انتخاب می‌کنند؟
             </p>
             <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
-              Built for trust from browse to checkout.
+              از انتخاب محصول تا پرداخت، همراه مطمئن شما هستیم.
             </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

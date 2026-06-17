@@ -17,8 +17,8 @@ export function CategoryCard({ category }: { category: Category }) {
       </span>
       <h3 className="mt-5 text-lg font-black text-ink">{category.title}</h3>
       <p className="mt-2 text-sm leading-6 text-ink/60">{category.description}</p>
-      <p className="mt-4 text-sm font-bold text-coral transition group-hover:translate-x-1">
-        Shop category
+      <p className="mt-4 text-sm font-bold text-coral transition group-hover:-translate-x-1">
+        مشاهده دسته‌بندی
       </p>
     </Link>
   );

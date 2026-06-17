@@ -7,15 +7,15 @@ export function FeaturedCategories() {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm font-bold uppercase tracking-wide text-coral">
-            Featured categories
+            دسته‌بندی‌های محبوب
           </p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">
-            Find the right toy faster.
+            اسباب‌بازی مناسب را سریع‌تر پیدا کنید.
           </h2>
         </div>
         <p className="max-w-xl text-sm leading-6 text-ink/60">
-          Explore playful categories designed around age, interests, creativity,
-          and everyday family fun.
+          دسته‌بندی‌های PlayNest بر اساس سن، علاقه و نوع بازی طراحی شده‌اند تا
+          انتخاب برای خانواده‌ها ساده‌تر باشد.
         </p>
       </div>
 

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types";
 
-const formatter = new Intl.NumberFormat("en-US");
+const formatter = new Intl.NumberFormat("fa-IR");
 
 export function ProductCard({ product }: { product: Product }) {
   return (
@@ -16,13 +16,13 @@ export function ProductCard({ product }: { product: Product }) {
           product.imageClass,
         )}
       >
-        <Badge className="absolute left-4 top-4 bg-white/85 text-coral">
+        <Badge className="absolute right-4 top-4 bg-white/85 text-coral">
           {product.badge}
         </Badge>
         <button
           type="button"
-          className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-sm transition hover:text-coral"
-          aria-label={`Save ${product.name}`}
+          className="absolute left-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/85 text-ink shadow-sm transition hover:text-coral"
+          aria-label={`افزودن ${product.name} به علاقه‌مندی‌ها`}
         >
           <Heart className="size-5" />
         </button>
@@ -38,22 +38,22 @@ export function ProductCard({ product }: { product: Product }) {
         </h3>
         <div className="mt-3 flex items-center gap-1 text-sm font-bold text-amber-500">
           <Star className="size-4 fill-current" />
-          {product.rating}
+          {formatter.format(product.rating)}
         </div>
-        <div className="mt-4 flex items-end gap-2">
+        <div className="mt-4 flex flex-wrap items-end gap-2">
           <span className="text-xl font-black text-ink">
             {formatter.format(product.price)}
           </span>
-          <span className="pb-0.5 text-xs font-semibold text-ink/45">IRR</span>
+          <span className="pb-0.5 text-xs font-semibold text-ink/45">تومان</span>
           {product.oldPrice ? (
             <span className="pb-0.5 text-xs text-ink/35 line-through">
-              {formatter.format(product.oldPrice)}
+              {formatter.format(product.oldPrice)} تومان
             </span>
           ) : null}
         </div>
         <Button className="mt-5 w-full" variant="outline">
           <ShoppingCart className="size-4" />
-          Add to cart
+          افزودن به سبد خرید
         </Button>
       </div>
     </article>

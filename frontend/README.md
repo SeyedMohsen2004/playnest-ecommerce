@@ -1,6 +1,6 @@
 # PlayNest Frontend
 
-Initial Next.js frontend for PlayNest Ecommerce.
+Initial Persian-first, RTL Next.js frontend for PlayNest Ecommerce.
 
 ## Stack
 
@@ -9,6 +9,7 @@ Initial Next.js frontend for PlayNest Ecommerce.
 - Tailwind CSS
 - shadcn/ui-inspired primitives
 - lucide-react icons
+- Persian-first RTL interface
 
 ## Setup
 

@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { label: "Toys", href: "#products" },
-  { label: "Categories", href: "#categories" },
-  { label: "Offers", href: "#offers" },
-  { label: "Why PlayNest", href: "#benefits" },
+  { label: "محصولات", href: "#products" },
+  { label: "دسته‌بندی‌ها", href: "#categories" },
+  { label: "پیشنهادها", href: "#offers" },
+  { label: "مزایای PlayNest", href: "#benefits" },
 ];
 
 export function SiteHeader() {
@@ -24,8 +24,13 @@ export function SiteHeader() {
           <span className="flex size-11 items-center justify-center rounded-2xl bg-coral text-white shadow-soft">
             <Sparkles className="size-5" aria-hidden="true" />
           </span>
-          <span className="text-2xl font-black tracking-tight text-ink">
-            PlayNest
+          <span className="flex flex-col leading-none">
+            <span className="text-2xl font-black tracking-tight text-ink">
+              PlayNest
+            </span>
+            <span className="mt-1 text-[0.65rem] font-bold text-coral">
+              دنیای شاد اسباب‌بازی
+            </span>
           </span>
         </Link>
 
@@ -42,22 +47,22 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Button variant="ghost" size="sm" aria-label="Open cart">
+          <Button variant="ghost" size="sm" aria-label="باز کردن سبد خرید">
             <ShoppingCart className="size-5" />
-            Cart
+            سبد خرید
           </Button>
           <Button variant="outline" size="sm">
-            Login
+            ورود
           </Button>
           <Button variant="coral" size="sm">
-            Register
+            ثبت‌نام
           </Button>
         </div>
 
         <button
           type="button"
           className="flex size-11 items-center justify-center rounded-2xl bg-white text-ink shadow-sm lg:hidden"
-          aria-label="Toggle navigation"
+          aria-label="باز و بسته کردن منو"
           onClick={() => setIsOpen((current) => !current)}
         >
           {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -83,12 +88,12 @@ export function SiteHeader() {
               </Link>
             ))}
             <div className="grid grid-cols-2 gap-3 pt-3">
-              <Button variant="outline">Login</Button>
-              <Button variant="coral">Register</Button>
+              <Button variant="outline">ورود</Button>
+              <Button variant="coral">ثبت‌نام</Button>
             </div>
             <Button className="mt-2" variant="default">
               <ShoppingCart className="size-5" />
-              View cart
+              مشاهده سبد خرید
             </Button>
           </nav>
         </div>

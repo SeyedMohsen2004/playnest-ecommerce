@@ -10,8 +10,8 @@ export function SiteFooter() {
             PlayNest
           </Link>
           <p className="mt-4 max-w-md text-sm leading-7 text-ink/65">
-            A joyful toy-store experience with safe toys, smart checkout, and a
-            backend ready for real ecommerce operations.
+            تجربه‌ای شاد و مطمئن برای خرید اسباب‌بازی؛ با محصولات ایمن، طراحی
+            مدرن و مسیر خریدی ساده برای خانواده‌ها.
           </p>
           <div className="mt-6 flex gap-3">
             {[Instagram, Facebook, Mail].map((Icon, index) => (
@@ -26,32 +26,32 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <h3 className="font-bold text-ink">Shop</h3>
+          <h3 className="font-bold text-ink">خرید</h3>
           <ul className="mt-4 space-y-3 text-sm text-ink/65">
-            <li>Building toys</li>
-            <li>Dolls</li>
-            <li>Educational toys</li>
-            <li>Baby and toddler</li>
+            <li>لگو و ساختنی</li>
+            <li>عروسک</li>
+            <li>اسباب‌بازی آموزشی</li>
+            <li>نوزاد و خردسال</li>
           </ul>
         </div>
 
         <div>
-          <h3 className="font-bold text-ink">Contact</h3>
+          <h3 className="font-bold text-ink">ارتباط با ما</h3>
           <ul className="mt-4 space-y-3 text-sm text-ink/65">
             <li className="flex items-center gap-2">
-              <Phone className="size-4" /> 021-0000-0000
+              <Phone className="size-4" /> ۰۲۱-۰۰۰۰-۰۰۰۰
             </li>
             <li className="flex items-center gap-2">
               <Mail className="size-4" /> hello@playnest.local
             </li>
             <li className="flex items-center gap-2">
-              <MapPin className="size-4" /> Online toy store
+              <MapPin className="size-4" /> فروشگاه آنلاین اسباب‌بازی
             </li>
           </ul>
         </div>
       </div>
       <div className="border-t border-ink/5 px-4 py-5 text-center text-xs text-ink/50">
-        Copyright 2026 PlayNest Ecommerce. All rights reserved.
+        © ۲۰۲۶ PlayNest Ecommerce. تمامی حقوق محفوظ است.
       </div>
     </footer>
   );

@@ -5,8 +5,8 @@ import { SiteHeader } from "@/components/layout/site-header";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PlayNest Ecommerce",
-  description: "A joyful online toy store experience for modern families.",
+  title: "PlayNest | فروشگاه اسباب‌بازی",
+  description: "فروشگاه آنلاین اسباب‌بازی برای خریدی ساده، شاد و مطمئن.",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="fa" dir="rtl">
       <body className="antialiased">
         <SiteHeader />
         <main>{children}</main>
