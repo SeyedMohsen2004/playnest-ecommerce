@@ -81,15 +81,40 @@ export type User = {
   phone_number: string;
   first_name: string;
   last_name: string;
-  email: string;
-  is_phone_verified: boolean;
-  date_joined: string;
+  email?: string;
+  is_phone_verified?: boolean;
+  date_joined?: string;
 };
 
 export type AuthTokens = {
   access: string;
   refresh: string;
+};
+
+export type AuthResponse = AuthTokens & {
   user: User;
+};
+
+export type RegisterPayload = {
+  phone_number: string;
+  first_name: string;
+  last_name: string;
+  password: string;
+  password_confirm?: string;
+};
+
+export type VerifyOtpPayload = {
+  phone_number: string;
+  code: string;
+};
+
+export type LoginPayload = {
+  phone_number: string;
+  password: string;
+};
+
+export type TokenRefreshResponse = {
+  access: string;
 };
 
 export type CartItem = {
