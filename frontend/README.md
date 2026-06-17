@@ -23,6 +23,8 @@ The development server runs at `http://localhost:3000`.
 
 ## Environment
 
+Create `.env.local` from `.env.example`:
+
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
