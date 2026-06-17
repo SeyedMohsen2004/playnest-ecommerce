@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { label: "محصولات", href: "#products" },
-  { label: "دسته‌بندی‌ها", href: "#categories" },
-  { label: "پیشنهادها", href: "#offers" },
-  { label: "مزایای PlayNest", href: "#benefits" },
+  { label: "خانه", href: "/" },
+  { label: "محصولات", href: "/products" },
+  { label: "دسته‌بندی‌ها", href: "/products#filters" },
+  { label: "پیشنهادها", href: "/#offers" },
 ];
 
 export function SiteHeader() {
@@ -47,15 +47,17 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Button variant="ghost" size="sm" aria-label="باز کردن سبد خرید">
-            <ShoppingCart className="size-5" />
-            سبد خرید
+          <Button asChild variant="ghost" size="sm" aria-label="باز کردن سبد خرید">
+            <Link href="/cart">
+              <ShoppingCart className="size-5" />
+              سبد خرید
+            </Link>
           </Button>
-          <Button variant="outline" size="sm">
-            ورود
+          <Button asChild variant="outline" size="sm">
+            <Link href="/login">ورود</Link>
           </Button>
-          <Button variant="coral" size="sm">
-            ثبت‌نام
+          <Button asChild variant="coral" size="sm">
+            <Link href="/register">ثبت‌نام</Link>
           </Button>
         </div>
 
@@ -88,12 +90,18 @@ export function SiteHeader() {
               </Link>
             ))}
             <div className="grid grid-cols-2 gap-3 pt-3">
-              <Button variant="outline">ورود</Button>
-              <Button variant="coral">ثبت‌نام</Button>
+              <Button asChild variant="outline">
+                <Link href="/login">ورود</Link>
+              </Button>
+              <Button asChild variant="coral">
+                <Link href="/register">ثبت‌نام</Link>
+              </Button>
             </div>
-            <Button className="mt-2" variant="default">
-              <ShoppingCart className="size-5" />
-              مشاهده سبد خرید
+            <Button asChild className="mt-2" variant="default">
+              <Link href="/cart">
+                <ShoppingCart className="size-5" />
+                مشاهده سبد خرید
+              </Link>
             </Button>
           </nav>
         </div>
