@@ -1,82 +1,187 @@
-# PlayNest
+# PlayNest Ecommerce
 
-Docker-first Django REST API scaffold for a toy ecommerce platform.
+PlayNest is a Django REST Framework based ecommerce backend for an online toy
+store. It includes authentication, product catalog, cart, orders, coupons,
+payments, reviews, wishlist, admin management, Dockerized PostgreSQL setup,
+automated tests and CI.
 
-## Stack
+## Features
 
-- Django and Django REST Framework
-- PostgreSQL 16
+- Phone number based authentication
+- OTP registration flow
 - JWT authentication
-- OpenAPI schema and Swagger UI
-- pytest, Black, and flake8
+- Product catalog
+- Categories and brands
+- Product images
+- Cart management
+- Checkout flow
+- Orders and order items
+- Mock payment gateway flow
+- Stock reduction after successful payment
+- Coupons and discounts
+- Shipping cost calculation
+- Wishlist
+- Product reviews and ratings
+- Improved Django Admin
+- Development seed data
+- Swagger/OpenAPI documentation
+- Dockerized development environment
+- PostgreSQL database
+- Automated tests
+- GitHub Actions CI
+- Kavenegar-ready SMS architecture
 
-## Run
+## Tech Stack
 
-1. Optionally copy `.env.example` to `.env` and change its development values.
-2. Build and start the services:
+| Area | Tools |
+| --- | --- |
+| Backend | Python, Django, Django REST Framework |
+| Database | PostgreSQL |
+| Infrastructure | Docker, Docker Compose |
+| Authentication | SimpleJWT |
+| API Docs | drf-spectacular |
+| API Utilities | django-filter, django-cors-headers |
+| Quality | pytest, black, flake8 |
+| CI | GitHub Actions |
 
-   ```bash
-   docker compose up --build
-   ```
+## Project Structure
 
-The API is available at `http://localhost:8000`.
+| Path | Description |
+| --- | --- |
+| `backend/` | Django backend application, API apps, tests, and management commands. |
+| `frontend/` | Placeholder for the planned frontend application. |
+| `docs/` | Project documentation notes. |
+| `docker-compose.yml` | Local development services for API and PostgreSQL. |
+| `.env.example` | Example environment variables for development and integrations. |
+| `README.md` | Main project documentation. |
 
-## Development seed data
+## Getting Started
 
-Populate an idempotent development catalog with users, categories, brands, 20
-products with placeholder images, and sample coupons:
+```bash
+cp .env.example .env
+docker compose up --build -d
+docker compose exec api python manage.py migrate
+docker compose exec api python manage.py seed_data
+docker compose exec api python manage.py check
+```
+
+The API runs at `http://127.0.0.1:8000`.
+
+## Development Seed Data
+
+Populate an idempotent development catalog:
 
 ```bash
 docker compose exec api python manage.py seed_data
 ```
 
-The coupon model only supports percentage and fixed discounts, so a dedicated
+Seed data includes:
+
+- Admin user
+- Customer user
+- Categories
+- Brands
+- Toy products
+- Coupons
+
+| Account | Phone Number | Password |
+| --- | --- | --- |
+| Admin | `09120000000` | `AdminPass123!` |
+| Customer | `09121111111` | `CustomerPass123!` |
+
+The current coupon model supports percentage and fixed discounts, so a dedicated
 `FREESHIP` coupon is not seeded.
 
-## Product image uploads
+## API Documentation
 
-In development, uploaded product images are stored in `backend/media` and served
-by Django from `/media/`. Docker Compose bind-mounts this directory into the API
-container so uploads persist between container rebuilds.
+| Resource | URL |
+| --- | --- |
+| Swagger UI | `http://127.0.0.1:8000/api/v1/docs/` |
+| OpenAPI schema | `http://127.0.0.1:8000/api/v1/schema/` |
+| Health check | `http://127.0.0.1:8000/api/v1/health/` |
 
-## Development payment flow
-
-Checkout creates a pending order without reducing stock. Request a mock ZarinPal
-payment with `POST /api/v1/payments/request/`; the response includes a development
-`payment_url`. Confirm it with `POST /api/v1/payments/verify/` using the returned
-authority and `status: "OK"`. Successful verification marks the order paid and
-reduces stock atomically.
-
-## SMS providers
-
-Development uses `SMS_PROVIDER=console`, which prints registration OTP codes to
-the API console without contacting an external service.
-
-For production Kavenegar delivery, set `SMS_PROVIDER=kavenegar` and provide
-`KAVENEGAR_API_KEY`. Set `KAVENEGAR_VERIFY_TEMPLATE` to use Kavenegar
-VerifyLookup template delivery, or provide `KAVENEGAR_SENDER` for regular SMS
-delivery. Real delivery requires a valid Kavenegar API key and an approved
-sender line or verification template.
-
-## API endpoints
-
-- Health: `GET /api/v1/health/`
-- Swagger UI: `GET /api/v1/docs/`
-- OpenAPI schema: `GET /api/v1/schema/`
-- JWT token: `POST /api/v1/auth/token/`
-- JWT refresh: `POST /api/v1/auth/token/refresh/`
-
-## Quality checks
+## Testing and Code Quality
 
 Run checks inside the API container:
 
 ```bash
-docker compose run --rm api pytest
-docker compose run --rm api black --check .
-docker compose run --rm api flake8 .
+docker compose exec api python manage.py check
+docker compose exec api pytest
+docker compose exec api black --check .
+docker compose exec api flake8 .
 ```
 
-## Continuous integration
+GitHub Actions runs these checks with PostgreSQL on every push and pull request.
 
-GitHub Actions runs the Django system check, PostgreSQL-backed pytest suite,
-Black formatting check, and flake8 linting on every push and pull request.
+## Authentication Flow
+
+1. User registers with phone number, profile details, and password.
+2. An OTP code is generated.
+3. In development, OTP delivery uses the console SMS provider and prints/logs the
+   code in the API container.
+4. User verifies the OTP.
+5. The account becomes active and phone verified.
+6. JWT access and refresh tokens are returned.
+7. Login uses phone number and password.
+
+## Payment Flow
+
+1. Checkout creates a pending order and does not reduce stock.
+2. Payment request creates or reuses a pending payment for the order.
+3. A mock payment gateway is available for development.
+4. Successful verification marks the payment as paid.
+5. The order becomes paid.
+6. Stock is reduced only after successful payment verification.
+
+The payment architecture is designed to be extended to real providers such as
+ZarinPal.
+
+## SMS Provider
+
+Development uses the `console` SMS provider. Production can use the Kavenegar
+provider.
+
+| Variable | Description |
+| --- | --- |
+| `SMS_PROVIDER` | `console` for development or `kavenegar` for production delivery. |
+| `KAVENEGAR_API_KEY` | Kavenegar API key. |
+| `KAVENEGAR_SENDER` | Approved Kavenegar sender line for regular SMS delivery. |
+| `KAVENEGAR_VERIFY_TEMPLATE` | Approved Kavenegar VerifyLookup template name. |
+
+Real SMS delivery requires business-owner Kavenegar credentials and an approved
+sender line or verification template.
+
+## Product Image Uploads
+
+In development, uploaded product images are stored in `backend/media` and served
+from `/media/`. Docker Compose bind-mounts this directory into the API container
+so uploaded files persist between container rebuilds.
+
+## Current Status
+
+Backend Core v1 is complete. Frontend is planned next.
+
+Production integrations such as real SMS, real payment gateway, deployment,
+domain and SSL will be configured later with business-owner credentials.
+
+## Roadmap
+
+- Build responsive frontend
+- Connect frontend to backend APIs
+- Add real ZarinPal integration
+- Configure production SMS
+- Deploy to production server
+- Configure domain, SSL and production environment
+- Add Enamad/legal pages support
+
+## Resume Highlights
+
+- RESTful ecommerce backend
+- Dockerized PostgreSQL development environment
+- JWT authentication
+- OTP architecture
+- Payment lifecycle
+- Stock consistency after payment
+- Admin management
+- Test coverage
+- CI pipeline
