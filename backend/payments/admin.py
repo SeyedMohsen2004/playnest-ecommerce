@@ -7,8 +7,8 @@ from payments.models import Payment
 class PaymentAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "order",
         "user",
+        "order",
         "gateway",
         "amount",
         "status",
@@ -18,11 +18,10 @@ class PaymentAdmin(admin.ModelAdmin):
         "paid_at",
     )
     search_fields = (
-        "order__id",
-        "user__phone_number",
         "authority",
         "ref_id",
-        "card_pan",
+        "user__phone_number",
+        "order__id",
     )
     list_filter = ("gateway", "status", "created_at", "paid_at")
     list_select_related = ("order", "user")
@@ -32,3 +31,4 @@ class PaymentAdmin(admin.ModelAdmin):
         "updated_at",
         "paid_at",
     )
+    ordering = ("-created_at",)

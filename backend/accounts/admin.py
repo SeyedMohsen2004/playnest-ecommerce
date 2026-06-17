@@ -13,13 +13,14 @@ class UserAdmin(BaseUserAdmin):
         "phone_number",
         "first_name",
         "last_name",
+        "email",
         "is_phone_verified",
         "is_active",
         "is_staff",
         "date_joined",
     )
     search_fields = ("phone_number", "first_name", "last_name", "email")
-    list_filter = ("is_phone_verified", "is_active", "is_staff", "is_superuser")
+    list_filter = ("is_phone_verified", "is_active", "is_staff", "date_joined")
     ordering = ("-date_joined",)
     readonly_fields = ("password", "date_joined", "last_login")
     fieldsets = (
@@ -74,20 +75,17 @@ class UserAdmin(BaseUserAdmin):
 class PhoneOTPAdmin(admin.ModelAdmin):
     list_display = (
         "phone_number",
-        "purpose",
-        "is_used",
-        "created_at",
-        "expires_at",
-        "verified_at",
-    )
-    search_fields = ("phone_number",)
-    list_filter = ("purpose", "is_used", "created_at", "expires_at")
-    readonly_fields = (
-        "phone_number",
         "code",
         "purpose",
         "is_used",
         "expires_at",
+        "created_at",
+        "verified_at",
+    )
+    search_fields = ("phone_number",)
+    list_filter = ("purpose", "is_used", "created_at")
+    readonly_fields = (
+        "code",
         "created_at",
         "verified_at",
     )
