@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,9 +22,16 @@ body {
     radial-gradient(circle at top left, rgba(255, 209, 102, 0.28), transparent 30rem),
     linear-gradient(180deg, #fff8ed 0%, #ffffff 45%, #f7fbff 100%);
   color: #172033;
-  font-family:
-    Vazirmatn, IRANSans, Tahoma, Arial, ui-sans-serif, system-ui, sans-serif;
+  font-family: Vazirmatn, Tahoma, Arial, sans-serif;
+  line-height: 1.7;
   text-align: right;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 ::selection {
