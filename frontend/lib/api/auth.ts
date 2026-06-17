@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/api/client";
+import { API_BASE_URL, apiClient } from "@/lib/api/client";
 import type {
   AuthResponse,
   LoginPayload,
@@ -21,6 +21,12 @@ export function verifyRegisterOtp(payload: VerifyOtpPayload) {
 }
 
 export function loginUser(payload: LoginPayload) {
+  if (process.env.NODE_ENV !== "production") {
+    console.log("API base URL:", API_BASE_URL);
+    console.log("Login request path:", "/accounts/login/");
+    console.log("Login payload keys:", Object.keys(payload));
+  }
+
   return apiClient.post<AuthResponse>("/accounts/login/", payload);
 }
 

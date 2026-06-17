@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Heart,
   PackageCheck,
   ShieldCheck,
   Sparkles,
@@ -9,9 +8,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { ProductCartActions } from "@/components/product/product-cart-actions";
 import { ProductCard } from "@/components/product/product-card";
 import { PriceText } from "@/components/shared/price-text";
-import { QuantitySelector } from "@/components/shared/quantity-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getProductBySlug } from "@/lib/api/products";
@@ -34,6 +33,7 @@ import {
   getProductShortDescription,
   getProductStock,
   getProductRating,
+  isApiProduct,
   type ProductSource,
 } from "@/lib/product-display";
 import { toPersianDigits } from "@/lib/format";
@@ -215,16 +215,10 @@ export default async function ProductDetailPage({
             </div>
           </dl>
 
-          <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center">
-            <QuantitySelector />
-            <Button className="flex-1" disabled={!isInStock} variant="coral">
-              افزودن به سبد خرید
-            </Button>
-            <Button variant="outline">
-              <Heart className="size-5" />
-              علاقه‌مندی
-            </Button>
-          </div>
+          <ProductCartActions
+            isInStock={isInStock}
+            productId={isApiProduct(product) ? product.id : null}
+          />
         </section>
       </div>
 

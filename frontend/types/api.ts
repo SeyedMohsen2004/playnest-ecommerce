@@ -121,15 +121,18 @@ export type CartItem = {
   id: number;
   product: Product;
   quantity: number;
+  line_total?: number;
   subtotal?: number;
   created_at?: string;
 };
 
 export type Cart = {
+  id?: number;
   items: CartItem[];
   total_items: number;
   total_price?: number;
   subtotal?: number;
+  subtotal_amount?: number;
 };
 
 export type Coupon = {

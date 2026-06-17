@@ -1,7 +1,26 @@
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL;
+function normalizeApiBaseUrl(baseUrl: string) {
+  try {
+    const url = new URL(baseUrl);
+
+    if (
+      process.env.NODE_ENV !== "production" &&
+      url.hostname === "localhost" &&
+      url.port === "8000"
+    ) {
+      url.hostname = "127.0.0.1";
+    }
+
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    return DEFAULT_API_BASE_URL;
+  }
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(
+  process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL,
+);
 
 export type ApiMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
@@ -76,16 +95,35 @@ export async function apiFetch<T>(
     requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(buildUrl(path, params), {
-    method,
-    headers: requestHeaders,
-    body: hasBody ? JSON.stringify(body) : undefined,
-    cache,
-  });
+  const url = buildUrl(path, params);
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method,
+      headers: requestHeaders,
+      body: hasBody ? JSON.stringify(body) : undefined,
+      cache,
+    });
+  } catch (error) {
+    console.error("API fetch error:", {
+      url,
+      method,
+      error,
+    });
+    throw error;
+  }
 
   const data = await parseResponse(response);
 
   if (!response.ok) {
+    console.error("API response error:", {
+      url,
+      method,
+      status: response.status,
+      body: data,
+    });
+
     const message =
       typeof data === "object" && data && "detail" in data
         ? String(data.detail)
