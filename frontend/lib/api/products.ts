@@ -12,8 +12,14 @@ export type ProductQueryParams = {
 
 type ListResponse<T> = T[] | PaginatedResponse<T>;
 
+function normalizeListResponse<T>(response: ListResponse<T>): T[] {
+  return Array.isArray(response) ? response : response.results;
+}
+
 export function getProducts(params?: ProductQueryParams) {
-  return apiClient.get<ListResponse<Product>>("/products/", { params });
+  return apiClient
+    .get<ListResponse<Product>>("/products/", { params })
+    .then(normalizeListResponse);
 }
 
 export function getProductBySlug(slug: string) {
@@ -21,9 +27,13 @@ export function getProductBySlug(slug: string) {
 }
 
 export function getCategories() {
-  return apiClient.get<ListResponse<Category>>("/categories/");
+  return apiClient
+    .get<ListResponse<Category>>("/categories/")
+    .then(normalizeListResponse);
 }
 
 export function getBrands() {
-  return apiClient.get<ListResponse<Brand>>("/brands/");
+  return apiClient
+    .get<ListResponse<Brand>>("/brands/")
+    .then(normalizeListResponse);
 }

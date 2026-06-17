@@ -39,7 +39,7 @@ export type Product = {
   name: string;
   slug: string;
   description: string;
-  short_description: string;
+  short_description: string | null;
   sku: string;
   price: number;
   discount_price: number | null;
@@ -51,15 +51,29 @@ export type Product = {
   is_active: boolean;
   is_featured: boolean;
   category: number | Category;
-  category_detail?: Category;
+  category_detail?: Category | null;
   brand: number | Brand | null;
   brand_detail?: Brand | null;
   images?: ProductImage[];
   main_image?: ProductImage | null;
-  average_rating?: number | null;
+  average_rating?: number | string | null;
   review_count?: number;
   created_at: string;
   updated_at?: string;
+};
+
+export type ProductListItem = Product & {
+  category: Category;
+  brand: Brand | null;
+  main_image: ProductImage | null;
+};
+
+export type ProductDetail = Product & {
+  category: number;
+  category_detail: Category;
+  brand: number | null;
+  brand_detail: Brand | null;
+  images: ProductImage[];
 };
 
 export type User = {

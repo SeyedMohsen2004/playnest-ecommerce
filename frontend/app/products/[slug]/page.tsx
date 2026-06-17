@@ -1,15 +1,59 @@
-import { Heart, ShieldCheck, Star, Truck } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Heart,
+  PackageCheck,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Truck,
+} from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { ProductCard } from "@/components/product/product-card";
 import { PriceText } from "@/components/shared/price-text";
 import { QuantitySelector } from "@/components/shared/quantity-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { products } from "@/lib/mock-data";
+import { getProductBySlug } from "@/lib/api/products";
+import { products as mockProducts } from "@/lib/mock-data";
+import {
+  getProductAgeGroup,
+  getProductBadge,
+  getProductBrandName,
+  getProductCategoryKey,
+  getProductCategoryName,
+  getProductDescription,
+  getProductGender,
+  getProductImageClass,
+  getProductImages,
+  getProductImageUrl,
+  getProductIsInStock,
+  getProductOldPrice,
+  getProductPrice,
+  getProductReviewCount,
+  getProductShortDescription,
+  getProductStock,
+  getProductRating,
+  type ProductSource,
+} from "@/lib/product-display";
+import { toPersianDigits } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-const formatter = new Intl.NumberFormat("fa-IR");
+const productBenefits: { label: string; icon: LucideIcon }[] = [
+  { label: "ارسال سریع", icon: Truck },
+  { label: "کیفیت و ایمنی بررسی‌شده", icon: ShieldCheck },
+  { label: "بسته‌بندی مناسب هدیه", icon: PackageCheck },
+  { label: "انتخابی شاد برای بازی روزمره", icon: Sparkles },
+];
+
+async function loadProduct(slug: string): Promise<ProductSource | null> {
+  try {
+    return await getProductBySlug(slug);
+  } catch (error) {
+    console.error("Products API error:", error);
+    return mockProducts.find((product) => product.slug === slug) || null;
+  }
+}
 
 export default async function ProductDetailPage({
   params,
@@ -17,16 +61,41 @@ export default async function ProductDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = products.find((item) => item.slug === slug);
+  const product = await loadProduct(slug);
 
   if (!product) {
-    notFound();
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 lg:px-8">
+        <div className="rounded-[2.5rem] bg-white p-8 shadow-soft sm:p-12">
+          <div className="mx-auto flex size-20 items-center justify-center rounded-[2rem] bg-coral/10 text-coral">
+            <PackageCheck className="size-10" />
+          </div>
+          <h1 className="mt-6 text-3xl font-black text-ink">
+            محصولی پیدا نشد
+          </h1>
+          <p className="mx-auto mt-3 max-w-xl leading-8 text-ink/60">
+            این محصول در حال حاضر در فروشگاه PlayNest موجود نیست یا آدرس آن
+            تغییر کرده است.
+          </p>
+          <Button asChild className="mt-7" variant="coral">
+            <Link href="/products">بازگشت به محصولات</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
-  const relatedProducts = products
+  const imageUrl = getProductImageUrl(product);
+  const imageClass = getProductImageClass(product);
+  const galleryImages = getProductImages(product);
+  const isInStock = getProductIsInStock(product);
+  const rating = getProductRating(product);
+  const reviewCount = getProductReviewCount(product);
+  const relatedProducts = mockProducts
     .filter(
       (item) =>
-        item.slug !== product.slug && item.categorySlug === product.categorySlug,
+        item.slug !== product.slug &&
+        item.categorySlug === getProductCategoryKey(product),
     )
     .slice(0, 3);
 
@@ -35,62 +104,120 @@ export default async function ProductDetailPage({
       <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
         <section>
           <div
-            className={`relative min-h-[28rem] rounded-[2.5rem] bg-gradient-to-br ${product.imageClass} p-6 shadow-soft`}
+            className={cn(
+              "relative min-h-[28rem] overflow-hidden rounded-[2.5rem] bg-gradient-to-br p-6 shadow-soft",
+              imageClass,
+            )}
           >
-            <Badge className="absolute right-6 top-6 bg-white/85 text-coral">
-              {product.badge}
+            {imageUrl ? (
+              <div
+                aria-label={product.name}
+                className="absolute inset-0 bg-cover bg-center"
+                role="img"
+                style={{ backgroundImage: `url("${imageUrl}")` }}
+              />
+            ) : (
+              <div className="absolute inset-x-12 top-28 h-48 rotate-6 rounded-[3rem] bg-white/55 shadow-soft" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/25 via-transparent to-transparent" />
+            <Badge className="absolute right-6 top-6 bg-white/90 text-coral">
+              {getProductBadge(product)}
             </Badge>
-            <div className="absolute inset-x-12 top-28 h-48 rotate-6 rounded-[3rem] bg-white/55 shadow-soft" />
           </div>
           <div className="mt-4 grid grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((item) => (
+            {(galleryImages.length
+              ? galleryImages
+              : Array.from({ length: 4 }, (_, index) => ({
+                  id: index,
+                  image: "",
+                  alt_text: product.name,
+                }))
+            ).map((image, index) => (
               <div
-                className={`h-24 rounded-3xl bg-gradient-to-br ${product.imageClass} opacity-${item === 1 ? "100" : "70"}`}
-                key={item}
-              />
+                className={cn(
+                  "h-24 overflow-hidden rounded-3xl bg-gradient-to-br",
+                  imageClass,
+                  index === 0 ? "opacity-100" : "opacity-70",
+                )}
+                key={image.id}
+              >
+                {image.image ? (
+                  <div
+                    aria-label={image.alt_text || product.name}
+                    className="h-full w-full bg-cover bg-center"
+                    role="img"
+                    style={{ backgroundImage: `url("${image.image}")` }}
+                  />
+                ) : null}
+              </div>
             ))}
           </div>
         </section>
 
         <section className="rounded-[2rem] bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge>{product.category}</Badge>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-              {product.stock > 0 ? "موجود در انبار" : "ناموجود"}
+            <Badge>{getProductCategoryName(product)}</Badge>
+            <span
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-bold",
+                isInStock
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-rose-100 text-rose-700",
+              )}
+            >
+              {isInStock ? "موجود در انبار" : "ناموجود"}
             </span>
           </div>
           <h1 className="mt-5 text-4xl font-black leading-tight text-ink">
             {product.name}
           </h1>
           <p className="mt-4 text-sm leading-7 text-ink/60">
-            {product.shortDescription}
+            {getProductShortDescription(product)}
           </p>
-          <div className="mt-5 flex items-center gap-2 text-sm font-bold text-amber-500">
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm font-bold text-amber-500">
             <Star className="size-5 fill-current" />
-            {formatter.format(product.rating)} از ۵
+            {toPersianDigits(rating ? rating.toFixed(1) : "0")} از ۵
             <span className="text-ink/35">|</span>
-            <span className="text-ink/55">۱۲ دیدگاه</span>
+            <span className="text-ink/55">
+              {toPersianDigits(reviewCount)} دیدگاه
+            </span>
           </div>
           <PriceText
-            amount={product.price}
+            amount={getProductPrice(product)}
             className="mt-6"
-            oldAmount={product.oldPrice}
+            oldAmount={getProductOldPrice(product)}
           />
 
           <dl className="mt-6 grid gap-3 rounded-3xl bg-cream p-5 text-sm sm:grid-cols-2">
             <div>
               <dt className="font-bold text-ink/45">برند</dt>
-              <dd className="mt-1 font-black text-ink">{product.brand}</dd>
+              <dd className="mt-1 font-black text-ink">
+                {getProductBrandName(product)}
+              </dd>
             </div>
             <div>
               <dt className="font-bold text-ink/45">رده سنی</dt>
-              <dd className="mt-1 font-black text-ink">{product.ageGroup}</dd>
+              <dd className="mt-1 font-black text-ink">
+                {getProductAgeGroup(product)}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-bold text-ink/45">گروه استفاده</dt>
+              <dd className="mt-1 font-black text-ink">
+                {getProductGender(product)}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-bold text-ink/45">موجودی</dt>
+              <dd className="mt-1 font-black text-ink">
+                {toPersianDigits(getProductStock(product))} عدد
+              </dd>
             </div>
           </dl>
 
           <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center">
             <QuantitySelector />
-            <Button className="flex-1" variant="coral">
+            <Button className="flex-1" disabled={!isInStock} variant="coral">
               افزودن به سبد خرید
             </Button>
             <Button variant="outline">
@@ -104,21 +231,20 @@ export default async function ProductDetailPage({
       <section className="mt-12 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-[2rem] bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-ink">توضیحات محصول</h2>
-          <p className="mt-4 leading-8 text-ink/65">{product.description}</p>
+          <p className="mt-4 leading-8 text-ink/65">
+            {getProductDescription(product)}
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          {[
-            ["ارسال سریع", Truck],
-            ["کیفیت و ایمنی بررسی‌شده", ShieldCheck],
-          ].map(([label, Icon]) => (
+          {productBenefits.map(({ label, icon: Icon }) => (
             <div
               className="flex items-center gap-3 rounded-3xl bg-white p-5 shadow-sm"
-              key={String(label)}
+              key={label}
             >
               <span className="flex size-12 items-center justify-center rounded-2xl bg-mint/25 text-emerald-700">
                 <Icon className="size-6" />
               </span>
-              <span className="font-black text-ink">{String(label)}</span>
+              <span className="font-black text-ink">{label}</span>
             </div>
           ))}
         </div>
@@ -127,18 +253,19 @@ export default async function ProductDetailPage({
       <section className="mt-12 rounded-[2rem] bg-white p-6 shadow-sm">
         <h2 className="text-2xl font-black text-ink">دیدگاه خریداران</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          {["کیفیت خیلی خوبی داشت و بسته‌بندی هم عالی بود.", "برای هدیه تولد خریدم و کودک خیلی خوشحال شد."].map(
-            (review) => (
-              <div className="rounded-3xl bg-cream p-5" key={review}>
-                <div className="flex items-center gap-1 text-amber-500">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star className="size-4 fill-current" key={index} />
-                  ))}
-                </div>
-                <p className="mt-3 text-sm leading-7 text-ink/65">{review}</p>
+          {[
+            "کیفیت خیلی خوبی داشت و بسته‌بندی هم عالی بود.",
+            "برای هدیه تولد خریدیم و کودک خیلی خوشحال شد.",
+          ].map((review) => (
+            <div className="rounded-3xl bg-cream p-5" key={review}>
+              <div className="flex items-center gap-1 text-amber-500">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Star className="size-4 fill-current" key={index} />
+                ))}
               </div>
-            ),
-          )}
+              <p className="mt-3 text-sm leading-7 text-ink/65">{review}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -150,11 +277,11 @@ export default async function ProductDetailPage({
           </Link>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {(relatedProducts.length ? relatedProducts : products.slice(0, 3)).map(
-            (item) => (
+          {(relatedProducts.length ? relatedProducts : mockProducts.slice(0, 3))
+            .filter((item) => item.slug !== product.slug)
+            .map((item) => (
               <ProductCard key={item.slug} product={item} />
-            ),
-          )}
+            ))}
         </div>
       </section>
     </div>

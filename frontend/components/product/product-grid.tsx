@@ -1,10 +1,10 @@
 import { PackageSearch } from "lucide-react";
 
-import { EmptyState } from "@/components/shared/empty-state";
 import { ProductCard } from "@/components/product/product-card";
-import type { Product } from "@/types";
+import { EmptyState } from "@/components/shared/empty-state";
+import type { ProductSource } from "@/lib/product-display";
 
-export function ProductGrid({ products }: { products: Product[] }) {
+export function ProductGrid({ products }: { products: ProductSource[] }) {
   if (products.length === 0) {
     return (
       <EmptyState
