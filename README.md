@@ -67,6 +67,45 @@ docker compose exec api python manage.py check
 
 The API runs at `http://127.0.0.1:8000`.
 
+## Running Full Stack With Docker
+
+Run the Django API, PostgreSQL database, and Next.js frontend together:
+
+```bash
+docker compose up --build -d
+docker compose ps
+```
+
+| Service | URL |
+| --- | --- |
+| Frontend | `http://localhost:3000` |
+| Backend health | `http://127.0.0.1:8000/api/v1/health/` |
+| Swagger docs | `http://127.0.0.1:8000/api/v1/docs/` |
+
+The frontend container uses:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
+```
+
+This URL is intentionally browser-accessible. Do not replace it with
+`http://api:8000/api/v1` for frontend browser requests.
+
+If Docker Hub mirror or image download issues occur and images already exist
+locally, start the stack without rebuilding:
+
+```bash
+docker compose up --no-build -d
+```
+
+Common backend commands:
+
+```bash
+docker compose exec api python manage.py migrate
+docker compose exec api python manage.py seed_data
+docker compose exec api pytest
+```
+
 ## Development Seed Data
 
 Populate an idempotent development catalog:
