@@ -1,17 +1,34 @@
 import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
 
+const shoppingLinks = [
+  { label: "همه محصولات", href: "/products" },
+  { label: "دسته‌بندی‌ها", href: "/products#filters" },
+  { label: "پیشنهادها", href: "/#offers" },
+  { label: "راهنمای خرید", href: "/shopping-guide" },
+];
+
+const businessLinks = [
+  { label: "درباره ما", href: "/about" },
+  { label: "تماس با ما", href: "/contact" },
+  { label: "قوانین و مقررات", href: "/terms" },
+  { label: "حریم خصوصی", href: "/privacy" },
+  { label: "شرایط بازگشت کالا", href: "/returns" },
+  { label: "روش‌های ارسال", href: "/shipping" },
+];
+
 export function SiteFooter() {
   return (
     <footer className="border-t border-ink/5 bg-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr] lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.35fr_0.8fr_0.9fr_1fr] lg:px-8">
         <div>
           <Link href="/" className="text-2xl font-black tracking-tight text-ink">
             PlayNest
           </Link>
           <p className="mt-4 max-w-md text-sm leading-7 text-ink/65">
-            تجربه‌ای شاد و مطمئن برای خرید اسباب‌بازی؛ با محصولات ایمن، طراحی
-            مدرن و مسیر خریدی ساده برای خانواده‌ها.
+            تجربه‌ای شاد و مطمئن برای خرید اسباب‌بازی؛ با محصولاتی ایمن،
+            آموزشی و سرگرم‌کننده برای خانواده‌هایی که انتخاب آگاهانه را دوست
+            دارند.
           </p>
           <div className="mt-6 flex gap-3">
             {[Instagram, Facebook, Mail].map((Icon, index) => (
@@ -25,34 +42,60 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div>
-          <h3 className="font-bold text-ink">خرید</h3>
-          <ul className="mt-4 space-y-3 text-sm text-ink/65">
-            <li>لگو و ساختنی</li>
-            <li>عروسک</li>
-            <li>اسباب‌بازی آموزشی</li>
-            <li>نوزاد و خردسال</li>
-          </ul>
-        </div>
+        <FooterColumn title="خرید" links={shoppingLinks} />
+        <FooterColumn title="اطلاعات فروشگاه" links={businessLinks} />
 
         <div>
           <h3 className="font-bold text-ink">ارتباط با ما</h3>
           <ul className="mt-4 space-y-3 text-sm text-ink/65">
             <li className="flex items-center gap-2">
-              <Phone className="size-4" /> ۰۲۱-۰۰۰۰-۰۰۰۰
+              <Phone className="size-4" /> ۰۲۱-۱۲۳۴۵۶۷۸
             </li>
             <li className="flex items-center gap-2">
-              <Mail className="size-4" /> hello@playnest.local
+              <Mail className="size-4" /> support@playnest.ir
             </li>
             <li className="flex items-center gap-2">
-              <MapPin className="size-4" /> فروشگاه آنلاین اسباب‌بازی
+              <MapPin className="size-4" /> تهران، آدرس نمونه فروشگاه
             </li>
           </ul>
+
+          <div className="mt-6 rounded-3xl border border-dashed border-ink/15 bg-cream p-4 text-center">
+            <p className="text-sm font-black text-ink">
+              محل نمایش نماد اعتماد الکترونیکی
+            </p>
+            <p className="mt-2 text-xs leading-6 text-ink/50">
+              این بخش تا زمان دریافت نماد اعتماد توسط مالک کسب‌وکار، فقط
+              placeholder است.
+            </p>
+          </div>
         </div>
       </div>
       <div className="border-t border-ink/5 px-4 py-5 text-center text-xs text-ink/50">
         © ۲۰۲۶ PlayNest Ecommerce. تمامی حقوق محفوظ است.
       </div>
     </footer>
+  );
+}
+
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: { label: string; href: string }[];
+}) {
+  return (
+    <div>
+      <h3 className="font-bold text-ink">{title}</h3>
+      <ul className="mt-4 space-y-3 text-sm text-ink/65">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link className="transition hover:text-coral" href={link.href}>
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

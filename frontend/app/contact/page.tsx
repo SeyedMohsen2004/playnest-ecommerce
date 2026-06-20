@@ -1,0 +1,77 @@
+import {
+  DraftNotice,
+  InfoSection,
+  LegalPageLayout,
+} from "@/components/shared/legal-page-layout";
+
+export default function ContactPage() {
+  return (
+    <LegalPageLayout
+      title="تماس با ما"
+      description="برای دریافت راهنمایی درباره خرید، سفارش‌ها و همکاری با PlayNest می‌توانید از راه‌های ارتباطی زیر استفاده کنید."
+    >
+      <div className="grid gap-6 lg:grid-cols-[1fr_0.85fr]">
+        <form className="rounded-[2rem] border border-ink/5 bg-cream/60 p-5 sm:p-6">
+          <h2 className="text-xl font-black text-ink">فرم تماس نمایشی</h2>
+          <p className="mt-2 text-sm leading-7 text-ink/55">
+            این فرم فعلاً نمایشی است و پس از اتصال سرویس تماس، پیام‌ها ارسال
+            خواهند شد.
+          </p>
+          <div className="mt-5 space-y-4">
+            <Field label="نام و نام خانوادگی" placeholder="نام شما" />
+            <Field label="شماره تماس یا ایمیل" placeholder="09120000000" ltr />
+            <label className="block">
+              <span className="text-sm font-bold text-ink">پیام</span>
+              <textarea
+                className="mt-2 min-h-36 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm leading-7 outline-none transition placeholder:text-ink/30 focus:border-coral"
+                placeholder="متن پیام خود را بنویسید"
+              />
+            </label>
+            <button
+              className="w-full rounded-full bg-coral px-5 py-3 text-sm font-bold text-white shadow-soft"
+              type="button"
+            >
+              ارسال پیام
+            </button>
+          </div>
+        </form>
+
+        <InfoSection title="اطلاعات تماس">
+          <ul className="space-y-3">
+            <li>شماره تماس: ۰۲۱-۱۲۳۴۵۶۷۸</li>
+            <li>ایمیل: support@playnest.ir</li>
+            <li>آدرس: تهران، آدرس نمونه فروشگاه</li>
+            <li>ساعات پاسخگویی: شنبه تا پنجشنبه، ۹ تا ۱۸</li>
+          </ul>
+          <p className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs leading-6 text-ink/55">
+            اطلاعات تماس بالا نمونه است و پیش از استفاده در محیط واقعی باید توسط
+            مالک فروشگاه جایگزین و تایید شود.
+          </p>
+        </InfoSection>
+      </div>
+
+      <DraftNotice />
+    </LegalPageLayout>
+  );
+}
+
+function Field({
+  label,
+  placeholder,
+  ltr = false,
+}: {
+  label: string;
+  placeholder: string;
+  ltr?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-bold text-ink">{label}</span>
+      <input
+        className="mt-2 h-12 w-full rounded-2xl border border-ink/10 bg-white px-4 text-sm outline-none transition placeholder:text-ink/30 focus:border-coral"
+        dir={ltr ? "ltr" : "rtl"}
+        placeholder={placeholder}
+      />
+    </label>
+  );
+}
