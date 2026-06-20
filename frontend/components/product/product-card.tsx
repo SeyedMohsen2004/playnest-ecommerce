@@ -1,9 +1,17 @@
+"use client";
+
 import { Heart, ShoppingCart, Star } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
+import { useAuth } from "@/components/providers/auth-provider";
 import { PriceText } from "@/components/shared/price-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { addCartItem } from "@/lib/api/cart";
+import { APIError } from "@/lib/api/client";
+import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import {
   getProductBadge,
   getProductCategoryName,
@@ -13,15 +21,74 @@ import {
   getProductOldPrice,
   getProductPrice,
   getProductRating,
+  isApiProduct,
   type ProductSource,
 } from "@/lib/product-display";
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: ProductSource }) {
+  const router = useRouter();
+  const { isAuthenticated, logout } = useAuth();
   const imageUrl = getProductImageUrl(product);
   const imageClass = getProductImageClass(product);
   const isInStock = getProductIsInStock(product);
+  const productId = isApiProduct(product) ? product.id : null;
+  const [isAdding, setIsAdding] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"success" | "error">(
+    "success",
+  );
+
+  async function handleAddToCart() {
+    setMessage("");
+
+    if (!isAuthenticated) {
+      setMessageTone("error");
+      setMessage("برای افزودن به سبد خرید ابتدا وارد شوید.");
+      router.push("/login");
+      return;
+    }
+
+    const accessToken = getAccessToken();
+
+    if (!accessToken) {
+      clearTokens();
+      logout();
+      router.push("/login");
+      return;
+    }
+
+    if (typeof productId !== "number" || !Number.isFinite(productId)) {
+      setMessageTone("error");
+      setMessage("خطا در افزودن به سبد خرید.");
+      return;
+    }
+
+    setIsAdding(true);
+
+    try {
+      await addCartItem(accessToken, productId, 1);
+      setMessageTone("success");
+      setMessage("به سبد خرید اضافه شد.");
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Product card add to cart error:", error);
+      }
+
+      if (error instanceof APIError && error.status === 401) {
+        clearTokens();
+        logout();
+        router.push("/login");
+        return;
+      }
+
+      setMessageTone("error");
+      setMessage("خطا در افزودن به سبد خرید.");
+    } finally {
+      setIsAdding(false);
+    }
+  }
 
   return (
     <article className="group overflow-hidden rounded-3xl border border-ink/5 bg-white text-right shadow-sm transition hover:-translate-y-1 hover:shadow-soft">
@@ -50,6 +117,10 @@ export function ProductCard({ product }: { product: ProductSource }) {
             type="button"
             className="absolute left-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm transition hover:text-coral"
             aria-label={`افزودن ${product.name} به علاقه‌مندی‌ها`}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
           >
             <Heart className="size-5" />
           </button>
@@ -86,10 +157,31 @@ export function ProductCard({ product }: { product: ProductSource }) {
           className="mt-4"
           oldAmount={getProductOldPrice(product)}
         />
-        <Button className="mt-5 w-full" variant="outline">
+        <Button
+          className="mt-5 w-full"
+          disabled={isAdding || !isInStock}
+          onClick={handleAddToCart}
+          type="button"
+          variant="outline"
+        >
           <ShoppingCart className="size-4" />
-          افزودن به سبد خرید
+          {isAdding
+            ? "در حال افزودن..."
+            : isInStock
+              ? "افزودن به سبد خرید"
+              : "ناموجود"}
         </Button>
+        {message ? (
+          <p
+            className={
+              messageTone === "success"
+                ? "mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"
+                : "mt-3 rounded-2xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700"
+            }
+          >
+            {message}
+          </p>
+        ) : null}
       </div>
     </article>
   );

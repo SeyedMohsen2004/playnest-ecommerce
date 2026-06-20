@@ -185,6 +185,28 @@ export type Order = {
   updated_at: string;
 };
 
+export type CheckoutPayload = {
+  shipping_address: string;
+  postal_code: string;
+  recipient_name: string;
+  recipient_phone: string;
+  coupon_code?: string;
+};
+
+export type CheckoutResponse = Order | { order: Order };
+
+export type CouponPreviewResponse = {
+  subtotal?: number;
+  subtotal_amount?: number;
+  discount?: number;
+  discount_amount?: number;
+  shipping?: number;
+  shipping_cost?: number;
+  total?: number;
+  total_amount?: number;
+  message?: string;
+};
+
 export type Payment = {
   id: number;
   user: number | User;
@@ -199,4 +221,19 @@ export type Payment = {
   created_at: string;
   updated_at: string;
   paid_at: string | null;
+};
+
+export type PaymentRequestResponse = {
+  payment_url?: string;
+  authority?: string | null;
+  amount?: number;
+  payment?: Payment;
+  order?: Order;
+};
+
+export type PaymentVerifyResponse = {
+  payment?: Payment;
+  order?: Order;
+  message?: string;
+  status?: string;
 };
