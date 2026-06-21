@@ -1,6 +1,8 @@
-# PlayNest Frontend
+# IpakToys Frontend
 
-Initial Persian-first, RTL Next.js frontend for PlayNest Ecommerce.
+Persian-first, RTL Next.js frontend for the IpakToys ecommerce storefront.
+The UI is focused on board games, intellectual games, puzzles, building games,
+and educational entertainment products for children, teenagers, and families.
 
 ## Stack
 
@@ -29,16 +31,19 @@ Create `.env.local` from `.env.example`:
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
-Some pages still use mock data where backend integration is planned, while the
-main ecommerce flow is being connected incrementally to the Django API.
+Products, authentication, cart, checkout, and payment pages are connected to the
+Django API. Mock data remains as a fallback for development when the backend is
+unavailable.
 
 ## Legal and Business Pages
 
 The frontend includes draft Persian pages for about, contact, terms, privacy,
-returns, shipping, and shopping guide content. These are placeholder drafts for
-development and portfolio review. Before production, the business owner must
-replace sample contact details, Enamad placeholder, legal copy, shipping terms,
-return rules, and privacy details with approved real business information.
+returns, shipping, and shopping guide content. The current customer-facing brand
+is IpakToys, and contact placeholders have been updated with the provided
+business information.
+
+Before production, the business owner should review and approve legal copy,
+shipping terms, return rules, privacy details, and Enamad placement.
 
 ## Quality
 

@@ -23,12 +23,12 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.35fr_0.8fr_0.9fr_1fr] lg:px-8">
         <div>
           <Link href="/" className="text-2xl font-black tracking-tight text-ink">
-            PlayNest
+            IpakToys
           </Link>
           <p className="mt-4 max-w-md text-sm leading-7 text-ink/65">
-            تجربه‌ای شاد و مطمئن برای خرید اسباب‌بازی؛ با محصولاتی ایمن،
-            آموزشی و سرگرم‌کننده برای خانواده‌هایی که انتخاب آگاهانه را دوست
-            دارند.
+            فروشگاه بازی فکری، بردگیم، پازل و محصولات ساختنی برای کودک،
+            نوجوان و خانواده؛ با تمرکز بر انتخاب آگاهانه، سرگرمی سالم و تجربه
+            خرید مطمئن.
           </p>
           <div className="mt-6 flex gap-3">
             {[Instagram, Facebook, Mail].map((Icon, index) => (
@@ -49,13 +49,14 @@ export function SiteFooter() {
           <h3 className="font-bold text-ink">ارتباط با ما</h3>
           <ul className="mt-4 space-y-3 text-sm text-ink/65">
             <li className="flex items-center gap-2">
-              <Phone className="size-4" /> ۰۲۱-۱۲۳۴۵۶۷۸
+              <Phone className="size-4" /> 09145863568
             </li>
             <li className="flex items-center gap-2">
-              <Mail className="size-4" /> support@playnest.ir
+              <Mail className="size-4" /> Mojtabakarbalae79@gmail.com
             </li>
-            <li className="flex items-center gap-2">
-              <MapPin className="size-4" /> تهران، آدرس نمونه فروشگاه
+            <li className="flex items-start gap-2 leading-7">
+              <MapPin className="mt-1 size-4" /> تبریز - بازار مشروطه، حیاط
+              پایین، پلاک C1
             </li>
           </ul>
 
@@ -71,7 +72,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-ink/5 px-4 py-5 text-center text-xs text-ink/50">
-        © ۲۰۲۶ PlayNest Ecommerce. تمامی حقوق محفوظ است.
+        © ۲۰۲۶ IpakToys Ecommerce. تمامی حقوق محفوظ است.
       </div>
     </footer>
   );

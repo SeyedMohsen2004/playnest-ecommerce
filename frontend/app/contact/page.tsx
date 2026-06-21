@@ -8,18 +8,18 @@ export default function ContactPage() {
   return (
     <LegalPageLayout
       title="تماس با ما"
-      description="برای دریافت راهنمایی درباره خرید، سفارش‌ها و همکاری با PlayNest می‌توانید از راه‌های ارتباطی زیر استفاده کنید."
+      description="برای دریافت راهنمایی درباره خرید بازی‌های فکری، بردگیم‌ها، سفارش‌ها و همکاری با IpakToys می‌توانید از راه‌های ارتباطی زیر استفاده کنید."
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_0.85fr]">
         <form className="rounded-[2rem] border border-ink/5 bg-cream/60 p-5 sm:p-6">
           <h2 className="text-xl font-black text-ink">فرم تماس نمایشی</h2>
           <p className="mt-2 text-sm leading-7 text-ink/55">
-            این فرم فعلاً نمایشی است و پس از اتصال سرویس تماس، پیام‌ها ارسال
+            این فرم فعلا نمایشی است و پس از اتصال سرویس تماس، پیام‌ها ارسال
             خواهند شد.
           </p>
           <div className="mt-5 space-y-4">
             <Field label="نام و نام خانوادگی" placeholder="نام شما" />
-            <Field label="شماره تماس یا ایمیل" placeholder="09120000000" ltr />
+            <Field label="شماره تماس یا ایمیل" placeholder="09145863568" ltr />
             <label className="block">
               <span className="text-sm font-bold text-ink">پیام</span>
               <textarea
@@ -38,14 +38,14 @@ export default function ContactPage() {
 
         <InfoSection title="اطلاعات تماس">
           <ul className="space-y-3">
-            <li>شماره تماس: ۰۲۱-۱۲۳۴۵۶۷۸</li>
-            <li>ایمیل: support@playnest.ir</li>
-            <li>آدرس: تهران، آدرس نمونه فروشگاه</li>
+            <li>شماره تماس: 09145863568</li>
+            <li>ایمیل: Mojtabakarbalae79@gmail.com</li>
+            <li>آدرس: تبریز - بازار مشروطه، حیاط پایین، پلاک C1</li>
             <li>ساعات پاسخگویی: شنبه تا پنجشنبه، ۹ تا ۱۸</li>
           </ul>
           <p className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs leading-6 text-ink/55">
-            اطلاعات تماس بالا نمونه است و پیش از استفاده در محیط واقعی باید توسط
-            مالک فروشگاه جایگزین و تایید شود.
+            اطلاعات تماس بالا برای IpakToys ثبت شده است و در محیط تولید باید
+            توسط مالک فروشگاه نهایی و تایید شود.
           </p>
         </InfoSection>
       </div>

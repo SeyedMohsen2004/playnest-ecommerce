@@ -18,9 +18,9 @@ const ageGroupLabels: Record<ApiProduct["age_group"], string> = {
 };
 
 export const genderLabels: Record<ApiProduct["gender"], string> = {
-  unisex: "مناسب همه کودکان",
-  boy: "پسرانه",
-  girl: "دخترانه",
+  unisex: "مناسب همه",
+  boy: "مناسب پسران",
+  girl: "مناسب دختران",
 };
 
 export function isApiProduct(product: ProductSource): product is ApiProduct {
@@ -98,7 +98,7 @@ export function getProductAgeGroup(product: ProductSource) {
 
 export function getProductGender(product: ProductSource) {
   if (!isApiProduct(product)) {
-    return "مناسب همه کودکان";
+    return "مناسب همه";
   }
 
   return genderLabels[product.gender];

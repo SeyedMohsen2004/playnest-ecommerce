@@ -98,7 +98,7 @@ def test_kavenegar_regular_sms_delivery_is_mocked(kavenegar_api):
         {
             "sender": "10004346",
             "receptor": PHONE_NUMBER,
-            "message": "PlayNest verification code: 123456",
+            "message": "IpakToys verification code: 123456",
         }
     )
 

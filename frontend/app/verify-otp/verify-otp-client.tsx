@@ -50,7 +50,7 @@ export function VerifyOtpClient() {
 
   return (
     <AuthCard
-      description="کد تایید ارسال‌شده را وارد کنید تا حساب PlayNest شما فعال شود."
+      description="کد تایید ارسال‌شده را وارد کنید تا حساب IpakToys شما فعال شود."
       footerHref="/register"
       footerLink="اصلاح شماره موبایل"
       footerText="شماره را اشتباه وارد کرده‌اید؟"

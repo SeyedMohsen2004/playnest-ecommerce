@@ -13,7 +13,7 @@ export function LegalPageLayout({
     <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
       <section className="rounded-[2.5rem] bg-white p-6 shadow-soft sm:p-10">
         <p className="text-sm font-bold uppercase tracking-wide text-coral">
-          PlayNest
+          IpakToys
         </p>
         <h1 className="mt-3 text-4xl font-black leading-tight text-ink sm:text-5xl">
           {title}
@@ -49,7 +49,7 @@ export function InfoList({ items }: { items: string[] }) {
     <ul className="space-y-3">
       {items.map((item) => (
         <li className="flex gap-3" key={item}>
-          <span className="mt-3 size-2 rounded-full bg-coral" />
+          <span className="mt-3 size-2 shrink-0 rounded-full bg-coral" />
           <span>{item}</span>
         </li>
       ))}
@@ -60,7 +60,7 @@ export function InfoList({ items }: { items: string[] }) {
 export function DraftNotice() {
   return (
     <div className="rounded-[2rem] border border-coral/15 bg-coral/5 p-5 text-sm leading-8 text-ink/65">
-      این متن به‌عنوان پیش‌نویس عمومی برای نسخه توسعه PlayNest آماده شده است و
+      این متن به‌عنوان پیش‌نویس عمومی برای نسخه توسعه IpakToys آماده شده است و
       پیش از انتشار نهایی باید با اطلاعات واقعی، سیاست‌های اجرایی و تایید مالک
       کسب‌وکار به‌روزرسانی شود.
     </div>

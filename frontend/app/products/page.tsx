@@ -5,9 +5,9 @@ export default function ProductsPage() {
   return (
     <>
       <PageHeader
-        description="مجموعه‌ای از اسباب‌بازی‌های آموزشی، فکری، ساختنی و سرگرم‌کننده برای سنین مختلف."
-        eyebrow="فروشگاه PlayNest"
-        title="همه اسباب‌بازی‌ها"
+        description="مجموعه‌ای از بازی‌های فکری، بردگیم‌ها، پازل‌ها، بازی‌های کارتی و محصولات ساختنی برای کودک، نوجوان و خانواده."
+        eyebrow="فروشگاه IpakToys"
+        title="همه بازی‌ها و محصولات"
       />
       <ProductsPageClient />
     </>

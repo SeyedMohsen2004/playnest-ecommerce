@@ -43,7 +43,7 @@ def _send_kavenegar_otp(phone_number, code):
             {
                 "sender": settings.KAVENEGAR_SENDER,
                 "receptor": phone_number,
-                "message": f"PlayNest verification code: {code}",
+                "message": f"IpakToys verification code: {code}",
             }
         )
     except Exception as exc:
@@ -54,7 +54,7 @@ def _send_kavenegar_otp(phone_number, code):
 def send_sms_otp(phone_number, code):
     provider = settings.SMS_PROVIDER
     if provider == "console":
-        print(f"PlayNest OTP for {phone_number}: {code}")
+        print(f"IpakToys OTP for {phone_number}: {code}")
         return None
     if provider == "kavenegar":
         return _send_kavenegar_otp(phone_number, code)

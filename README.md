@@ -1,16 +1,20 @@
-# PlayNest Ecommerce
+# IpakToys Ecommerce
 
-PlayNest is a Django REST Framework based ecommerce backend for an online toy
-store. It includes authentication, product catalog, cart, orders, coupons,
-payments, reviews, wishlist, admin management, Dockerized PostgreSQL setup,
-automated tests and CI.
+IpakToys is a Django and Next.js ecommerce platform for a board game, puzzle,
+intellectual game, and creative games store. It includes authentication,
+product catalog, cart, orders, coupons, payments, reviews, wishlist, admin
+management, Dockerized PostgreSQL setup, automated tests and CI.
+
+Some internal project names, Docker services, and database defaults still use
+the original PlayNest codebase naming for continuity. Customer-facing branding
+and demo content use IpakToys.
 
 ## Features
 
 - Phone number based authentication
 - OTP registration flow
 - JWT authentication
-- Product catalog
+- Board game and creative games product catalog
 - Categories and brands
 - Product images
 - Cart management
@@ -30,6 +34,7 @@ automated tests and CI.
 - Automated tests
 - GitHub Actions CI
 - Kavenegar-ready SMS architecture
+- Persian-first RTL Next.js frontend
 
 ## Tech Stack
 
@@ -49,7 +54,7 @@ automated tests and CI.
 | Path | Description |
 | --- | --- |
 | `backend/` | Django backend application, API apps, tests, and management commands. |
-| `frontend/` | Placeholder for the planned frontend application. |
+| `frontend/` | Persian-first RTL Next.js frontend for the customer storefront. |
 | `docs/` | Project documentation notes. |
 | `docker-compose.yml` | Local development services for API and PostgreSQL. |
 | `.env.example` | Example environment variables for development and integrations. |
@@ -120,7 +125,7 @@ Seed data includes:
 - Customer user
 - Categories
 - Brands
-- Toy products
+- Board game, puzzle, card game, educational game, and building products
 - Coupons
 
 | Account | Phone Number | Password |
@@ -198,24 +203,24 @@ so uploaded files persist between container rebuilds.
 
 ## Current Status
 
-Backend Core v1 is complete. Frontend is planned next.
+Backend Core v1 is complete and the frontend storefront is actively connected
+to the API for products, authentication, cart, checkout, and payment flow.
 
 Production integrations such as real SMS, real payment gateway, deployment,
 domain and SSL will be configured later with business-owner credentials.
 
 ## Roadmap
 
-- Build responsive frontend
-- Connect frontend to backend APIs
+- Complete remaining frontend account and wishlist flows
 - Add real ZarinPal integration
 - Configure production SMS
 - Deploy to production server
 - Configure domain, SSL and production environment
-- Add Enamad/legal pages support
+- Finalize Enamad/legal pages with business-owner approved text
 
 ## Resume Highlights
 
-- RESTful ecommerce backend
+- RESTful ecommerce backend for board games and creative games
 - Dockerized PostgreSQL development environment
 - JWT authentication
 - OTP architecture

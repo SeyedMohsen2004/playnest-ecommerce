@@ -9,14 +9,14 @@ export function NewsletterSection() {
         <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-white/75">
-              پیشنهادهای PlayNest
+              پیشنهادهای IpakToys
             </p>
             <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
               پیشنهادهای ویژه و ایده‌های هدیه را زودتر ببینید.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-white/80">
-              با عضویت در خبرنامه، از محصولات جدید، تخفیف‌ها و پیشنهادهای مناسب
-              کودکان باخبر شوید.
+              با عضویت در خبرنامه، از بردگیم‌های جدید، تخفیف‌ها و پیشنهادهای
+              مناسب خانواده و دورهمی باخبر شوید.
             </p>
           </div>
           <form className="rounded-3xl bg-white p-3 shadow-soft">

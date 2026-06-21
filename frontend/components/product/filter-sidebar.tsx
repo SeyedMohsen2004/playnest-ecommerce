@@ -64,7 +64,7 @@ function FilterContent({
           className="mt-3 h-11 w-full rounded-2xl border border-ink/10 bg-white px-4 text-sm outline-none transition placeholder:text-ink/35 focus:border-coral"
           id="product-search"
           onChange={(event) => updateFilter("search", event.target.value)}
-          placeholder="نام اسباب‌بازی را بنویسید"
+          placeholder="نام بازی یا محصول را بنویسید"
           type="search"
           value={filters.search}
         />

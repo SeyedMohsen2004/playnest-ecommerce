@@ -41,9 +41,9 @@ import { cn } from "@/lib/utils";
 
 const productBenefits: { label: string; icon: LucideIcon }[] = [
   { label: "ارسال سریع", icon: Truck },
-  { label: "کیفیت و ایمنی بررسی‌شده", icon: ShieldCheck },
+  { label: "کیفیت و اصالت بررسی‌شده", icon: ShieldCheck },
   { label: "بسته‌بندی مناسب هدیه", icon: PackageCheck },
-  { label: "انتخابی شاد برای بازی روزمره", icon: Sparkles },
+  { label: "مناسب دورهمی و تمرین ذهن", icon: Sparkles },
 ];
 
 async function loadProduct(slug: string): Promise<ProductSource | null> {
@@ -74,7 +74,7 @@ export default async function ProductDetailPage({
             محصولی پیدا نشد
           </h1>
           <p className="mx-auto mt-3 max-w-xl leading-8 text-ink/60">
-            این محصول در حال حاضر در فروشگاه PlayNest موجود نیست یا آدرس آن
+            این محصول در حال حاضر در فروشگاه IpakToys موجود نیست یا آدرس آن
             تغییر کرده است.
           </p>
           <Button asChild className="mt-7" variant="coral">

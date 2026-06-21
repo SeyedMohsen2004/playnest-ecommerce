@@ -38,10 +38,10 @@ export function SiteHeader() {
           </span>
           <span className="flex flex-col leading-none">
             <span className="text-2xl font-black tracking-tight text-ink">
-              PlayNest
+              IpakToys
             </span>
             <span className="mt-1 text-[0.65rem] font-bold text-coral">
-              دنیای شاد اسباب‌بازی
+              بازی فکری، بردگیم و پازل
             </span>
           </span>
         </Link>
@@ -93,7 +93,9 @@ export function SiteHeader() {
           )}
 
           {isLoading && !isAuthenticated ? (
-            <span className="text-xs font-bold text-ink/40">در حال بررسی...</span>
+            <span className="text-xs font-bold text-ink/40">
+              در حال بررسی...
+            </span>
           ) : null}
         </div>
 

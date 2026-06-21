@@ -118,8 +118,11 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "PlayNest API",
-    "DESCRIPTION": "Backend API for the PlayNest toy ecommerce platform.",
+    "TITLE": "IpakToys API",
+    "DESCRIPTION": (
+        "Backend API for the IpakToys board game and creative games ecommerce "
+        "platform."
+    ),
     "VERSION": "1.0.0",
 }
 

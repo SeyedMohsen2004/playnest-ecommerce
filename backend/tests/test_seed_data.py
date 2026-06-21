@@ -20,11 +20,11 @@ def test_seed_data_command_runs_successfully_and_is_idempotent(settings, tmp_pat
     assert admin.is_superuser is True
     assert admin.check_password("AdminPass123!")
     assert customer.check_password("CustomerPass123!")
-    assert Category.objects.count() == 6
+    assert Category.objects.count() == 7
     assert Brand.objects.count() == 5
     assert Product.objects.count() == 20
     assert ProductImage.objects.count() == 20
     assert set(Coupon.objects.values_list("code", flat=True)) == {
         "OFF10",
-        "TOY50000",
+        "GAME50000",
     }

@@ -11,18 +11,19 @@ export function HeroSection() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-coral shadow-sm">
             <Sparkles className="size-4" />
-            اسباب‌بازی‌های فصل جدید رسیدند
+            انتخاب‌های تازه برای دورهمی و خلاقیت
           </div>
           <h1 className="mt-6 max-w-3xl text-5xl font-black tracking-tight text-ink sm:text-6xl lg:text-7xl">
-            دنیای شاد اسباب‌بازی‌ها برای کودکان
+            دنیای بازی‌های فکری، بردگیم و سرگرمی‌های ساختنی
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/65">
-            در PlayNest بهترین اسباب‌بازی‌های آموزشی، فکری و سرگرم‌کننده را
-            برای کودکان با خریدی ساده و مطمئن پیدا کنید.
+            در IpakToys بازی‌های فکری، بردگیم‌ها، پازل‌ها و محصولات ساختنی
+            مناسب کودک، نوجوان و خانواده را با تجربه خریدی ساده و مطمئن پیدا
+            کنید.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" variant="coral">
-              <Link href="#products">
+              <Link href="/products">
                 مشاهده محصولات <ArrowLeft className="size-5" />
               </Link>
             </Button>
@@ -33,11 +34,11 @@ export function HeroSection() {
           <div className="mt-8 grid gap-4 text-sm font-semibold text-ink/70 sm:grid-cols-2">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-5 text-emerald-500" />
-              محصولات ایمن و منتخب
+              انتخاب مناسب سن و سبک بازی
             </div>
             <div className="flex items-center gap-2">
               <Gift className="size-5 text-coral" />
-              گزینه‌های مناسب هدیه
+              گزینه‌های مناسب هدیه و دورهمی
             </div>
           </div>
         </div>
@@ -53,10 +54,11 @@ export function HeroSection() {
                   بسته پیشنهادی
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-ink">
-                  ست ساختنی خلاقانه
+                  بردگیم و پازل برای شب خانواده
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-ink/60">
-                  ترکیبی از بلوک، پازل و ابزارهای کوچک برای بازی و یادگیری.
+                  ترکیبی از بازی رومیزی، پازل و محصولات ساختنی برای سرگرمی،
+                  یادگیری و رقابت دوستانه.
                 </p>
               </div>
               <div className="absolute left-10 top-20 size-28 rotate-12 rounded-3xl bg-sunshine shadow-soft" />

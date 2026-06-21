@@ -1,1 +1,1 @@
-"""PlayNest Django project configuration."""
+"""IpakToys Django project configuration."""

@@ -69,7 +69,7 @@ export default function RegisterPage() {
       footerHref="/login"
       footerLink="وارد شوید"
       footerText="قبلا ثبت‌نام کرده‌اید؟"
-      title="ثبت‌نام در PlayNest"
+      title="ثبت‌نام در IpakToys"
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
         <Field
