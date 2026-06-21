@@ -56,12 +56,6 @@ export function ProductCartActions({
     setIsSubmitting(true);
 
     try {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("Add to cart product id:", productId);
-        console.log("Add to cart quantity:", quantity);
-        console.log("Add to cart payload keys:", ["product", "quantity"]);
-      }
-
       await addCartItem(accessToken, productId, quantity);
       setMessageTone("success");
       setMessage("محصول به سبد خرید اضافه شد.");
@@ -99,7 +93,7 @@ export function ProductCartActions({
         >
           {isSubmitting ? "در حال افزودن..." : "افزودن به سبد خرید"}
         </Button>
-        <Button type="button" variant="outline">
+        <Button type="button" variant="outline" title="این قابلیت به‌زودی فعال می‌شود">
           <Heart className="size-5" />
           علاقه‌مندی
         </Button>

@@ -209,6 +209,26 @@ to the API for products, authentication, cart, checkout, and payment flow.
 Production integrations such as real SMS, real payment gateway, deployment,
 domain and SSL will be configured later with business-owner credentials.
 
+## Manual Demo Smoke Routes
+
+Use these routes for a quick customer-demo check after starting the full stack:
+
+| Page | Route |
+| --- | --- |
+| Home | `/` |
+| Products | `/products` |
+| Cart | `/cart` |
+| Checkout | `/checkout` |
+| Mock payment | `/payment/1` |
+| Orders | `/account/orders` |
+| About | `/about` |
+| Contact | `/contact` |
+| Terms | `/terms` |
+| Privacy | `/privacy` |
+| Returns | `/returns` |
+| Shipping | `/shipping` |
+| Shopping guide | `/shopping-guide` |
+
 ## Roadmap
 
 - Complete remaining frontend account and wishlist flows

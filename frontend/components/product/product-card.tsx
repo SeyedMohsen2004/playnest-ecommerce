@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, ShoppingCart, Star } from "lucide-react";
+import { Eye, Heart, ShoppingCart, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -45,7 +45,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
 
     if (!isAuthenticated) {
       setMessageTone("error");
-      setMessage("برای افزودن به سبد خرید ابتدا وارد شوید.");
+      setMessage("برای افزودن محصول به سبد خرید ابتدا وارد شوید.");
       router.push("/login");
       return;
     }
@@ -61,7 +61,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
 
     if (typeof productId !== "number" || !Number.isFinite(productId)) {
       setMessageTone("error");
-      setMessage("خطا در افزودن به سبد خرید.");
+      setMessage("این محصول فعلا از طریق داده نمونه نمایش داده می‌شود.");
       return;
     }
 
@@ -70,7 +70,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
     try {
       await addCartItem(accessToken, productId, 1);
       setMessageTone("success");
-      setMessage("به سبد خرید اضافه شد.");
+      setMessage("محصول به سبد خرید اضافه شد.");
     } catch (error) {
       if (process.env.NODE_ENV !== "production") {
         console.error("Product card add to cart error:", error);
@@ -157,20 +157,27 @@ export function ProductCard({ product }: { product: ProductSource }) {
           className="mt-4"
           oldAmount={getProductOldPrice(product)}
         />
-        <Button
-          className="mt-5 w-full"
-          disabled={isAdding || !isInStock}
-          onClick={handleAddToCart}
-          type="button"
-          variant="outline"
-        >
-          <ShoppingCart className="size-4" />
-          {isAdding
-            ? "در حال افزودن..."
-            : isInStock
-              ? "افزودن به سبد خرید"
-              : "ناموجود"}
-        </Button>
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <Button asChild variant="outline">
+            <Link href={`/products/${product.slug}`}>
+              <Eye className="size-4" />
+              مشاهده جزئیات
+            </Link>
+          </Button>
+          <Button
+            disabled={isAdding || !isInStock}
+            onClick={handleAddToCart}
+            type="button"
+            variant="coral"
+          >
+            <ShoppingCart className="size-4" />
+            {isAdding
+              ? "در حال افزودن..."
+              : isInStock
+                ? "افزودن به سبد خرید"
+                : "ناموجود"}
+          </Button>
+        </div>
         {message ? (
           <p
             className={

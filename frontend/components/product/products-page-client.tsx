@@ -217,7 +217,7 @@ export function ProductsPageClient() {
               : `نمایش ${productCount} محصول`}
           </p>
           <p className="text-sm text-ink/50">
-            محصولات، دسته‌بندی‌ها و برندها از API جنگو دریافت می‌شوند.
+            محصولات، دسته‌بندی‌ها و برندها به‌صورت به‌روز از فروشگاه دریافت می‌شوند.
           </p>
         </div>
 
