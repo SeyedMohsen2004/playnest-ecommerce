@@ -85,7 +85,7 @@ export function ProductCartActions({
           value={quantity}
         />
         <Button
-          className="flex-1"
+          className="min-h-12 w-full px-6 py-3 text-center leading-6 whitespace-normal sm:w-auto sm:min-w-56 sm:flex-1"
           disabled={isSubmitting || !isInStock}
           onClick={handleAddToCart}
           type="button"
@@ -93,7 +93,12 @@ export function ProductCartActions({
         >
           {isSubmitting ? "در حال افزودن..." : "افزودن به سبد خرید"}
         </Button>
-        <Button type="button" variant="outline" title="این قابلیت به‌زودی فعال می‌شود">
+        <Button
+          className="min-h-12 w-full px-6 py-3 text-center leading-6 whitespace-normal sm:w-auto"
+          type="button"
+          variant="outline"
+          title="این قابلیت به‌زودی فعال می‌شود"
+        >
           <Heart className="size-5" />
           علاقه‌مندی
         </Button>

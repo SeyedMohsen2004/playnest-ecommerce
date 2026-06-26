@@ -157,14 +157,19 @@ export function ProductCard({ product }: { product: ProductSource }) {
           className="mt-4"
           oldAmount={getProductOldPrice(product)}
         />
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          <Button asChild variant="outline">
+        <div className="mt-5 grid gap-2 xl:grid-cols-2">
+          <Button
+            asChild
+            className="min-h-11 px-4 py-3 text-center leading-6 whitespace-normal"
+            variant="outline"
+          >
             <Link href={`/products/${product.slug}`}>
               <Eye className="size-4" />
               مشاهده جزئیات
             </Link>
           </Button>
           <Button
+            className="min-h-11 px-4 py-3 text-center leading-6 whitespace-normal"
             disabled={isAdding || !isInStock}
             onClick={handleAddToCart}
             type="button"
