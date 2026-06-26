@@ -10,6 +10,11 @@ backend/venv/
 backend/media/
 media/
 staticfiles/
+/import_data/
+!backend/import_data/
+backend/import_data/*
+!backend/import_data/README.md
+!backend/import_data/.gitkeep
 
 # Node
 node_modules/

@@ -136,6 +136,79 @@ Seed data includes:
 The current coupon model supports percentage and fixed discounts, so a dedicated
 `FREESHIP` coupon is not seeded.
 
+## Real Product Import
+
+For client product data, keep `seed_data` for development/demo usage and import
+real IpakToys products with the separate Excel/image import command.
+
+Place the client files locally under:
+
+```text
+backend/import_data/
+  products.xlsx
+  raw/
+    محصولات.rar
+  product_images/
+    هوش چین/
+    لگو بتمن/
+    ...
+```
+
+The actual workbook, archive, and images are ignored by git because they are
+client data. The import command reads:
+
+- `نام محصول`
+- `دسته بندی`
+- `برند`
+- `قیمت`
+- `قیمت تخفیفی در صورت وجود`
+- `موجودی`
+- `گروه سنی`
+- `تعداد بازیکن`
+- `مدت زمان بازی`
+- `توضیح کوتاه`
+- `توضیح کامل`
+- `ویژگی`
+- `نام تصویر اصلی`
+- `نام تصاویر بیشتر`
+
+Run the import inside Docker:
+
+```bash
+docker compose exec api python manage.py import_real_products
+```
+
+Or with explicit paths:
+
+```bash
+docker compose exec api python manage.py import_real_products \
+  --excel import_data/products.xlsx \
+  --images-dir import_data/product_images
+```
+
+To remove existing products before importing:
+
+```bash
+docker compose exec api python manage.py import_real_products --clear-existing
+```
+
+`--clear-existing` deletes products only. If products are referenced by existing
+order items, the command stops with a clear safety message instead of deleting
+orders or payments.
+
+For a disposable local/demo reset, you can explicitly clear dependent ecommerce
+data first:
+
+```bash
+docker compose exec api python manage.py import_real_products \
+  --clear-existing \
+  --clear-dependent-demo-data
+```
+
+This destructive option deletes payments, orders, carts, wishlist items,
+reviews, product images, and products before importing. Use it only for
+development/demo data and take a database backup before any production import.
+
 ## API Documentation
 
 | Resource | URL |
