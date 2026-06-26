@@ -1,5 +1,11 @@
 import { apiClient } from "@/lib/api/client";
-import type { Brand, Category, PaginatedResponse, Product } from "@/types/api";
+import type {
+  Brand,
+  Category,
+  PaginatedResponse,
+  Product,
+  ProductReview,
+} from "@/types/api";
 
 export type ProductQueryParams = {
   search?: string;
@@ -24,6 +30,12 @@ export function getProducts(params?: ProductQueryParams) {
 
 export function getProductBySlug(slug: string) {
   return apiClient.get<Product>(`/products/${slug}/`);
+}
+
+export function getProductReviews(slug: string) {
+  return apiClient
+    .get<ListResponse<ProductReview>>(`/products/${slug}/reviews/`)
+    .then(normalizeListResponse);
 }
 
 export function getCategories() {

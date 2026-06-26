@@ -9,16 +9,20 @@ import {
   Truck,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ProductCartActions } from "@/components/product/product-cart-actions";
 import { ProductCard } from "@/components/product/product-card";
+import { useAuth } from "@/components/providers/auth-provider";
 import { PriceText } from "@/components/shared/price-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getProductBySlug } from "@/lib/api/products";
+import {
+  getProductBySlug,
+  getProductReviews,
+  getProducts,
+} from "@/lib/api/products";
 import { toPersianDigits } from "@/lib/format";
-import { products as mockProducts } from "@/lib/mock-data";
 import {
   getProductAgeGroup,
   getProductBadge,
@@ -28,8 +32,8 @@ import {
   getProductDescription,
   getProductGender,
   getProductImageClass,
-  getProductImages,
   getProductImageUrl,
+  getProductImages,
   getProductIsInStock,
   getProductOldPrice,
   getProductPrice,
@@ -37,40 +41,78 @@ import {
   getProductReviewCount,
   getProductShortDescription,
   getProductStock,
-  isApiProduct,
-  type ProductSource,
 } from "@/lib/product-display";
 import { cn } from "@/lib/utils";
+import type { Product, ProductReview } from "@/types/api";
 
 const productBenefits: { label: string; icon: LucideIcon }[] = [
-  { label: "ارسال سریع", icon: Truck },
+  { label: "ارسال سفارش", icon: Truck },
   { label: "کیفیت و اصالت بررسی‌شده", icon: ShieldCheck },
   { label: "بسته‌بندی مناسب هدیه", icon: PackageCheck },
   { label: "مناسب دورهمی و تمرین ذهن", icon: Sparkles },
 ];
 
 type ProductState = {
-  product: ProductSource | null;
+  product: Product | null;
   isLoading: boolean;
 };
 
 export function ProductDetailClient({ slug }: { slug: string }) {
+  const { isAuthenticated } = useAuth();
   const [{ product, isLoading }, setProductState] = useState<ProductState>({
     product: null,
     isLoading: true,
   });
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [slug]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadProduct() {
       setProductState({ product: null, isLoading: true });
+      setRelatedProducts([]);
+      setReviews([]);
+      setSelectedImage(null);
 
       try {
         const apiProduct = await getProductBySlug(slug);
+        const galleryImages = getProductImages(apiProduct);
+        const initialImage = galleryImages[0]?.image || getProductImageUrl(apiProduct);
 
-        if (isMounted) {
-          setProductState({ product: apiProduct, isLoading: false });
+        if (!isMounted) {
+          return;
+        }
+
+        setProductState({ product: apiProduct, isLoading: false });
+        setSelectedImage(initialImage);
+
+        const [productsResult, reviewsResult] = await Promise.allSettled([
+          getProducts(),
+          getProductReviews(slug),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (productsResult.status === "fulfilled") {
+          setRelatedProducts(
+            buildRelatedProducts(apiProduct, productsResult.value),
+          );
+        } else if (process.env.NODE_ENV !== "production") {
+          console.error("Related products API error:", productsResult.reason);
+        }
+
+        if (reviewsResult.status === "fulfilled") {
+          setReviews(reviewsResult.value);
+        } else if (process.env.NODE_ENV !== "production") {
+          console.error("Product reviews API error:", reviewsResult.reason);
         }
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
@@ -78,10 +120,7 @@ export function ProductDetailClient({ slug }: { slug: string }) {
         }
 
         if (isMounted) {
-          setProductState({
-            product: mockProducts.find((item) => item.slug === slug) || null,
-            isLoading: false,
-          });
+          setProductState({ product: null, isLoading: false });
         }
       }
     }
@@ -92,6 +131,11 @@ export function ProductDetailClient({ slug }: { slug: string }) {
       isMounted = false;
     };
   }, [slug]);
+
+  const galleryImages = useMemo(
+    () => (product ? getProductImages(product) : []),
+    [product],
+  );
 
   if (isLoading) {
     return (
@@ -107,19 +151,12 @@ export function ProductDetailClient({ slug }: { slug: string }) {
     return <ProductNotFound />;
   }
 
-  const imageUrl = getProductImageUrl(product);
   const imageClass = getProductImageClass(product);
-  const galleryImages = getProductImages(product);
+  const mainImageUrl =
+    selectedImage || galleryImages[0]?.image || getProductImageUrl(product);
   const isInStock = getProductIsInStock(product);
   const rating = getProductRating(product);
-  const reviewCount = getProductReviewCount(product);
-  const relatedProducts = mockProducts
-    .filter(
-      (item) =>
-        item.slug !== product.slug &&
-        item.categorySlug === getProductCategoryKey(product),
-    )
-    .slice(0, 3);
+  const reviewCount = reviews.length || getProductReviewCount(product);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -131,12 +168,12 @@ export function ProductDetailClient({ slug }: { slug: string }) {
               imageClass,
             )}
           >
-            {imageUrl ? (
+            {mainImageUrl ? (
               <div
                 aria-label={product.name}
                 className="absolute inset-0 bg-cover bg-center"
                 role="img"
-                style={{ backgroundImage: `url("${imageUrl}")` }}
+                style={{ backgroundImage: `url("${mainImageUrl}")` }}
               />
             ) : (
               <div className="absolute inset-x-12 top-28 h-48 rotate-6 rounded-[3rem] bg-white/55 shadow-soft" />
@@ -146,34 +183,36 @@ export function ProductDetailClient({ slug }: { slug: string }) {
               {getProductBadge(product)}
             </Badge>
           </div>
-          <div className="mt-4 grid grid-cols-4 gap-3">
-            {(galleryImages.length
-              ? galleryImages
-              : Array.from({ length: 4 }, (_, index) => ({
-                  id: index,
-                  image: "",
-                  alt_text: product.name,
-                }))
-            ).map((image, index) => (
-              <div
-                className={cn(
-                  "h-24 overflow-hidden rounded-3xl bg-gradient-to-br",
-                  imageClass,
-                  index === 0 ? "opacity-100" : "opacity-70",
-                )}
-                key={image.id}
-              >
-                {image.image ? (
-                  <div
-                    aria-label={image.alt_text || product.name}
-                    className="h-full w-full bg-cover bg-center"
-                    role="img"
-                    style={{ backgroundImage: `url("${image.image}")` }}
-                  />
-                ) : null}
-              </div>
-            ))}
-          </div>
+
+          {galleryImages.length > 0 ? (
+            <div className="mt-4 grid grid-cols-4 gap-3">
+              {galleryImages.map((image) => {
+                const isActive = image.image === mainImageUrl;
+
+                return (
+                  <button
+                    aria-label={`نمایش تصویر ${image.alt_text || product.name}`}
+                    className={cn(
+                      "h-24 overflow-hidden rounded-3xl bg-gradient-to-br ring-offset-2 transition",
+                      imageClass,
+                      isActive
+                        ? "opacity-100 ring-2 ring-coral"
+                        : "opacity-70 hover:opacity-100",
+                    )}
+                    key={image.id}
+                    onClick={() => setSelectedImage(image.image)}
+                    type="button"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="block h-full w-full bg-cover bg-center"
+                      style={{ backgroundImage: `url("${image.image}")` }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-[2rem] bg-white p-6 shadow-sm sm:p-8">
@@ -196,13 +235,19 @@ export function ProductDetailClient({ slug }: { slug: string }) {
           <p className="mt-4 text-sm leading-7 text-ink/60">
             {getProductShortDescription(product)}
           </p>
-          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm font-bold text-amber-500">
-            <Star className="size-5 fill-current" />
-            {toPersianDigits(rating ? rating.toFixed(1) : "0")} از ۵
-            <span className="text-ink/35">|</span>
-            <span className="text-ink/55">
-              {toPersianDigits(reviewCount)} دیدگاه
-            </span>
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm font-bold text-ink/55">
+            {reviewCount > 0 && rating !== null ? (
+              <>
+                <Star className="size-5 fill-current text-amber-500" />
+                <span className="text-amber-500">
+                  {toPersianDigits(rating.toFixed(1))} از ۵
+                </span>
+                <span className="text-ink/35">|</span>
+                <span>{toPersianDigits(reviewCount)} دیدگاه</span>
+              </>
+            ) : (
+              <span>بدون نظر</span>
+            )}
           </div>
           <PriceText
             amount={getProductPrice(product)}
@@ -220,17 +265,14 @@ export function ProductDetailClient({ slug }: { slug: string }) {
             />
           </dl>
 
-          <ProductCartActions
-            isInStock={isInStock}
-            productId={isApiProduct(product) ? product.id : null}
-          />
+          <ProductCartActions isInStock={isInStock} productId={product.id} />
         </section>
       </div>
 
       <section className="mt-12 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-[2rem] bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-ink">توضیحات محصول</h2>
-          <p className="mt-4 leading-8 text-ink/65">
+          <p className="mt-4 whitespace-pre-line leading-8 text-ink/65">
             {getProductDescription(product)}
           </p>
         </div>
@@ -251,40 +293,68 @@ export function ProductDetailClient({ slug }: { slug: string }) {
 
       <section className="mt-12 rounded-[2rem] bg-white p-6 shadow-sm">
         <h2 className="text-2xl font-black text-ink">دیدگاه خریداران</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          {[
-            "کیفیت خیلی خوبی داشت و بسته‌بندی هم عالی بود.",
-            "برای هدیه خریدیم و تجربه خرید راحتی داشتیم.",
-          ].map((review) => (
-            <div className="rounded-3xl bg-cream p-5" key={review}>
-              <div className="flex items-center gap-1 text-amber-500">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Star className="size-4 fill-current" key={index} />
-                ))}
+        {reviews.length > 0 ? (
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            {reviews.map((review) => (
+              <div className="rounded-3xl bg-cream p-5" key={review.id}>
+                <div className="flex items-center gap-1 text-amber-500">
+                  {Array.from({ length: review.rating }).map((_, index) => (
+                    <Star className="size-4 fill-current" key={index} />
+                  ))}
+                </div>
+                <p className="mt-3 text-sm font-black text-ink">
+                  {review.user_name || "کاربر IpakToys"}
+                </p>
+                <p className="mt-3 text-sm leading-7 text-ink/65">
+                  {review.comment || "بدون متن"}
+                </p>
               </div>
-              <p className="mt-3 text-sm leading-7 text-ink/65">{review}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-3xl bg-cream p-5 text-sm leading-7 text-ink/65">
+            <p className="font-bold">هنوز نظری برای این محصول ثبت نشده است.</p>
+            {!isAuthenticated ? (
+              <p className="mt-2">برای ثبت نظر ابتدا وارد حساب کاربری شوید.</p>
+            ) : (
+              <p className="mt-2">
+                امکان ثبت نظر از پنل کاربری در مرحله بعدی فعال می‌شود.
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
-      <section className="mt-12">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-black text-ink">محصولات مرتبط</h2>
-          <Link className="text-sm font-bold text-coral" href="/products">
-            مشاهده همه
-          </Link>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {(relatedProducts.length ? relatedProducts : mockProducts.slice(0, 3))
-            .filter((item) => item.slug !== product.slug)
-            .map((item) => (
+      {relatedProducts.length > 0 ? (
+        <section className="mt-12">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-2xl font-black text-ink">محصولات مرتبط</h2>
+            <Link className="text-sm font-bold text-coral" href="/products">
+              مشاهده همه
+            </Link>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {relatedProducts.map((item) => (
               <ProductCard key={item.slug} product={item} />
             ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
+}
+
+function buildRelatedProducts(product: Product, products: Product[]) {
+  const categoryKey = getProductCategoryKey(product);
+  const candidates = products.filter((item) => item.slug !== product.slug);
+  const sameCategory = candidates.filter(
+    (item) => getProductCategoryKey(item) === categoryKey,
+  );
+  const otherProducts = candidates.filter(
+    (item) => !sameCategory.some((related) => related.slug === item.slug),
+  );
+
+  return [...sameCategory, ...otherProducts].slice(0, 3);
 }
 
 function ProductNotFound() {

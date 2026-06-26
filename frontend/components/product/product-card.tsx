@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Heart, ShoppingCart, Star } from "lucide-react";
+import { Eye, ShoppingCart, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,6 +21,7 @@ import {
   getProductOldPrice,
   getProductPrice,
   getProductRating,
+  getProductReviewCount,
   isApiProduct,
   type ProductSource,
 } from "@/lib/product-display";
@@ -34,6 +35,8 @@ export function ProductCard({ product }: { product: ProductSource }) {
   const imageClass = getProductImageClass(product);
   const isInStock = getProductIsInStock(product);
   const productId = isApiProduct(product) ? product.id : null;
+  const rating = getProductRating(product);
+  const reviewCount = getProductReviewCount(product);
   const [isAdding, setIsAdding] = useState(false);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"success" | "error">(
@@ -113,17 +116,6 @@ export function ProductCard({ product }: { product: ProductSource }) {
           <Badge className="absolute right-4 top-4 bg-white/90 text-coral">
             {getProductBadge(product)}
           </Badge>
-          <button
-            type="button"
-            className="absolute left-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm transition hover:text-coral"
-            aria-label={`افزودن ${product.name} به علاقه‌مندی‌ها`}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-          >
-            <Heart className="size-5" />
-          </button>
         </div>
       </Link>
 
@@ -148,28 +140,38 @@ export function ProductCard({ product }: { product: ProductSource }) {
             {product.name}
           </h3>
         </Link>
-        <div className="mt-3 flex items-center gap-1 text-sm font-bold text-amber-500">
-          <Star className="size-4 fill-current" />
-          {toPersianDigits(getProductRating(product).toFixed(1))}
+        <div className="mt-3 flex items-center gap-1 text-sm font-bold text-ink/50">
+          {reviewCount > 0 && rating !== null ? (
+            <>
+              <Star className="size-4 fill-current text-amber-500" />
+              <span className="text-amber-500">
+                {toPersianDigits(rating.toFixed(1))}
+              </span>
+              <span>{toPersianDigits(reviewCount)} نظر</span>
+            </>
+          ) : (
+            <span>بدون نظر</span>
+          )}
         </div>
         <PriceText
           amount={getProductPrice(product)}
           className="mt-4"
           oldAmount={getProductOldPrice(product)}
         />
-        <div className="mt-5 grid gap-2 xl:grid-cols-2">
+        <div className="mt-5 grid grid-cols-2 gap-2">
           <Button
             asChild
-            className="min-h-11 px-4 py-3 text-center leading-6 whitespace-normal"
+            className="h-11 min-w-0 px-3 text-xs leading-5 sm:px-4 sm:text-sm"
             variant="outline"
           >
             <Link href={`/products/${product.slug}`}>
               <Eye className="size-4" />
-              مشاهده جزئیات
+              <span className="hidden sm:inline">مشاهده جزئیات</span>
+              <span className="sm:hidden">جزئیات</span>
             </Link>
           </Button>
           <Button
-            className="min-h-11 px-4 py-3 text-center leading-6 whitespace-normal"
+            className="h-11 min-w-0 px-3 text-xs leading-5 sm:px-4 sm:text-sm"
             disabled={isAdding || !isInStock}
             onClick={handleAddToCart}
             type="button"
@@ -179,7 +181,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
             {isAdding
               ? "در حال افزودن..."
               : isInStock
-                ? "افزودن به سبد خرید"
+                ? "سبد خرید"
                 : "ناموجود"}
           </Button>
         </div>

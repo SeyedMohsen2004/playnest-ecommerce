@@ -76,6 +76,17 @@ export type ProductDetail = Product & {
   images: ProductImage[];
 };
 
+export type ProductReview = {
+  id: number;
+  user_name: string;
+  product: string;
+  rating: number;
+  comment: string;
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type User = {
   id: number;
   phone_number: string;

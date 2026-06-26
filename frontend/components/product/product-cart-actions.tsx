@@ -1,6 +1,5 @@
 "use client";
 
-import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -92,15 +91,6 @@ export function ProductCartActions({
           variant="coral"
         >
           {isSubmitting ? "در حال افزودن..." : "افزودن به سبد خرید"}
-        </Button>
-        <Button
-          className="min-h-12 w-full px-6 py-3 text-center leading-6 whitespace-normal sm:w-auto"
-          type="button"
-          variant="outline"
-          title="این قابلیت به‌زودی فعال می‌شود"
-        >
-          <Heart className="size-5" />
-          علاقه‌مندی
         </Button>
       </div>
 

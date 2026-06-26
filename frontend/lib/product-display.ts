@@ -131,11 +131,17 @@ export function getProductDescription(product: ProductSource) {
 }
 
 export function getProductRating(product: ProductSource) {
-  return isApiProduct(product) ? toNumber(product.average_rating) : product.rating;
+  if (!isApiProduct(product)) {
+    return null;
+  }
+
+  return product.average_rating === null || product.average_rating === undefined
+    ? null
+    : toNumber(product.average_rating);
 }
 
 export function getProductReviewCount(product: ProductSource) {
-  return isApiProduct(product) ? product.review_count || 0 : 12;
+  return isApiProduct(product) ? product.review_count || 0 : 0;
 }
 
 export function getProductStock(product: ProductSource) {
