@@ -33,7 +33,7 @@ export default function AboutPage() {
       <InfoSection title="اطلاعات فروشگاه">
         <ul className="space-y-2">
           <li>شماره تماس: 09145863568</li>
-          <li>ایمیل: Mojtabakarbalae79@gmail.com</li>
+          <li>ایمیل: Ipacktoys@yahoo.com</li>
           <li>آدرس: تبریز - بازار مشروطه، حیاط پایین، پلاک C1</li>
         </ul>
       </InfoSection>

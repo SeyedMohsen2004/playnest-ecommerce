@@ -39,7 +39,7 @@ export default function ContactPage() {
         <InfoSection title="اطلاعات تماس">
           <ul className="space-y-3">
             <li>شماره تماس: 09145863568</li>
-            <li>ایمیل: Mojtabakarbalae79@gmail.com</li>
+            <li>ایمیل: Ipacktoys@yahoo.com</li>
             <li>آدرس: تبریز - بازار مشروطه، حیاط پایین، پلاک C1</li>
             <li>ساعات پاسخگویی: شنبه تا پنجشنبه، ۹ تا ۱۸</li>
           </ul>

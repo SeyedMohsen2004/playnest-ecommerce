@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, Menu, ShoppingCart, Sparkles, X } from "lucide-react";
+import { LogOut, Menu, ShoppingCart, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -32,9 +33,16 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-ink/5 bg-cream/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-coral text-white shadow-soft">
-            <Sparkles className="size-5" aria-hidden="true" />
+        <Link href="/" className="flex items-center gap-3">
+          <span className="flex size-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink/5 sm:size-14">
+            <Image
+              alt="لوگوی ایپک تویز"
+              className="h-full w-full object-contain p-1.5"
+              height={56}
+              priority
+              src="/images/brand/ipacktoys-logo.png"
+              width={56}
+            />
           </span>
           <span className="flex flex-col leading-none">
             <span className="text-2xl font-black tracking-tight text-ink">

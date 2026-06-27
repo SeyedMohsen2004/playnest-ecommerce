@@ -52,7 +52,7 @@ export function SiteFooter() {
               <Phone className="size-4" /> 09145863568
             </li>
             <li className="flex items-center gap-2">
-              <Mail className="size-4" /> Mojtabakarbalae79@gmail.com
+              <Mail className="size-4" /> Ipacktoys@yahoo.com
             </li>
             <li className="flex items-start gap-2 leading-7">
               <MapPin className="mt-1 size-4" /> تبریز - بازار مشروطه، حیاط
