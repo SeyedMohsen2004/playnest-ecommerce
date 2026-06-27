@@ -34,14 +34,14 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-ink/5 bg-cream/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
-          <span className="flex size-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink/5 sm:size-14">
+          <span className="relative block size-11 shrink-0 overflow-hidden rounded-[1.05rem] shadow-[0_10px_24px_rgba(23,32,51,0.10)] sm:size-12">
             <Image
               alt="لوگوی ایپک تویز"
-              className="h-full w-full object-contain p-1.5"
-              height={56}
+              className="h-full w-full object-cover"
+              height={48}
               priority
               src="/images/brand/ipacktoys-logo.png"
-              width={56}
+              width={48}
             />
           </span>
           <span className="flex flex-col leading-none">
