@@ -3,7 +3,10 @@ import { categories } from "@/lib/mock-data";
 
 export function FeaturedCategories() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8" id="categories">
+    <section
+      className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8"
+      id="categories"
+    >
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm font-bold uppercase tracking-wide text-coral">

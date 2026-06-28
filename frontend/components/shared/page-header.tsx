@@ -9,6 +9,7 @@ export function PageHeader({
 }) {
   return (
     <section className="mx-auto max-w-7xl px-4 pb-8 pt-10 sm:px-6 lg:px-8">
+      <div className="rounded-[2.5rem] border border-white/70 bg-white/58 p-6 shadow-sm backdrop-blur sm:p-8">
       {eyebrow ? (
         <p className="text-sm font-bold uppercase tracking-wide text-coral">
           {eyebrow}
@@ -22,6 +23,7 @@ export function PageHeader({
           {description}
         </p>
       ) : null}
+      </div>
     </section>
   );
 }

@@ -8,7 +8,7 @@ const icons = [ShieldCheck, Truck, RotateCcw, CreditCard];
 export function BenefitsSection() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8" id="benefits">
-      <div className="rounded-[2rem] bg-ink p-6 text-white shadow-soft sm:p-8 lg:p-10">
+      <div className="rounded-[2.5rem] bg-gradient-to-br from-ink via-[#24304f] to-grape p-6 text-white shadow-soft sm:p-8 lg:p-10">
         <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-sunshine">

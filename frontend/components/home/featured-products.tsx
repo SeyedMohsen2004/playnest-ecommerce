@@ -52,7 +52,8 @@ export function FeaturedProducts() {
   }, []);
 
   return (
-    <section className="bg-white/70 py-16" id="products">
+    <section className="relative overflow-hidden bg-white/55 py-16" id="offers">
+      <div className="pointer-events-none absolute left-10 top-10 size-32 rounded-full bg-coral/10 blur-3xl" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
@@ -70,7 +71,7 @@ export function FeaturedProducts() {
         </div>
 
         {isLoading ? (
-          <div className="mt-8 rounded-[2rem] bg-white p-10 text-center text-sm font-black text-ink/60 shadow-sm">
+          <div className="mt-8 rounded-[2rem] bg-white/85 p-10 text-center text-sm font-black text-ink/60 shadow-card backdrop-blur">
             در حال دریافت محصولات فروشگاه...
           </div>
         ) : null}
@@ -82,7 +83,7 @@ export function FeaturedProducts() {
         ) : null}
 
         {!isLoading && !hasError && products.length === 0 ? (
-          <div className="mt-8 rounded-[2rem] bg-white p-8 text-center shadow-sm">
+          <div className="mt-8 rounded-[2rem] bg-white/85 p-8 text-center shadow-card backdrop-blur">
             <p className="text-sm font-bold leading-7 text-ink/60">
               هنوز محصولی برای نمایش در صفحه اصلی ثبت نشده است.
             </p>

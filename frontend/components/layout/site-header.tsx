@@ -3,9 +3,10 @@
 import { LogOut, Menu, ShoppingCart, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const navigation = [
 
 export function SiteHeader() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const displayName =
@@ -30,14 +32,24 @@ export function SiteHeader() {
     router.push("/");
   }
 
+  function isActiveLink(href: string) {
+    const path = href.split("#")[0];
+
+    if (path === "/") {
+      return pathname === "/";
+    }
+
+    return pathname === path || pathname.startsWith(`${path}/`);
+  }
+
   return (
-    <header className="sticky top-0 z-50 border-b border-ink/5 bg-cream/85 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 border-b border-white/60 bg-cream/78 shadow-[0_10px_40px_rgba(23,32,51,0.06)] backdrop-blur-xl dark:border-white/10 dark:bg-[rgb(var(--surface)/0.88)]">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
           <span className="relative block size-11 shrink-0 overflow-hidden rounded-[1.05rem] shadow-[0_10px_24px_rgba(23,32,51,0.10)] sm:size-12">
             <Image
               alt="لوگوی ایپک تویز"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
               height={48}
               priority
               src="/images/brand/ipacktoys-logo.png"
@@ -54,24 +66,35 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 lg:flex">
-          {navigation.map((item) => (
-            <Link
-              href={item.href}
-              key={item.label}
-              className="text-sm font-semibold text-ink/70 transition hover:text-ink"
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-2 rounded-full bg-white/55 p-1 shadow-sm ring-1 ring-white/70 dark:bg-white/10 dark:ring-white/10 lg:flex">
+          {navigation.map((item) => {
+            const isActive = isActiveLink(item.href);
+
+            return (
+              <Link
+                href={item.href}
+                key={item.label}
+                className={cn(
+                  "rounded-full px-4 py-2 text-sm font-bold text-ink/70 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral/70 hover:bg-white hover:text-coral hover:shadow-sm dark:text-ink/90 dark:hover:bg-white/10 dark:hover:text-sunshine",
+                  isActive
+                    ? "bg-white text-coral shadow-sm dark:bg-white/15 dark:text-sunshine"
+                    : "",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <ThemeToggle />
           <Button
             asChild
             variant="ghost"
             size="sm"
             aria-label="باز کردن سبد خرید"
+            className="bg-white/65 shadow-sm"
           >
             <Link href="/cart">
               <ShoppingCart className="size-5" />
@@ -109,7 +132,7 @@ export function SiteHeader() {
 
         <button
           type="button"
-          className="flex size-11 items-center justify-center rounded-2xl bg-white text-ink shadow-sm lg:hidden"
+          className="flex size-11 items-center justify-center rounded-2xl bg-white text-ink shadow-sm ring-1 ring-white/70 transition hover:text-coral dark:bg-white/10 dark:ring-white/10 dark:hover:text-sunshine lg:hidden"
           aria-label="باز و بسته کردن منو"
           onClick={() => setIsOpen((current) => !current)}
         >
@@ -119,25 +142,35 @@ export function SiteHeader() {
 
       <div
         className={cn(
-          "grid border-t border-ink/5 bg-white/95 transition-all lg:hidden",
+          "grid border-t border-ink/5 bg-white/95 transition-all dark:border-white/10 dark:bg-[rgb(var(--surface)/0.98)] lg:hidden",
           isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
         <div className="overflow-hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 sm:px-6">
-            {navigation.map((item) => (
-              <Link
-                href={item.href}
-                key={item.label}
-                className="rounded-2xl px-4 py-3 text-sm font-semibold text-ink/75 transition hover:bg-cream hover:text-ink"
-                onClick={() => setIsOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const isActive = isActiveLink(item.href);
+
+              return (
+                <Link
+                  href={item.href}
+                  key={item.label}
+                  className={cn(
+                    "rounded-2xl px-4 py-3 text-sm font-bold text-ink/80 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral/70 hover:bg-cream hover:text-ink dark:text-ink/90 dark:hover:bg-white/10 dark:hover:text-sunshine",
+                    isActive
+                      ? "bg-cream text-coral dark:bg-white/15 dark:text-sunshine"
+                      : "",
+                  )}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
 
             {isAuthenticated ? (
               <div className="grid gap-3 pt-3">
+                <ThemeToggle />
                 <div className="rounded-2xl bg-cream px-4 py-3 text-sm font-black text-ink">
                   {displayName}
                 </div>
@@ -148,6 +181,9 @@ export function SiteHeader() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 pt-3">
+                <div className="col-span-2">
+                  <ThemeToggle />
+                </div>
                 <Button asChild variant="outline">
                   <Link href="/login" onClick={() => setIsOpen(false)}>
                     ورود

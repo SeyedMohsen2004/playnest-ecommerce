@@ -1,4 +1,5 @@
 import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 const shoppingLinks = [
@@ -19,11 +20,24 @@ const businessLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-ink/5 bg-white">
+    <footer className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-white via-cream to-skysoft/70">
+      <div className="pointer-events-none absolute -right-20 top-10 size-56 rounded-full bg-coral/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-10 left-0 size-48 rounded-full bg-mint/20 blur-3xl" />
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.35fr_0.8fr_0.9fr_1fr] lg:px-8">
         <div>
-          <Link href="/" className="text-2xl font-black tracking-tight text-ink">
-            IpakToys
+          <Link href="/" className="inline-flex items-center gap-3">
+            <span className="relative block size-12 overflow-hidden rounded-2xl shadow-card">
+              <Image
+                alt="لوگوی ایپک تویز"
+                className="object-contain"
+                fill
+                sizes="48px"
+                src="/images/brand/ipacktoys-logo.png"
+              />
+            </span>
+            <span className="text-2xl font-black tracking-tight text-ink">
+              IpakToys
+            </span>
           </Link>
           <p className="mt-4 max-w-md text-sm leading-7 text-ink/65">
             فروشگاه بازی فکری، بردگیم، پازل و محصولات ساختنی برای کودک،
@@ -33,7 +47,7 @@ export function SiteFooter() {
           <div className="mt-6 flex gap-3">
             {[Instagram, Facebook, Mail].map((Icon, index) => (
               <span
-                className="flex size-10 items-center justify-center rounded-full bg-cream text-ink"
+                className="flex size-10 items-center justify-center rounded-2xl bg-white/85 text-ink shadow-sm ring-1 ring-ink/5"
                 key={index}
               >
                 <Icon className="size-4" aria-hidden="true" />
@@ -60,7 +74,7 @@ export function SiteFooter() {
             </li>
           </ul>
 
-          <div className="mt-6 rounded-3xl border border-dashed border-ink/15 bg-cream p-4 text-center">
+          <div className="mt-6 rounded-3xl border border-dashed border-coral/25 bg-white/70 p-4 text-center shadow-sm">
             <p className="text-sm font-black text-ink">
               محل نمایش نماد اعتماد الکترونیکی
             </p>

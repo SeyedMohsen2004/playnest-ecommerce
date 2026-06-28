@@ -6,6 +6,38 @@
 
 :root {
   color-scheme: light;
+  --color-cream: 255 247 232;
+  --color-coral: 255 93 108;
+  --color-mint: 87 219 181;
+  --color-sunshine: 255 203 86;
+  --color-skysoft: 216 241 255;
+  --color-ink: 22 29 48;
+  --color-grape: 116 82 255;
+  --color-candy: 255 68 139;
+  --surface: 255 255 255;
+  --surface-soft: 255 247 232;
+  --page-gradient-start: 255 247 232;
+  --page-gradient-mid: 255 252 246;
+  --page-gradient-end: 241 248 255;
+  --shadow-soft: 23 32 51;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-cream: 34 39 63;
+  --color-coral: 255 116 132;
+  --color-mint: 91 230 194;
+  --color-sunshine: 255 205 92;
+  --color-skysoft: 43 57 91;
+  --color-ink: 245 247 255;
+  --color-grape: 158 126 255;
+  --color-candy: 255 91 155;
+  --surface: 24 30 52;
+  --surface-soft: 31 38 65;
+  --page-gradient-start: 11 16 32;
+  --page-gradient-mid: 18 24 45;
+  --page-gradient-end: 25 35 64;
+  --shadow-soft: 0 0 0;
 }
 
 * {
@@ -19,12 +51,71 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(255, 209, 102, 0.28), transparent 30rem),
-    linear-gradient(180deg, #fff8ed 0%, #ffffff 45%, #f7fbff 100%);
+    radial-gradient(circle at 82% 4%, rgb(var(--color-sunshine) / 0.34), transparent 24rem),
+    radial-gradient(circle at 8% 16%, rgb(var(--color-mint) / 0.20), transparent 26rem),
+    radial-gradient(circle at 18% 78%, rgb(var(--color-coral) / 0.12), transparent 22rem),
+    linear-gradient(
+      180deg,
+      rgb(var(--page-gradient-start)) 0%,
+      rgb(var(--page-gradient-mid)) 42%,
+      rgb(var(--page-gradient-end)) 100%
+    );
   color: #172033;
   font-family: Vazirmatn, Tahoma, Arial, sans-serif;
   line-height: 1.7;
   text-align: right;
+}
+
+.dark .bg-white,
+.dark .bg-white\/55,
+.dark .bg-white\/58,
+.dark .bg-white\/65,
+.dark .bg-white\/70,
+.dark .bg-white\/75,
+.dark .bg-white\/78,
+.dark .bg-white\/80,
+.dark .bg-white\/82,
+.dark .bg-white\/85,
+.dark .bg-white\/86,
+.dark .bg-white\/88,
+.dark .bg-white\/90,
+.dark .bg-white\/92,
+.dark .bg-white\/94,
+.dark .bg-white\/95 {
+  background-color: rgb(var(--surface) / 0.86);
+}
+
+.dark .bg-cream,
+.dark .bg-cream\/60,
+.dark .bg-cream\/70,
+.dark .bg-cream\/78,
+.dark .bg-cream\/85 {
+  background-color: rgb(var(--surface-soft) / 0.88);
+}
+
+.dark .border-white,
+.dark .border-white\/60,
+.dark .border-white\/70,
+.dark .border-white\/75 {
+  border-color: rgb(255 255 255 / 0.10);
+}
+
+.dark .ring-white\/70,
+.dark .ring-white\/80 {
+  --tw-ring-color: rgb(255 255 255 / 0.10);
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: rgb(var(--surface) / 0.9);
+  color: rgb(var(--color-ink));
+  border-color: rgb(255 255 255 / 0.12);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(var(--color-ink) / 0.34);
 }
 
 button,
@@ -36,4 +127,57 @@ textarea {
 
 ::selection {
   background: rgba(255, 122, 122, 0.28);
+}
+
+@keyframes marquee-rtl {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(50%);
+  }
+}
+
+@keyframes soft-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
+}
+
+@keyframes hero-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-marquee-rtl {
+  animation: marquee-rtl 34s linear infinite;
+}
+
+.animate-soft-float {
+  animation: soft-float 6s ease-in-out infinite;
+}
+
+.animate-hero-slide-in {
+  animation: hero-slide-in 520ms ease-out both;
+}
+
+.pause-animation {
+  animation-play-state: paused;
+}
+
+.group:hover .animate-marquee-rtl {
+  animation-play-state: paused;
 }

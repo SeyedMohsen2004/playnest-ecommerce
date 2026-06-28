@@ -10,8 +10,8 @@ export function FeatureCard({
   icon: LucideIcon;
 }) {
   return (
-    <div className="rounded-3xl bg-white/10 p-5 backdrop-blur">
-      <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-ink">
+    <div className="rounded-[1.75rem] bg-white/12 p-5 shadow-sm ring-1 ring-white/10 backdrop-blur transition hover:-translate-y-1 hover:bg-white/16">
+      <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-coral shadow-sm">
         <Icon className="size-6" aria-hidden="true" />
       </span>
       <h3 className="mt-4 text-lg font-black">{benefit.title}</h3>

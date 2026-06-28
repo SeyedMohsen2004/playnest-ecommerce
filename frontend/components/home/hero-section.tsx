@@ -1,121 +1,236 @@
-import { ArrowLeft, Gift, Puzzle, ShieldCheck, Sparkles } from "lucide-react";
+"use client";
+
+import { ArrowLeft, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { getProducts } from "@/lib/api/products";
+import { formatToman } from "@/lib/format";
+import {
+  getProductCategoryName,
+  getProductImageUrl,
+  getProductPrice,
+  getProductShortDescription,
+} from "@/lib/product-display";
+import { cn } from "@/lib/utils";
+import type { Product } from "@/types/api";
 
-const playStyles = ["بردگیم", "پازل", "بازی فکری", "ساختنی"];
+const SLIDER_INTERVAL_MS = 5200;
 
 export function HeroSection() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProducts() {
+      try {
+        const response = await getProducts({ ordering: "-created_at" });
+
+        if (isMounted) {
+          setProducts(response.slice(0, 6));
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("Hero products API error:", error);
+        }
+      }
+    }
+
+    loadProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (products.length <= 1) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % products.length);
+    }, SLIDER_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, [products.length]);
+
+  const activeProduct = products[activeIndex];
+
+  function goToPreviousSlide() {
+    setActiveIndex((current) =>
+      current === 0 ? products.length - 1 : current - 1,
+    );
+  }
+
+  function goToNextSlide() {
+    setActiveIndex((current) => (current + 1) % products.length);
+  }
+
   return (
-    <section className="relative isolate overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_82%_10%,rgba(255,209,102,0.38),transparent_18rem),radial-gradient(circle_at_8%_18%,rgba(110,231,183,0.24),transparent_22rem),linear-gradient(180deg,rgba(255,248,237,0.98),rgba(255,255,255,0.72))]" />
-      <div className="pointer-events-none absolute right-4 top-16 -z-10 size-24 rounded-[2rem] bg-coral/10 blur-2xl sm:right-12 sm:size-40" />
-      <div className="pointer-events-none absolute bottom-14 left-5 -z-10 size-28 rounded-full bg-skysoft/80 blur-2xl sm:left-16 sm:size-48" />
-
-      <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-16 lg:grid-cols-[1.02fr_0.98fr] lg:px-8 lg:py-24">
-        <div className="relative z-10">
-          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-coral/10 bg-white/90 px-4 py-2 text-sm font-bold leading-7 text-coral shadow-sm">
-            <Sparkles className="size-4 shrink-0" />
-            <span>انتخاب‌های تازه برای بازی، خلاقیت و دورهمی</span>
-          </div>
-
-          <h1 className="mt-7 max-w-3xl text-4xl font-black leading-[1.36] tracking-tight text-ink sm:text-5xl sm:leading-[1.3] lg:text-6xl lg:leading-[1.24]">
-            دنیای رنگی بازی‌های فکری، بردگیم و سرگرمی‌های ساختنی
-          </h1>
-
-          <p className="mt-6 max-w-2xl text-base leading-9 text-ink/68 sm:text-lg sm:leading-10">
-            در IpakToys بازی‌های فکری، بردگیم‌ها، پازل‌ها و محصولات ساختنی
-            مناسب کودک، نوجوان و خانواده را با تجربه خریدی ساده و مطمئن پیدا
-            کنید.
-          </p>
-
-          <div className="mt-8 flex flex-wrap gap-2">
-            {playStyles.map((item) => (
-              <span
-                className="rounded-full bg-white/80 px-4 py-2 text-xs font-black text-ink/60 shadow-sm ring-1 ring-ink/5"
-                key={item}
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button
-              asChild
-              className="h-12 rounded-2xl px-7 shadow-[0_14px_32px_rgba(255,122,122,0.26)]"
-              size="lg"
-              variant="coral"
-            >
-              <Link href="/products">
-                مشاهده محصولات <ArrowLeft className="size-5" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              className="h-12 rounded-2xl border-white bg-white/86 px-7"
-              size="lg"
-              variant="outline"
-            >
-              <Link href="#offers">پیشنهادهای ویژه</Link>
-            </Button>
-          </div>
-
-          <div className="mt-9 grid gap-3 text-sm font-semibold leading-7 text-ink/70 sm:grid-cols-2">
-            <div className="flex items-center gap-2 rounded-2xl bg-white/75 px-4 py-3 shadow-sm ring-1 ring-ink/5">
-              <ShieldCheck className="size-5 shrink-0 text-emerald-500" />
-              انتخاب مناسب سن و سبک بازی
-            </div>
-            <div className="flex items-center gap-2 rounded-2xl bg-white/75 px-4 py-3 shadow-sm ring-1 ring-ink/5">
-              <Gift className="size-5 shrink-0 text-coral" />
-              گزینه‌های مناسب هدیه و دورهمی
-            </div>
-          </div>
-        </div>
-
-        <div className="relative z-0">
-          <div className="pointer-events-none absolute -right-3 top-7 hidden size-16 rotate-12 rounded-[1.5rem] bg-sunshine/70 shadow-soft sm:block" />
-          <div className="pointer-events-none absolute -left-4 top-28 hidden size-12 rounded-full bg-mint/70 shadow-soft sm:block" />
-          <div className="pointer-events-none absolute bottom-10 right-10 hidden size-8 rounded-full bg-coral/45 sm:block" />
-
-          <div className="rounded-[2.75rem] bg-white/80 p-3 shadow-soft ring-1 ring-white/80 backdrop-blur sm:p-5">
-            <div className="relative min-h-[24rem] overflow-hidden rounded-[2.35rem] bg-gradient-to-br from-skysoft via-cream to-coral/20 p-6 sm:min-h-[27rem] sm:p-7">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.86),transparent_7rem),radial-gradient(circle_at_82%_28%,rgba(255,209,102,0.34),transparent_7rem)]" />
-
-              <div className="relative z-10 flex w-fit items-center gap-2 rounded-3xl bg-white/88 px-4 py-3 text-sm font-bold leading-7 text-ink shadow-sm">
-                <Puzzle className="size-5 text-coral" />
-                بردگیم، پازل و بازی فکری برای خانواده
-              </div>
-
-              <div className="absolute left-8 top-24 z-0 size-24 rotate-12 rounded-[2rem] bg-sunshine/80 shadow-soft sm:size-28" />
-              <div className="absolute right-10 top-32 z-0 size-20 -rotate-12 rounded-full bg-mint/80 shadow-soft sm:right-16 sm:size-24" />
-              <div className="absolute bottom-36 left-20 z-0 size-16 rounded-2xl bg-coral/75 shadow-soft sm:left-24 sm:size-20" />
-
-              <div className="absolute right-8 top-10 z-0 grid grid-cols-2 gap-2 rounded-3xl bg-white/55 p-3 shadow-sm">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <span
-                    className="size-3 rounded-full bg-coral/55"
-                    key={index}
-                  />
-                ))}
-              </div>
-
-              <div className="absolute bottom-7 left-5 right-5 z-10 rounded-[2rem] bg-white/94 p-5 shadow-soft backdrop-blur sm:left-8 sm:right-8 sm:p-6">
-                <p className="text-sm font-bold uppercase tracking-wide text-coral">
-                  پیشنهاد IpakToys
-                </p>
-                <h2 className="mt-3 text-2xl font-black leading-9 text-ink">
-                  بازی مناسب شب خانواده و جمع دوستان
-                </h2>
-                <p className="mt-3 text-sm leading-8 text-ink/62">
-                  ترکیبی از بازی رومیزی، پازل و محصولات ساختنی برای سرگرمی،
-                  یادگیری و رقابت دوستانه.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+    <section className="relative isolate overflow-hidden px-4 pb-10 pt-5 sm:px-6 sm:pb-12 lg:px-8">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_84%_8%,rgb(var(--color-sunshine)/0.46),transparent_20rem),radial-gradient(circle_at_12%_20%,rgb(var(--color-grape)/0.18),transparent_23rem),radial-gradient(circle_at_42%_90%,rgb(var(--color-coral)/0.16),transparent_25rem)]" />
+      <div className="mx-auto max-w-7xl lg:min-h-[calc(100svh-5.5rem)]">
+        {activeProduct ? (
+          <HeroSlide
+            activeIndex={activeIndex}
+            onNext={goToNextSlide}
+            onPrevious={goToPreviousSlide}
+            onSelect={setActiveIndex}
+            product={activeProduct}
+            slideCount={products.length}
+          />
+        ) : (
+          <HeroFallback />
+        )}
       </div>
     </section>
   );
+}
+
+function HeroSlide({
+  product,
+  activeIndex,
+  slideCount,
+  onNext,
+  onPrevious,
+  onSelect,
+}: {
+  product: Product;
+  activeIndex: number;
+  slideCount: number;
+  onNext: () => void;
+  onPrevious: () => void;
+  onSelect: (index: number) => void;
+}) {
+  const imageUrl = getProductImageUrl(product);
+  const shortDescription = truncateText(
+    getProductShortDescription(product) || getProductCategoryName(product),
+    140,
+  );
+
+  return (
+    <div className="relative flex overflow-hidden rounded-[2rem] border border-white/70 bg-white/72 p-5 shadow-soft backdrop-blur dark:border-white/10 sm:rounded-[2.5rem] sm:p-8 lg:min-h-[calc(100svh-5.5rem)] lg:items-center lg:p-10">
+      <div className="pointer-events-none absolute -right-16 top-16 size-48 rounded-full bg-candy/18 blur-3xl" />
+      <div className="pointer-events-none absolute -left-20 bottom-10 size-56 rounded-full bg-mint/20 blur-3xl" />
+      <div className="grid w-full items-center gap-7 sm:gap-9 lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="relative z-10 order-2 lg:order-1">
+          <div className="inline-flex items-center gap-2 rounded-full bg-cream/85 px-4 py-2 text-sm font-black text-coral shadow-sm ring-1 ring-white/70 dark:ring-white/10">
+            <Sparkles className="size-4" />
+            بنر ویژه فروشگاه IpakToys
+          </div>
+
+          <div className="animate-hero-slide-in" key={product.slug}>
+            <p className="mt-7 text-sm font-black text-grape">
+              {getProductCategoryName(product)}
+            </p>
+            <h1 className="mt-3 max-w-3xl text-4xl font-black leading-[1.35] tracking-tight text-ink sm:text-5xl sm:leading-[1.28] lg:text-6xl lg:leading-[1.2]">
+              {product.name}
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-9 text-ink/66 sm:text-lg sm:leading-10">
+              {shortDescription}
+            </p>
+            <p className="mt-6 text-3xl font-black text-coral">
+              {formatToman(getProductPrice(product))}
+            </p>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-3 min-[420px]:flex-row">
+            <Button asChild className="h-12 px-7" size="lg" variant="coral">
+              <Link href={`/products/${product.slug}`}>
+                مشاهده محصول <ArrowLeft className="size-5" />
+              </Link>
+            </Button>
+            <Button asChild className="h-12 px-7" size="lg" variant="outline">
+              <Link href="/products">خرید بازی‌ها</Link>
+            </Button>
+          </div>
+
+          {slideCount > 1 ? (
+            <div className="mt-8 flex items-center gap-3">
+              <button
+                aria-label="اسلاید قبلی"
+                className="flex size-11 items-center justify-center rounded-2xl bg-white/80 text-ink shadow-sm ring-1 ring-white/70 transition hover:text-coral dark:bg-white/10 dark:ring-white/10"
+                onClick={onPrevious}
+                type="button"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                {Array.from({ length: slideCount }).map((_, index) => (
+                  <button
+                    aria-label={`نمایش اسلاید ${index + 1}`}
+                    className={cn(
+                      "h-2.5 rounded-full transition",
+                      index === activeIndex
+                        ? "w-8 bg-coral"
+                        : "w-2.5 bg-ink/20 hover:bg-coral/60",
+                    )}
+                    key={index}
+                    onClick={() => onSelect(index)}
+                    type="button"
+                  />
+                ))}
+              </div>
+              <button
+                aria-label="اسلاید بعدی"
+                className="flex size-11 items-center justify-center rounded-2xl bg-white/80 text-ink shadow-sm ring-1 ring-white/70 transition hover:text-coral dark:bg-white/10 dark:ring-white/10"
+                onClick={onNext}
+                type="button"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="relative order-1 lg:order-2">
+          <div className="absolute inset-0 animate-soft-float rounded-[3rem] bg-gradient-to-br from-sunshine/55 via-coral/20 to-grape/24 blur-2xl" />
+          <div className="relative mx-auto flex h-[18rem] max-w-xl items-center justify-center overflow-hidden rounded-[2.3rem] bg-gradient-to-br from-skysoft via-cream to-sunshine/50 p-4 shadow-soft ring-1 ring-white/80 dark:ring-white/10 min-[420px]:h-[21rem] sm:h-[30rem] sm:rounded-[3rem] sm:p-5 lg:h-[34rem]">
+            {imageUrl ? (
+              <div
+                aria-label={product.name}
+                className="h-full w-full rounded-[1.9rem] bg-cover bg-center shadow-card sm:rounded-[2.4rem]"
+                role="img"
+                style={{ backgroundImage: `url("${imageUrl}")` }}
+              />
+            ) : (
+              <div className="size-40 rounded-[2rem] bg-white/70 shadow-card sm:size-48 sm:rounded-[3rem]" />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroFallback() {
+  return (
+    <div className="flex rounded-[2rem] border border-white/70 bg-white/72 p-6 shadow-soft backdrop-blur dark:border-white/10 sm:rounded-[2.5rem] sm:p-8 lg:min-h-[calc(100svh-5.5rem)] lg:items-center">
+      <div className="max-w-3xl">
+        <p className="text-sm font-black text-coral">IpakToys</p>
+        <h1 className="mt-4 text-4xl font-black leading-[1.35] text-ink sm:text-6xl">
+          دنیای بازی‌های فکری، بردگیم و سرگرمی‌های ساختنی
+        </h1>
+        <p className="mt-5 text-base leading-9 text-ink/65 sm:text-lg">
+          محصولات فروشگاه در حال دریافت هستند. برای دیدن همه محصولات وارد صفحه
+          محصولات شوید.
+        </p>
+        <Button asChild className="mt-8 h-12 px-7" size="lg" variant="coral">
+          <Link href="/products">مشاهده محصولات</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxLength).trim()}...`;
 }

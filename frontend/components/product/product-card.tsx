@@ -94,7 +94,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
   }
 
   return (
-    <article className="group overflow-hidden rounded-3xl border border-ink/5 bg-white text-right shadow-sm transition hover:-translate-y-1 hover:shadow-soft">
+    <article className="group overflow-hidden rounded-[2rem] border border-white/75 bg-white/86 text-right shadow-card backdrop-blur transition duration-300 hover:-translate-y-2 hover:shadow-soft">
       <Link href={`/products/${product.slug}`} className="block">
         <div
           className={cn(
@@ -113,7 +113,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
             <div className="size-24 rotate-6 rounded-[2rem] bg-white/70 shadow-soft transition group-hover:rotate-12" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
-          <Badge className="absolute right-4 top-4 bg-white/90 text-coral">
+          <Badge className="absolute right-4 top-4 bg-white/92 text-coral shadow-sm">
             {getProductBadge(product)}
           </Badge>
         </div>
