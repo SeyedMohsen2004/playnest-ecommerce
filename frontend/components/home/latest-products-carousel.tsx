@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import type { Product } from "@/types/api";
 
 const AUTOPLAY_INTERVAL_MS = 4000;
+const TRANSITION_RESET_MS = 760;
 
 function getVisibleCount() {
   if (typeof window === "undefined") {
@@ -37,8 +38,9 @@ export function LatestProductsCarousel() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
-  const [pageIndex, setPageIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isTransitionEnabled, setIsTransitionEnabled] = useState(true);
 
   useEffect(() => {
     function updateVisibleCount() {
@@ -63,6 +65,7 @@ export function LatestProductsCarousel() {
 
         if (isMounted) {
           setProducts(response);
+          setActiveIndex(0);
         }
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
@@ -87,46 +90,75 @@ export function LatestProductsCarousel() {
     };
   }, []);
 
-  const pageCount = Math.max(1, Math.ceil(products.length / visibleCount));
+  const canSlide = products.length > visibleCount;
+  const itemBasis = `${100 / visibleCount}%`;
+  const logicalActiveIndex =
+    products.length > 0 ? activeIndex % products.length : 0;
+  const trackProducts = useMemo(() => {
+    if (products.length === 0) {
+      return [];
+    }
+
+    return products.concat(products.slice(0, visibleCount));
+  }, [products, visibleCount]);
 
   useEffect(() => {
-    setPageIndex((current) => Math.min(current, pageCount - 1));
-  }, [pageCount]);
+    if (products.length === 0) {
+      setActiveIndex(0);
+      return;
+    }
+
+    setActiveIndex((current) => Math.min(current, products.length - 1));
+  }, [products.length, visibleCount]);
 
   useEffect(() => {
-    if (isPaused || pageCount <= 1) {
+    if (activeIndex < products.length || products.length === 0) {
+      return;
+    }
+
+    const resetTimer = window.setTimeout(() => {
+      setIsTransitionEnabled(false);
+      setActiveIndex(0);
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => setIsTransitionEnabled(true));
+      });
+    }, TRANSITION_RESET_MS);
+
+    return () => window.clearTimeout(resetTimer);
+  }, [activeIndex, products.length]);
+
+  useEffect(() => {
+    if (isPaused || !canSlide) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      setPageIndex((current) => (current + 1) % pageCount);
+      setIsTransitionEnabled(true);
+      setActiveIndex((current) => current + 1);
     }, AUTOPLAY_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
-  }, [isPaused, pageCount]);
+  }, [canSlide, isPaused]);
 
-  const visibleProducts = useMemo(() => {
-    const startIndex = pageIndex * visibleCount;
-    const currentPageProducts = products.slice(
-      startIndex,
-      startIndex + visibleCount,
-    );
-
-    if (currentPageProducts.length === visibleCount || products.length === 0) {
-      return currentPageProducts;
+  function goToPreviousItem() {
+    if (!canSlide) {
+      return;
     }
 
-    return currentPageProducts.concat(
-      products.slice(0, visibleCount - currentPageProducts.length),
+    setIsTransitionEnabled(true);
+    setActiveIndex((current) =>
+      current <= 0 ? Math.max(products.length - 1, 0) : current - 1,
     );
-  }, [pageIndex, products, visibleCount]);
-
-  function goToPreviousPage() {
-    setPageIndex((current) => (current === 0 ? pageCount - 1 : current - 1));
   }
 
-  function goToNextPage() {
-    setPageIndex((current) => (current + 1) % pageCount);
+  function goToNextItem() {
+    if (!canSlide) {
+      return;
+    }
+
+    setIsTransitionEnabled(true);
+    setActiveIndex((current) => current + 1);
   }
 
   return (
@@ -171,48 +203,57 @@ export function LatestProductsCarousel() {
             </div>
           ) : null}
 
-          {!isLoading && !hasError && visibleProducts.length > 0 ? (
+          {!isLoading && !hasError && trackProducts.length > 0 ? (
             <>
-              <div
-                className={cn(
-                  "grid gap-5 transition duration-500",
-                  visibleCount === 1
-                    ? "grid-cols-1"
-                    : visibleCount === 2
-                      ? "grid-cols-1 sm:grid-cols-2"
-                      : visibleCount === 3
-                        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-                )}
-                key={`${pageIndex}-${visibleCount}`}
-              >
-                {visibleProducts.map((product) => (
-                  <ProductCard key={`${pageIndex}-${product.slug}`} product={product} />
-                ))}
+              <div className="overflow-hidden">
+                <div
+                  className={cn(
+                    "flex ease-out",
+                    isTransitionEnabled
+                      ? "transition-transform duration-700"
+                      : "transition-none",
+                  )}
+                  style={{
+                    transform: `translateX(${activeIndex * (100 / visibleCount)}%)`,
+                  }}
+                >
+                  {trackProducts.map((product, index) => (
+                    <div
+                      className="shrink-0 px-2.5"
+                      key={`${product.slug}-${index}`}
+                      style={{ flexBasis: itemBasis }}
+                    >
+                      <ProductCard product={product} />
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {pageCount > 1 ? (
+              {canSlide ? (
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                   <button
                     aria-label="اسلاید قبلی محصولات"
                     className="flex size-11 items-center justify-center rounded-2xl bg-white/85 text-ink shadow-sm ring-1 ring-white/70 transition hover:-translate-y-0.5 hover:text-coral dark:bg-white/10 dark:ring-white/10 dark:hover:text-sunshine"
-                    onClick={goToPreviousPage}
+                    onClick={goToPreviousItem}
                     type="button"
                   >
                     <ChevronRight className="size-5" />
                   </button>
-                  <div className="flex items-center gap-2">
-                    {Array.from({ length: pageCount }).map((_, index) => (
+                  <div className="flex max-w-full flex-wrap items-center justify-center gap-2">
+                    {products.map((product, index) => (
                       <button
-                        aria-label={`نمایش گروه ${index + 1}`}
+                        aria-label={`نمایش محصول ${index + 1}`}
                         className={cn(
                           "h-2.5 rounded-full transition",
-                          index === pageIndex
+                          index === logicalActiveIndex
                             ? "w-8 bg-coral"
                             : "w-2.5 bg-ink/20 hover:bg-coral/60 dark:bg-white/25",
                         )}
-                        key={index}
-                        onClick={() => setPageIndex(index)}
+                        key={product.slug}
+                        onClick={() => {
+                          setIsTransitionEnabled(true);
+                          setActiveIndex(index);
+                        }}
                         type="button"
                       />
                     ))}
@@ -220,7 +261,7 @@ export function LatestProductsCarousel() {
                   <button
                     aria-label="اسلاید بعدی محصولات"
                     className="flex size-11 items-center justify-center rounded-2xl bg-white/85 text-ink shadow-sm ring-1 ring-white/70 transition hover:-translate-y-0.5 hover:text-coral dark:bg-white/10 dark:ring-white/10 dark:hover:text-sunshine"
-                    onClick={goToNextPage}
+                    onClick={goToNextItem}
                     type="button"
                   >
                     <ChevronLeft className="size-5" />
