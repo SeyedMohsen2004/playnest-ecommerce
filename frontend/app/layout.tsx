@@ -39,11 +39,9 @@ const themeScript = `
 (() => {
   try {
     const storedTheme = localStorage.getItem("ipaktoys-theme");
-    const theme = storedTheme || (
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-    );
+    const theme = storedTheme === "light" || storedTheme === "dark"
+      ? storedTheme
+      : "dark";
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.style.colorScheme = theme;
   } catch (_) {}

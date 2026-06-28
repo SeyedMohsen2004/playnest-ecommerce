@@ -22,7 +22,7 @@ const THEME_STORAGE_KEY = "ipaktoys-theme";
 
 function getPreferredTheme(): Theme {
   if (typeof window === "undefined") {
-    return "light";
+    return "dark";
   }
 
   const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -30,9 +30,7 @@ function getPreferredTheme(): Theme {
     return storedTheme;
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return "dark";
 }
 
 function applyTheme(theme: Theme) {
@@ -41,7 +39,7 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
     const preferredTheme = getPreferredTheme();

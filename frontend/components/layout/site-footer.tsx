@@ -1,4 +1,4 @@
-import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { ExternalLink, Instagram, Mail, MapPin, Phone, Youtube } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -16,6 +16,15 @@ const businessLinks = [
   { label: "حریم خصوصی", href: "/privacy" },
   { label: "شرایط بازگشت کالا", href: "/returns" },
   { label: "روش‌های ارسال", href: "/shipping" },
+];
+
+const storeMapUrl = "https://maps.app.goo.gl/ZVbKKmHzD9DXgtte9";
+
+const socialLinks = [
+  // TODO: Replace placeholder URLs with official IpakToys social profiles.
+  { label: "Instagram", href: "#", icon: Instagram },
+  { label: "TikTok", href: "#", icon: TikTokIcon },
+  { label: "YouTube", href: "#", icon: Youtube },
 ];
 
 export function SiteFooter() {
@@ -45,13 +54,15 @@ export function SiteFooter() {
             خرید مطمئن.
           </p>
           <div className="mt-6 flex gap-3">
-            {[Instagram, Facebook, Mail].map((Icon, index) => (
-              <span
-                className="flex size-10 items-center justify-center rounded-2xl bg-white/85 text-ink shadow-sm ring-1 ring-ink/5"
-                key={index}
+            {socialLinks.map(({ label, href, icon: Icon }) => (
+              <Link
+                aria-label={label}
+                className="flex size-10 items-center justify-center rounded-2xl bg-white/85 text-ink shadow-sm ring-1 ring-ink/5 transition hover:-translate-y-0.5 hover:text-coral dark:bg-white/10 dark:ring-white/10 dark:hover:text-sunshine"
+                href={href}
+                key={label}
               >
                 <Icon className="size-4" aria-hidden="true" />
-              </span>
+              </Link>
             ))}
           </div>
         </div>
@@ -74,6 +85,30 @@ export function SiteFooter() {
             </li>
           </ul>
 
+          <div className="mt-6 rounded-3xl border border-white/70 bg-white/78 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-coral/12 text-coral dark:bg-white/10 dark:text-sunshine">
+                <MapPin className="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-sm font-black text-ink">موقعیت فروشگاه</p>
+                <p className="mt-2 text-xs leading-6 text-ink/60">
+                  برای مشاهده موقعیت فروشگاه روی نقشه، از لینک زیر استفاده
+                  کنید.
+                </p>
+                <Link
+                  className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-coral to-candy px-4 py-2 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:text-white"
+                  href={storeMapUrl}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  مشاهده روی نقشه
+                  <ExternalLink className="size-3.5" aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-6 rounded-3xl border border-dashed border-coral/25 bg-white/70 p-4 text-center shadow-sm">
             <p className="text-sm font-black text-ink">
               محل نمایش نماد اعتماد الکترونیکی
@@ -89,6 +124,25 @@ export function SiteFooter() {
         © ۲۰۲۶ IpakToys Ecommerce. تمامی حقوق محفوظ است.
       </div>
     </footer>
+  );
+}
+
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M14.75 3v10.2a4.75 4.75 0 1 1-4.75-4.75c.36 0 .7.04 1.03.11v2.88A1.94 1.94 0 1 0 12.1 13.2V3h2.65Zm0 0c.2 1.23.78 2.29 1.75 3.18A6.36 6.36 0 0 0 20 7.75v2.9a8.66 8.66 0 0 1-5.25-2.02V3Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
   );
 }
 
