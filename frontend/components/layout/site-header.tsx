@@ -197,9 +197,13 @@ export function SiteHeader() {
               </div>
             )}
 
-            <Button asChild className="mt-2" variant="default">
+            <Button
+              asChild
+              className="mt-3 h-12 justify-center rounded-2xl bg-gradient-to-l from-coral via-candy to-grape px-5 text-sm font-black text-white shadow-glow ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:from-candy hover:to-coral hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunshine/80 active:translate-y-0 dark:text-white dark:shadow-[0_18px_45px_rgba(255,91,155,0.22)]"
+              variant="default"
+            >
               <Link href="/cart" onClick={() => setIsOpen(false)}>
-                <ShoppingCart className="size-5" />
+                <ShoppingCart className="size-5 shrink-0" />
                 مشاهده سبد خرید
               </Link>
             </Button>
