@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 
 import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
+import {
+  getHomepageSectionProducts,
+  getHomepageSections,
+  normalizeHomepageSections,
+} from "@/lib/api/homepage";
 import { getProducts } from "@/lib/api/products";
 import type { Product } from "@/types/api";
 
@@ -21,21 +26,43 @@ export function FeaturedProducts() {
       setHasError(false);
 
       try {
-        const response = await getProducts({ ordering: "-created_at" });
+        const sections = normalizeHomepageSections(await getHomepageSections());
+        const homepageProducts = getHomepageSectionProducts(
+          sections,
+          "featured_products",
+        );
 
         if (!isMounted) {
           return;
         }
 
+        if (homepageProducts.length > 0) {
+          setProducts(homepageProducts.slice(0, 4));
+          return;
+        }
+
+        const response = await getProducts({ ordering: "-created_at" });
         setProducts(response.slice(0, 4));
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
           console.error("Homepage products API error:", error);
         }
 
-        if (isMounted) {
-          setProducts([]);
-          setHasError(true);
+        try {
+          const response = await getProducts({ ordering: "-created_at" });
+
+          if (isMounted) {
+            setProducts(response.slice(0, 4));
+          }
+        } catch (fallbackError) {
+          if (process.env.NODE_ENV !== "production") {
+            console.error("Homepage products fallback API error:", fallbackError);
+          }
+
+          if (isMounted) {
+            setProducts([]);
+            setHasError(true);
+          }
         }
       } finally {
         if (isMounted) {

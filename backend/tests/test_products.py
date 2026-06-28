@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
-from products.models import Brand, Category, Product
+from products.models import Brand, Category, HomepageProductSlot, Product
 
 pytestmark = pytest.mark.django_db
 
@@ -198,3 +198,69 @@ def test_product_list_filtering_search_and_ordering(client, product, category, b
         "PUZZLE-001",
         product.sku,
     ]
+
+
+def test_homepage_sections_endpoint_groups_active_slots(
+    client, product, category, brand
+):
+    second_product = Product.objects.create(
+        category=category,
+        brand=brand,
+        name="Strategy Game",
+        slug="strategy-game",
+        description="A strategic board game.",
+        sku="STRATEGY-001",
+        price=2500,
+        stock=3,
+        age_group=Product.AgeGroup.TWELVE_PLUS,
+        gender=Product.Gender.UNISEX,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.HERO_SLIDER,
+        product=product,
+        sort_order=2,
+        title_override="Hero title",
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.HERO_SLIDER,
+        product=second_product,
+        sort_order=1,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.POPULAR_MARQUEE,
+        product=product,
+        sort_order=1,
+    )
+
+    response = client.get(reverse("products:homepage-sections"))
+
+    assert response.status_code == 200
+    data = response.json()
+    assert set(data) == {
+        "hero_slider",
+        "popular_marquee",
+        "latest_carousel",
+        "featured_products",
+    }
+    assert [item["product"]["slug"] for item in data["hero_slider"]] == [
+        second_product.slug,
+        product.slug,
+    ]
+    assert data["hero_slider"][1]["title_override"] == "Hero title"
+    assert data["popular_marquee"][0]["product"]["slug"] == product.slug
+    assert data["latest_carousel"] == []
+    assert data["featured_products"] == []
+
+
+def test_homepage_sections_endpoint_ignores_inactive_slots(client, product):
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.FEATURED_PRODUCTS,
+        product=product,
+        sort_order=1,
+        is_active=False,
+    )
+
+    response = client.get(reverse("products:homepage-sections"))
+
+    assert response.status_code == 200
+    assert response.json()["featured_products"] == []

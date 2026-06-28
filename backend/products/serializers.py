@@ -4,6 +4,7 @@ from rest_framework import serializers
 from products.models import (
     Brand,
     Category,
+    HomepageProductSlot,
     Product,
     ProductImage,
     ProductReview,
@@ -143,6 +144,23 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 {"discount_price": "Discount price must be less than price."}
             )
         return attrs
+
+
+class HomepageProductSlotSerializer(serializers.ModelSerializer):
+    product = ProductListSerializer(read_only=True)
+
+    class Meta:
+        model = HomepageProductSlot
+        fields = (
+            "id",
+            "section",
+            "product",
+            "title_override",
+            "subtitle_override",
+            "badge_text",
+            "sort_order",
+        )
+        read_only_fields = fields
 
 
 class WishlistItemSerializer(serializers.ModelSerializer):

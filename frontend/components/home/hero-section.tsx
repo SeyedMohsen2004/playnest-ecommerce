@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  getHomepageSectionSlots,
+  getHomepageSections,
+  normalizeHomepageSections,
+} from "@/lib/api/homepage";
 import { getProducts } from "@/lib/api/products";
 import { formatToman } from "@/lib/format";
 import {
@@ -14,12 +19,17 @@ import {
   getProductShortDescription,
 } from "@/lib/product-display";
 import { cn } from "@/lib/utils";
-import type { Product } from "@/types/api";
+import type { HomepageProductSlot, Product } from "@/types/api";
 
 const SLIDER_INTERVAL_MS = 5200;
 
+type HeroSlideItem = {
+  product: Product;
+  slot?: HomepageProductSlot;
+};
+
 export function HeroSection() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [slides, setSlides] = useState<HeroSlideItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -27,14 +37,46 @@ export function HeroSection() {
 
     async function loadProducts() {
       try {
-        const response = await getProducts({ ordering: "-created_at" });
+        const sections = normalizeHomepageSections(await getHomepageSections());
+        const heroSlots = getHomepageSectionSlots(sections, "hero_slider");
 
         if (isMounted) {
-          setProducts(response.slice(0, 6));
+          if (heroSlots.length > 0) {
+            setSlides(
+              heroSlots.map((slot) => ({
+                product: slot.product,
+                slot,
+              })),
+            );
+            return;
+          }
+
+          const response = await getProducts({ ordering: "-created_at" });
+          setSlides(
+            response.slice(0, 6).map((product) => ({
+              product,
+            })),
+          );
         }
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
           console.error("Hero products API error:", error);
+        }
+
+        try {
+          const response = await getProducts({ ordering: "-created_at" });
+
+          if (isMounted) {
+            setSlides(
+              response.slice(0, 6).map((product) => ({
+                product,
+              })),
+            );
+          }
+        } catch (fallbackError) {
+          if (process.env.NODE_ENV !== "production") {
+            console.error("Hero fallback products API error:", fallbackError);
+          }
         }
       }
     }
@@ -47,41 +89,41 @@ export function HeroSection() {
   }, []);
 
   useEffect(() => {
-    if (products.length <= 1) {
+    if (slides.length <= 1) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % products.length);
+      setActiveIndex((current) => (current + 1) % slides.length);
     }, SLIDER_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
-  }, [products.length]);
+  }, [slides.length]);
 
-  const activeProduct = products[activeIndex];
+  const activeSlide = slides[activeIndex];
 
   function goToPreviousSlide() {
     setActiveIndex((current) =>
-      current === 0 ? products.length - 1 : current - 1,
+      current === 0 ? slides.length - 1 : current - 1,
     );
   }
 
   function goToNextSlide() {
-    setActiveIndex((current) => (current + 1) % products.length);
+    setActiveIndex((current) => (current + 1) % slides.length);
   }
 
   return (
     <section className="relative isolate overflow-hidden px-4 pb-10 pt-5 sm:px-6 sm:pb-12 lg:px-8">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_84%_8%,rgb(var(--color-sunshine)/0.46),transparent_20rem),radial-gradient(circle_at_12%_20%,rgb(var(--color-grape)/0.18),transparent_23rem),radial-gradient(circle_at_42%_90%,rgb(var(--color-coral)/0.16),transparent_25rem)]" />
       <div className="mx-auto max-w-7xl lg:min-h-[calc(100svh-5.5rem)]">
-        {activeProduct ? (
+        {activeSlide ? (
           <HeroSlide
             activeIndex={activeIndex}
             onNext={goToNextSlide}
             onPrevious={goToPreviousSlide}
             onSelect={setActiveIndex}
-            product={activeProduct}
-            slideCount={products.length}
+            slide={activeSlide}
+            slideCount={slides.length}
           />
         ) : (
           <HeroFallback />
@@ -92,23 +134,28 @@ export function HeroSection() {
 }
 
 function HeroSlide({
-  product,
+  slide,
   activeIndex,
   slideCount,
   onNext,
   onPrevious,
   onSelect,
 }: {
-  product: Product;
+  slide: HeroSlideItem;
   activeIndex: number;
   slideCount: number;
   onNext: () => void;
   onPrevious: () => void;
   onSelect: (index: number) => void;
 }) {
+  const { product, slot } = slide;
   const imageUrl = getProductImageUrl(product);
+  const title = slot?.title_override || product.name;
+  const badgeText = slot?.badge_text;
   const shortDescription = truncateText(
-    getProductShortDescription(product) || getProductCategoryName(product),
+    slot?.subtitle_override ||
+      getProductShortDescription(product) ||
+      getProductCategoryName(product),
     140,
   );
 
@@ -125,10 +172,10 @@ function HeroSlide({
 
           <div className="animate-hero-slide-in" key={product.slug}>
             <p className="mt-7 text-sm font-black text-grape">
-              {getProductCategoryName(product)}
+              {badgeText || getProductCategoryName(product)}
             </p>
             <h1 className="mt-3 max-w-3xl text-4xl font-black leading-[1.35] tracking-tight text-ink sm:text-5xl sm:leading-[1.28] lg:text-6xl lg:leading-[1.2]">
-              {product.name}
+              {title}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-9 text-ink/66 sm:text-lg sm:leading-10">
               {shortDescription}

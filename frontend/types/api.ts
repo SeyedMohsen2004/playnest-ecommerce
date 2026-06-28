@@ -87,6 +87,27 @@ export type ProductReview = {
   updated_at: string;
 };
 
+export type HomepageSectionKey =
+  | "hero_slider"
+  | "popular_marquee"
+  | "latest_carousel"
+  | "featured_products";
+
+export type HomepageProductSlot = {
+  id: number;
+  section: HomepageSectionKey;
+  product: Product;
+  title_override: string;
+  subtitle_override: string;
+  badge_text: string;
+  sort_order: number;
+};
+
+export type HomepageSectionsResponse = Record<
+  HomepageSectionKey,
+  HomepageProductSlot[]
+>;
+
 export type User = {
   id: number;
   phone_number: string;

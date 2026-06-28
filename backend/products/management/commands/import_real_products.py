@@ -360,8 +360,7 @@ class Command(BaseCommand):
                 self.style.WARNING(
                     "Deleted dependent demo data: "
                     + ", ".join(
-                        f"{label}={count}"
-                        for label, count in deleted_counts.items()
+                        f"{label}={count}" for label, count in deleted_counts.items()
                     )
                 )
             )

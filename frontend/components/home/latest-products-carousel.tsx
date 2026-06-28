@@ -6,6 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
+import {
+  getHomepageSectionProducts,
+  getHomepageSections,
+  normalizeHomepageSections,
+} from "@/lib/api/homepage";
 import { getProducts } from "@/lib/api/products";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/api";
@@ -61,10 +66,19 @@ export function LatestProductsCarousel() {
       setHasError(false);
 
       try {
-        const response = await getProducts({ ordering: "-created_at" });
+        const sections = normalizeHomepageSections(await getHomepageSections());
+        const homepageProducts = getHomepageSectionProducts(
+          sections,
+          "latest_carousel",
+        );
 
         if (isMounted) {
-          setProducts(response);
+          if (homepageProducts.length > 0) {
+            setProducts(homepageProducts);
+          } else {
+            const response = await getProducts({ ordering: "-created_at" });
+            setProducts(response);
+          }
           setActiveIndex(0);
         }
       } catch (error) {
@@ -72,9 +86,25 @@ export function LatestProductsCarousel() {
           console.error("Latest products carousel API error:", error);
         }
 
-        if (isMounted) {
-          setProducts([]);
-          setHasError(true);
+        try {
+          const response = await getProducts({ ordering: "-created_at" });
+
+          if (isMounted) {
+            setProducts(response);
+            setActiveIndex(0);
+          }
+        } catch (fallbackError) {
+          if (process.env.NODE_ENV !== "production") {
+            console.error(
+              "Latest products carousel fallback API error:",
+              fallbackError,
+            );
+          }
+
+          if (isMounted) {
+            setProducts([]);
+            setHasError(true);
+          }
         }
       } finally {
         if (isMounted) {

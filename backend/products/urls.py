@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from products.views import (
     BrandViewSet,
     CategoryViewSet,
+    HomepageSectionsView,
     ProductReviewListCreateView,
     ProductViewSet,
     WishlistDestroyView,
@@ -18,6 +19,11 @@ router.register("categories", CategoryViewSet, basename="category")
 router.register("brands", BrandViewSet, basename="brand")
 
 urlpatterns = [
+    path(
+        "homepage/sections/",
+        HomepageSectionsView.as_view(),
+        name="homepage-sections",
+    ),
     path(
         "wishlist/",
         WishlistListCreateView.as_view(),

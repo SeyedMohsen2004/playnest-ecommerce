@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  getHomepageSectionProducts,
+  getHomepageSections,
+  normalizeHomepageSections,
+} from "@/lib/api/homepage";
 import { getProducts } from "@/lib/api/products";
 import { formatToman } from "@/lib/format";
 import {
@@ -20,14 +25,36 @@ export function ProductMarquee() {
 
     async function loadProducts() {
       try {
-        const response = await getProducts({ ordering: "-created_at" });
+        const sections = normalizeHomepageSections(await getHomepageSections());
+        const homepageProducts = getHomepageSectionProducts(
+          sections,
+          "popular_marquee",
+        );
 
         if (isMounted) {
+          if (homepageProducts.length > 0) {
+            setProducts(homepageProducts);
+            return;
+          }
+
+          const response = await getProducts({ ordering: "-created_at" });
           setProducts(response);
         }
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
           console.error("Product marquee API error:", error);
+        }
+
+        try {
+          const response = await getProducts({ ordering: "-created_at" });
+
+          if (isMounted) {
+            setProducts(response);
+          }
+        } catch (fallbackError) {
+          if (process.env.NODE_ENV !== "production") {
+            console.error("Product marquee fallback API error:", fallbackError);
+          }
         }
       }
     }
@@ -52,22 +79,19 @@ export function ProductMarquee() {
   }
 
   return (
-    <section
-      className="pb-12 pt-1 sm:pb-14 sm:pt-2"
-      aria-label="محصولات فروشگاه"
-    >
+    <section className="pb-12 pt-1 sm:pb-14 sm:pt-2" aria-label="محصولات پرطرفدار">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="overflow-hidden rounded-[2.5rem] border border-white/70 bg-white/78 p-4 shadow-card backdrop-blur dark:border-white/10 sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-4 px-2">
             <p className="text-base font-black text-ink sm:text-lg">
-              محصولات تازه فروشگاه
+              محصولات پرطرفدار
             </p>
             <Link className="text-sm font-bold text-coral" href="/products">
               مشاهده همه
             </Link>
           </div>
           <div className="group relative overflow-hidden">
-            <div className="flex w-max gap-5 will-change-transform animate-marquee-rtl sm:gap-6">
+            <div className="flex w-max animate-marquee-rtl gap-5 will-change-transform sm:gap-6">
               {marqueeProducts.map((product, index) => (
                 <MarqueeProductCard
                   key={`${product.slug}-${index}`}

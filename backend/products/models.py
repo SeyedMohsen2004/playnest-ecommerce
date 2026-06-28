@@ -134,6 +134,41 @@ class ProductImage(models.Model):
         return self.alt_text or f"Image for {self.product}"
 
 
+class HomepageProductSlot(models.Model):
+    class Section(models.TextChoices):
+        HERO_SLIDER = "hero_slider", "Hero slider"
+        POPULAR_MARQUEE = "popular_marquee", "Popular marquee"
+        LATEST_CAROUSEL = "latest_carousel", "Latest carousel"
+        FEATURED_PRODUCTS = "featured_products", "Featured products"
+
+    section = models.CharField(max_length=30, choices=Section.choices)
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="homepage_slots",
+    )
+    title_override = models.CharField(max_length=255, blank=True)
+    subtitle_override = models.TextField(blank=True)
+    badge_text = models.CharField(max_length=100, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("section", "sort_order", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("section", "product"),
+                condition=Q(is_active=True),
+                name="unique_active_homepage_product_per_section",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_section_display()} - {self.product}"
+
+
 class WishlistItem(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

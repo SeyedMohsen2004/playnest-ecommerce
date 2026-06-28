@@ -3,6 +3,7 @@ from django.contrib import admin
 from products.models import (
     Brand,
     Category,
+    HomepageProductSlot,
     Product,
     ProductImage,
     ProductReview,
@@ -132,6 +133,43 @@ class ProductImageAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at",)
     autocomplete_fields = ("product",)
     ordering = ("-created_at",)
+
+
+@admin.register(HomepageProductSlot)
+class HomepageProductSlotAdmin(admin.ModelAdmin):
+    list_display = (
+        "product",
+        "section",
+        "sort_order",
+        "is_active",
+        "badge_text",
+        "updated_at",
+    )
+    search_fields = ("product__name", "product__sku", "title_override")
+    list_filter = ("section", "is_active")
+    list_select_related = ("product", "product__category", "product__brand")
+    autocomplete_fields = ("product",)
+    readonly_fields = ("created_at", "updated_at")
+    list_editable = ("sort_order", "is_active")
+    ordering = ("section", "sort_order", "id")
+    fieldsets = (
+        (
+            "Homepage section",
+            {
+                "fields": ("section", "product", "sort_order", "is_active"),
+                "description": (
+                    "Hero slider: top banner products. Popular marquee: "
+                    "continuous moving strip. Latest carousel: one-card step "
+                    "slider. Featured products: selected products block."
+                ),
+            },
+        ),
+        (
+            "Optional display overrides",
+            {"fields": ("title_override", "subtitle_override", "badge_text")},
+        ),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
 
 
 @admin.register(WishlistItem)
