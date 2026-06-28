@@ -19,21 +19,25 @@ export function NewsletterSection() {
               مناسب خانواده و دورهمی باخبر شوید.
             </p>
           </div>
-          <form className="rounded-3xl bg-white p-3 shadow-soft">
-            <div className="flex flex-col gap-3 sm:flex-row">
+          <form className="rounded-[2rem] border border-white/70 bg-white/82 p-3 shadow-soft backdrop-blur dark:border-white/10 dark:bg-white/10 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <label className="sr-only" htmlFor="newsletter-email">
                 آدرس ایمیل
               </label>
-              <div className="flex min-h-12 flex-1 items-center gap-3 rounded-full bg-cream px-4 text-ink">
-                <Mail className="size-5 text-coral" />
+              <div className="flex min-h-14 flex-1 items-center gap-3 rounded-[1.4rem] border border-coral/10 bg-cream/80 px-4 text-ink shadow-sm transition focus-within:border-white/80 focus-within:bg-white focus-within:shadow-glow focus-within:ring-2 focus-within:ring-white/70 dark:border-white/10 dark:bg-white/10 dark:text-white dark:focus-within:border-coral/50 dark:focus-within:bg-white/15 dark:focus-within:ring-coral/35 sm:px-5">
+                <Mail className="size-5 shrink-0 text-coral dark:text-sunshine" />
                 <input
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-ink/40"
+                  className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-ink/45 dark:text-white dark:placeholder:text-white/48"
                   id="newsletter-email"
                   placeholder="parent@example.com"
                   type="email"
                 />
               </div>
-              <Button type="button" variant="default">
+              <Button
+                className="h-14 rounded-[1.4rem] px-7"
+                type="button"
+                variant="default"
+              >
                 عضویت
               </Button>
             </div>

@@ -33,6 +33,10 @@ export function SiteHeader() {
   }
 
   function isActiveLink(href: string) {
+    if (href.includes("#")) {
+      return false;
+    }
+
     const path = href.split("#")[0];
 
     if (path === "/") {

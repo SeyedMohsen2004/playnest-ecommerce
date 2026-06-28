@@ -10,12 +10,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-ink text-white shadow-card hover:-translate-y-0.5 hover:bg-ink/90",
+          "bg-ink text-white shadow-card hover:-translate-y-0.5 hover:bg-ink/90 hover:text-white dark:bg-white/12 dark:text-ink dark:ring-1 dark:ring-white/10 dark:hover:bg-white/20 dark:hover:text-white",
         coral:
-          "bg-gradient-to-l from-coral to-candy text-white shadow-glow hover:-translate-y-0.5 hover:shadow-soft",
+          "bg-gradient-to-l from-coral to-candy text-white shadow-glow hover:-translate-y-0.5 hover:text-white hover:shadow-soft",
         outline:
-          "border border-ink/10 bg-white/85 text-ink shadow-sm hover:-translate-y-0.5 hover:bg-white hover:shadow-card",
-        ghost: "text-ink hover:bg-white/70 hover:text-coral",
+          "border border-ink/10 bg-white/85 text-ink shadow-sm hover:-translate-y-0.5 hover:bg-white hover:text-ink hover:shadow-card dark:border-white/12 dark:bg-white/10 dark:text-ink dark:hover:bg-white/18 dark:hover:text-white dark:hover:shadow-card",
+        ghost:
+          "text-ink hover:bg-white/70 hover:text-coral dark:text-ink dark:hover:bg-white/10 dark:hover:text-sunshine",
       },
       size: {
         default: "h-11 px-5",
