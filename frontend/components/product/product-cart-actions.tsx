@@ -8,16 +8,19 @@ import { QuantitySelector } from "@/components/shared/quantity-selector";
 import { Button } from "@/components/ui/button";
 import { addCartItem } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
+import { getCartErrorMessage, getStockLimitMessage } from "@/lib/api/errors";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 
 type ProductCartActionsProps = {
   productId: number | null;
   isInStock: boolean;
+  availableStock?: number | null;
 };
 
 export function ProductCartActions({
   productId,
   isInStock,
+  availableStock,
 }: ProductCartActionsProps) {
   const router = useRouter();
   const { isAuthenticated, logout } = useAuth();
@@ -27,6 +30,10 @@ export function ProductCartActions({
   const [messageTone, setMessageTone] = useState<"success" | "error">(
     "success",
   );
+  const normalizedAvailableStock =
+    typeof availableStock === "number" && Number.isFinite(availableStock)
+      ? Math.max(0, Math.floor(availableStock))
+      : null;
 
   async function handleAddToCart() {
     setMessage("");
@@ -52,6 +59,15 @@ export function ProductCartActions({
       return;
     }
 
+    if (
+      normalizedAvailableStock !== null &&
+      quantity > normalizedAvailableStock
+    ) {
+      setMessageTone("error");
+      setMessage(getStockLimitMessage(normalizedAvailableStock));
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -69,7 +85,13 @@ export function ProductCartActions({
       }
 
       setMessageTone("error");
-      setMessage("خطا در افزودن محصول به سبد خرید.");
+      setMessage(
+        getCartErrorMessage(
+          error,
+          "افزودن کالا به سبد خرید انجام نشد. لطفاً دوباره تلاش کنید.",
+          normalizedAvailableStock,
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -80,6 +102,7 @@ export function ProductCartActions({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <QuantitySelector
           disabled={isSubmitting || !isInStock}
+          max={normalizedAvailableStock ?? undefined}
           onChange={setQuantity}
           value={quantity}
         />
@@ -98,8 +121,8 @@ export function ProductCartActions({
         <p
           className={
             messageTone === "success"
-              ? "rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700"
-              : "rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700"
+              ? "rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/50"
+              : "rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950/45 dark:text-rose-100 dark:ring-rose-800/50"
           }
         >
           {message}

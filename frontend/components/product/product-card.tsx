@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { addCartItem } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
+import { getCartErrorMessage } from "@/lib/api/errors";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import {
   getProductBadge,
@@ -22,6 +23,7 @@ import {
   getProductPrice,
   getProductRating,
   getProductReviewCount,
+  getProductStock,
   isApiProduct,
   type ProductSource,
 } from "@/lib/product-display";
@@ -35,6 +37,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
   const imageClass = getProductImageClass(product);
   const isInStock = getProductIsInStock(product);
   const productId = isApiProduct(product) ? product.id : null;
+  const availableStock = getProductStock(product);
   const rating = getProductRating(product);
   const reviewCount = getProductReviewCount(product);
   const [isAdding, setIsAdding] = useState(false);
@@ -87,7 +90,13 @@ export function ProductCard({ product }: { product: ProductSource }) {
       }
 
       setMessageTone("error");
-      setMessage("خطا در افزودن به سبد خرید.");
+      setMessage(
+        getCartErrorMessage(
+          error,
+          "افزودن کالا به سبد خرید انجام نشد. لطفاً دوباره تلاش کنید.",
+          availableStock,
+        ),
+      );
     } finally {
       setIsAdding(false);
     }
@@ -189,8 +198,8 @@ export function ProductCard({ product }: { product: ProductSource }) {
           <p
             className={
               messageTone === "success"
-                ? "mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"
-                : "mt-3 rounded-2xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700"
+                ? "mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/50"
+                : "mt-3 rounded-2xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950/45 dark:text-rose-100 dark:ring-rose-800/50"
             }
           >
             {message}

@@ -265,7 +265,11 @@ export function ProductDetailClient({ slug }: { slug: string }) {
             />
           </dl>
 
-          <ProductCartActions isInStock={isInStock} productId={product.id} />
+          <ProductCartActions
+            availableStock={getProductStock(product)}
+            isInStock={isInStock}
+            productId={product.id}
+          />
         </section>
       </div>
 
