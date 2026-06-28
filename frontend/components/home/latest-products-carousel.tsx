@@ -10,7 +10,7 @@ import { getProducts } from "@/lib/api/products";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/api";
 
-const AUTOPLAY_INTERVAL_MS = 6200;
+const AUTOPLAY_INTERVAL_MS = 4000;
 
 function getVisibleCount() {
   if (typeof window === "undefined") {
