@@ -7,18 +7,18 @@ const icons = [ShieldCheck, Truck, RotateCcw, CreditCard];
 
 export function BenefitsSection() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8" id="benefits">
-      <div className="rounded-[2.5rem] bg-gradient-to-br from-ink via-[#24304f] to-grape p-6 text-white shadow-soft sm:p-8 lg:p-10">
-        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-11 lg:px-8" id="benefits">
+      <div className="rounded-[2rem] bg-gradient-to-br from-ink via-[#24304f] to-grape p-5 text-white shadow-soft sm:p-6 lg:p-7">
+        <div className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-sunshine">
+            <p className="text-xs font-bold uppercase tracking-wide text-sunshine sm:text-sm">
               چرا خانواده‌ها IpakToys را انتخاب می‌کنند؟
             </p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+            <h2 className="mt-2 text-2xl font-black leading-9 tracking-tight sm:text-3xl sm:leading-10">
               از انتخاب بازی تا پرداخت، همراه مطمئن شما هستیم.
             </h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             {benefits.map((benefit, index) => (
               <FeatureCard
                 benefit={benefit}

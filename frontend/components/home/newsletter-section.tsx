@@ -19,24 +19,24 @@ export function NewsletterSection() {
               مناسب خانواده و دورهمی باخبر شوید.
             </p>
           </div>
-          <form className="rounded-[2rem] border border-white/70 bg-white/82 p-3 shadow-soft backdrop-blur dark:border-white/10 dark:bg-white/10 sm:p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <form className="rounded-[2.2rem] border border-white/55 bg-white/22 p-2.5 shadow-soft backdrop-blur dark:border-white/12 dark:bg-white/10 sm:p-3">
+            <div className="flex flex-col gap-2.5 rounded-[1.75rem] bg-white/88 p-2.5 shadow-sm ring-1 ring-white/70 dark:bg-white/10 dark:ring-white/10 sm:flex-row sm:items-center">
               <label className="sr-only" htmlFor="newsletter-email">
                 آدرس ایمیل
               </label>
-              <div className="flex min-h-14 flex-1 items-center gap-3 rounded-[1.4rem] border border-coral/10 bg-cream/80 px-4 text-ink shadow-sm transition focus-within:border-white/80 focus-within:bg-white focus-within:shadow-glow focus-within:ring-2 focus-within:ring-white/70 dark:border-white/10 dark:bg-white/10 dark:text-white dark:focus-within:border-coral/50 dark:focus-within:bg-white/15 dark:focus-within:ring-coral/35 sm:px-5">
+              <div className="flex min-h-13 flex-1 items-center gap-3 rounded-[1.35rem] border border-coral/12 bg-cream/75 px-4 text-ink transition focus-within:border-coral/45 focus-within:bg-white focus-within:shadow-[0_12px_34px_rgba(255,93,108,0.18)] focus-within:ring-2 focus-within:ring-coral/20 dark:border-white/10 dark:bg-[rgb(var(--surface)/0.72)] dark:text-white dark:focus-within:border-sunshine/45 dark:focus-within:bg-white/12 dark:focus-within:ring-sunshine/25 sm:min-h-14 sm:px-5">
                 <Mail className="size-5 shrink-0 text-coral dark:text-sunshine" />
                 <input
-                  className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-ink/45 dark:text-white dark:placeholder:text-white/48"
+                  className="w-full bg-transparent text-right text-sm font-semibold text-ink outline-none placeholder:text-ink/45 dark:text-white dark:placeholder:text-white/52"
                   id="newsletter-email"
                   placeholder="parent@example.com"
                   type="email"
                 />
               </div>
               <Button
-                className="h-14 rounded-[1.4rem] px-7"
+                className="h-13 rounded-[1.35rem] px-7 shadow-glow sm:h-14"
                 type="button"
-                variant="default"
+                variant="coral"
               >
                 عضویت
               </Button>
