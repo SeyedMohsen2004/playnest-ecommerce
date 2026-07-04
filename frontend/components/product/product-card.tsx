@@ -145,7 +145,10 @@ export function ProductCard({ product }: { product: ProductSource }) {
           </span>
         </div>
         <Link href={`/products/${product.slug}`}>
-          <h3 className="mt-2 min-h-14 text-lg font-black leading-7 text-ink transition hover:text-coral">
+          <h3
+            className="mt-2 truncate text-base font-black leading-7 text-ink transition hover:text-coral"
+            title={product.name}
+          >
             {product.name}
           </h3>
         </Link>

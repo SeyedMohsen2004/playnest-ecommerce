@@ -203,7 +203,7 @@ export function LatestProductsCarousel() {
             <p className="text-sm font-black uppercase tracking-wide text-coral">
               تازه‌های فروشگاه
             </p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-ink sm:text-4xl">
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-ink sm:text-3xl">
               تازه‌ترین محصولات فروشگاه
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-ink/60">

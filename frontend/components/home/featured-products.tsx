@@ -87,7 +87,7 @@ export function FeaturedProducts() {
             <p className="text-sm font-bold uppercase tracking-wide text-coral">
               محصولات منتخب
             </p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">
+            <h2 className="mt-3 text-2xl font-black tracking-tight text-ink sm:text-3xl">
               انتخاب‌های واقعی IpakToys برای بازی، فکر و دورهمی.
             </h2>
           </div>

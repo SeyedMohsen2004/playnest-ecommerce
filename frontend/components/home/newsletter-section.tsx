@@ -11,7 +11,7 @@ export function NewsletterSection() {
             <p className="text-sm font-bold uppercase tracking-wide text-white/75">
               پیشنهادهای IpakToys
             </p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+            <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
               پیشنهادهای ویژه و ایده‌های هدیه را زودتر ببینید.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-white/80">

@@ -125,7 +125,10 @@ function MarqueeProductCard({ product }: { product: ProductSource }) {
         ) : null}
       </span>
       <span className="min-w-0">
-        <span className="line-clamp-2 text-base font-black leading-7 text-ink sm:text-lg sm:leading-8">
+        <span
+          className="block truncate text-sm font-black leading-6 text-ink sm:text-base sm:leading-7"
+          title={product.name}
+        >
           {product.name}
         </span>
         <span className="mt-2 block text-sm font-black text-coral sm:text-base">

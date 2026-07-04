@@ -229,7 +229,7 @@ export function ProductDetailClient({ slug }: { slug: string }) {
               {isInStock ? "موجود در انبار" : "ناموجود"}
             </span>
           </div>
-          <h1 className="mt-5 text-4xl font-black leading-tight text-ink">
+          <h1 className="mt-5 text-3xl font-black leading-tight text-ink sm:text-4xl">
             {product.name}
           </h1>
           <p className="mt-4 text-sm leading-7 text-ink/60">

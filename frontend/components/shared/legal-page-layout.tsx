@@ -16,7 +16,7 @@ export function LegalPageLayout({
         <p className="text-sm font-bold uppercase tracking-wide text-coral">
           IpakToys
         </p>
-        <h1 className="mt-3 text-4xl font-black leading-tight text-ink sm:text-5xl">
+        <h1 className="mt-3 text-3xl font-black leading-tight text-ink sm:text-4xl">
           {title}
         </h1>
         {description ? (
