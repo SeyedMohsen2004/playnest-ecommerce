@@ -19,6 +19,12 @@ const businessLinks = [
 ];
 
 const storeMapUrl = "https://maps.app.goo.gl/ZVbKKmHzD9DXgtte9";
+const enamadTrustSealUrl =
+  "https://trustseal.enamad.ir/?id=753502&Code=H2KOQpYuirurt11s3WHVNxggvUSxRg6u";
+const enamadLogoUrl =
+  "https://trustseal.enamad.ir/logo.aspx?id=753502&Code=H2KOQpYuirurt11s3WHVNxggvUSxRg6u";
+const enamadCode = "H2KOQpYuirurt11s3WHVNxggvUSxRg6u";
+const enamadCodeAttribute = { code: enamadCode };
 
 const socialLinks = [
   // TODO: Replace placeholder URLs with official IpakToys social profiles.
@@ -109,14 +115,25 @@ export function SiteFooter() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-3xl border border-dashed border-coral/25 bg-white/70 p-4 text-center shadow-sm">
-            <p className="text-sm font-black text-ink">
-              محل نمایش نماد اعتماد الکترونیکی
-            </p>
-            <p className="mt-2 text-xs leading-6 text-ink/50">
-              این بخش تا زمان دریافت نماد اعتماد توسط مالک کسب‌وکار، فقط
-              placeholder است.
-            </p>
+          <div className="mt-6 rounded-3xl border border-white/70 bg-white/78 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10">
+            <p className="text-sm font-black text-ink">اعتماد و مجوزها</p>
+            <a
+              className="mt-4 inline-flex w-fit max-w-32 items-center justify-center rounded-2xl border border-ink/10 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-card focus:outline-none focus:ring-2 focus:ring-coral/40 dark:border-white/10 dark:bg-white/90"
+              href={enamadTrustSealUrl}
+              referrerPolicy="origin"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                {...enamadCodeAttribute}
+                alt="نماد اعتماد الکترونیکی IpakToys"
+                className="h-auto w-[104px] cursor-pointer"
+                loading="lazy"
+                referrerPolicy="origin"
+                src={enamadLogoUrl}
+              />
+            </a>
           </div>
         </div>
       </div>
