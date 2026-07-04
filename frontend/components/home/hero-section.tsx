@@ -151,13 +151,8 @@ function HeroSlide({
   const { product, slot } = slide;
   const imageUrl = getProductImageUrl(product);
   const title = slot?.title_override || product.name;
-  const badgeText = slot?.badge_text;
-  const shortDescription = truncateText(
-    slot?.subtitle_override ||
-      getProductShortDescription(product) ||
-      getProductCategoryName(product),
-    140,
-  );
+  const subtitle = slot?.subtitle_override || getProductShortDescription(product);
+  const shortDescription = subtitle ? truncateText(subtitle, 140) : "";
 
   return (
     <div className="relative flex overflow-hidden rounded-[2rem] border border-white/70 bg-white/72 p-5 shadow-soft backdrop-blur dark:border-white/10 sm:rounded-[2.5rem] sm:p-8 lg:min-h-[calc(100svh-5.5rem)] lg:items-center lg:p-10">
@@ -172,14 +167,16 @@ function HeroSlide({
 
           <div className="animate-hero-slide-in" key={product.slug}>
             <p className="mt-7 text-sm font-black text-grape">
-              {badgeText || getProductCategoryName(product)}
+              {getProductCategoryName(product)}
             </p>
             <h1 className="mt-3 max-w-3xl text-4xl font-black leading-[1.35] tracking-tight text-ink sm:text-5xl sm:leading-[1.28] lg:text-6xl lg:leading-[1.2]">
               {title}
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-9 text-ink/66 sm:text-lg sm:leading-10">
-              {shortDescription}
-            </p>
+            {shortDescription ? (
+              <p className="mt-5 max-w-2xl text-base leading-9 text-slate-700 dark:text-slate-300 sm:text-lg sm:leading-10">
+                {shortDescription}
+              </p>
+            ) : null}
             <p className="mt-6 text-3xl font-black text-coral">
               {formatToman(getProductPrice(product))}
             </p>
