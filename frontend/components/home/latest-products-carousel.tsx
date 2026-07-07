@@ -12,11 +12,13 @@ import {
   normalizeHomepageSections,
 } from "@/lib/api/homepage";
 import { getProducts } from "@/lib/api/products";
+import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/api";
 
 const AUTOPLAY_INTERVAL_MS = 4000;
 const TRANSITION_RESET_MS = 760;
+const MAX_VISIBLE_DOTS = 7;
 
 function getVisibleCount() {
   if (typeof window === "undefined") {
@@ -36,6 +38,28 @@ function getVisibleCount() {
   }
 
   return 4;
+}
+
+function getVisibleDotIndexes(totalItems: number, activeIndex: number) {
+  if (totalItems <= MAX_VISIBLE_DOTS) {
+    return Array.from({ length: totalItems }, (_, index) => index);
+  }
+
+  const sideCount = Math.floor(MAX_VISIBLE_DOTS / 2);
+  let start = activeIndex - sideCount;
+  let end = activeIndex + sideCount;
+
+  if (start < 0) {
+    start = 0;
+    end = MAX_VISIBLE_DOTS - 1;
+  }
+
+  if (end >= totalItems) {
+    end = totalItems - 1;
+    start = totalItems - MAX_VISIBLE_DOTS;
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 export function LatestProductsCarousel() {
@@ -124,6 +148,14 @@ export function LatestProductsCarousel() {
   const itemBasis = `${100 / visibleCount}%`;
   const logicalActiveIndex =
     products.length > 0 ? activeIndex % products.length : 0;
+  const visibleDotIndexes = useMemo(
+    () => getVisibleDotIndexes(products.length, logicalActiveIndex),
+    [logicalActiveIndex, products.length],
+  );
+  const positionLabel =
+    products.length > 0
+      ? `${toPersianDigits(logicalActiveIndex + 1)} / ${toPersianDigits(products.length)}`
+      : "";
   const trackProducts = useMemo(() => {
     if (products.length === 0) {
       return [];
@@ -269,8 +301,8 @@ export function LatestProductsCarousel() {
                   >
                     <ChevronRight className="size-5" />
                   </button>
-                  <div className="flex max-w-full flex-wrap items-center justify-center gap-2">
-                    {products.map((product, index) => (
+                  <div className="flex max-w-full items-center justify-center gap-2 rounded-full bg-white/60 px-3 py-2 shadow-sm ring-1 ring-white/70 dark:bg-white/10 dark:ring-white/10">
+                    {visibleDotIndexes.map((index) => (
                       <button
                         aria-label={`نمایش محصول ${index + 1}`}
                         className={cn(
@@ -279,7 +311,7 @@ export function LatestProductsCarousel() {
                             ? "w-8 bg-coral"
                             : "w-2.5 bg-ink/20 hover:bg-coral/60 dark:bg-white/25",
                         )}
-                        key={product.slug}
+                        key={index}
                         onClick={() => {
                           setIsTransitionEnabled(true);
                           setActiveIndex(index);
@@ -287,6 +319,9 @@ export function LatestProductsCarousel() {
                         type="button"
                       />
                     ))}
+                    <span className="mr-1 whitespace-nowrap text-xs font-black text-ink/55 dark:text-white/60">
+                      {positionLabel}
+                    </span>
                   </div>
                   <button
                     aria-label="اسلاید بعدی محصولات"
