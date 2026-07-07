@@ -100,7 +100,11 @@ export function LatestProductsCarousel() {
           if (homepageProducts.length > 0) {
             setProducts(homepageProducts);
           } else {
-            const response = await getProducts({ ordering: "-created_at" });
+            const response = await getProducts({
+              ordering: "-created_at",
+              page: 1,
+              page_size: 12,
+            });
             setProducts(response);
           }
           setActiveIndex(0);
@@ -111,7 +115,11 @@ export function LatestProductsCarousel() {
         }
 
         try {
-          const response = await getProducts({ ordering: "-created_at" });
+          const response = await getProducts({
+            ordering: "-created_at",
+            page: 1,
+            page_size: 12,
+          });
 
           if (isMounted) {
             setProducts(response);

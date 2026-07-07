@@ -93,7 +93,7 @@ export function ProductDetailClient({ slug }: { slug: string }) {
         setSelectedImage(initialImage);
 
         const [productsResult, reviewsResult] = await Promise.allSettled([
-          getProducts(),
+          getProducts({ page: 1, page_size: 12 }),
           getProductReviews(slug),
         ]);
 

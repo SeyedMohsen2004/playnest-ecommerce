@@ -14,6 +14,7 @@ from products.models import (
     ProductReview,
     WishlistItem,
 )
+from products.pagination import ProductPagination
 from products.permissions import IsAdminOrReadOnly
 from products.serializers import (
     BrandSerializer,
@@ -74,6 +75,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         )
     )
     permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = ProductPagination
     filter_backends = (
         DjangoFilterBackend,
         filters.SearchFilter,

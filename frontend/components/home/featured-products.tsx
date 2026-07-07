@@ -41,7 +41,11 @@ export function FeaturedProducts() {
           return;
         }
 
-        const response = await getProducts({ ordering: "-created_at" });
+        const response = await getProducts({
+          ordering: "-created_at",
+          page: 1,
+          page_size: 4,
+        });
         setProducts(response.slice(0, 4));
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
@@ -49,7 +53,11 @@ export function FeaturedProducts() {
         }
 
         try {
-          const response = await getProducts({ ordering: "-created_at" });
+          const response = await getProducts({
+            ordering: "-created_at",
+            page: 1,
+            page_size: 4,
+          });
 
           if (isMounted) {
             setProducts(response.slice(0, 4));

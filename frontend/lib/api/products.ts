@@ -14,6 +14,7 @@ export type ProductQueryParams = {
   age_group?: Product["age_group"];
   ordering?: "price" | "-price" | "created_at" | "-created_at";
   page?: number;
+  page_size?: number;
 };
 
 type ListResponse<T> = T[] | PaginatedResponse<T>;
@@ -22,10 +23,31 @@ function normalizeListResponse<T>(response: ListResponse<T>): T[] {
   return Array.isArray(response) ? response : response.results;
 }
 
+function normalizePaginatedResponse<T>(
+  response: ListResponse<T>,
+): PaginatedResponse<T> {
+  if (Array.isArray(response)) {
+    return {
+      count: response.length,
+      next: null,
+      previous: null,
+      results: response,
+    };
+  }
+
+  return response;
+}
+
 export function getProducts(params?: ProductQueryParams) {
   return apiClient
     .get<ListResponse<Product>>("/products/", { params })
     .then(normalizeListResponse);
+}
+
+export function getProductsPage(params?: ProductQueryParams) {
+  return apiClient
+    .get<ListResponse<Product>>("/products/", { params })
+    .then(normalizePaginatedResponse);
 }
 
 export function getProductBySlug(slug: string) {

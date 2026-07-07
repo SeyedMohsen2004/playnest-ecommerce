@@ -37,7 +37,11 @@ export function ProductMarquee() {
             return;
           }
 
-          const response = await getProducts({ ordering: "-created_at" });
+          const response = await getProducts({
+            ordering: "-created_at",
+            page: 1,
+            page_size: 12,
+          });
           setProducts(response);
         }
       } catch (error) {
@@ -46,7 +50,11 @@ export function ProductMarquee() {
         }
 
         try {
-          const response = await getProducts({ ordering: "-created_at" });
+          const response = await getProducts({
+            ordering: "-created_at",
+            page: 1,
+            page_size: 12,
+          });
 
           if (isMounted) {
             setProducts(response);

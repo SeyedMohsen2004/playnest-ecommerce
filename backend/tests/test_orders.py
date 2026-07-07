@@ -265,5 +265,5 @@ def test_new_and_legacy_product_urls_work(client, product):
 
     assert new_response.status_code == 200
     assert legacy_response.status_code == 200
-    assert new_response.json()[0]["id"] == product.id
-    assert legacy_response.json()[0]["id"] == product.id
+    assert new_response.json()["results"][0]["id"] == product.id
+    assert legacy_response.json()["results"][0]["id"] == product.id

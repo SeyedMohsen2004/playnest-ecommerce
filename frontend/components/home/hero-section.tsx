@@ -51,7 +51,11 @@ export function HeroSection() {
             return;
           }
 
-          const response = await getProducts({ ordering: "-created_at" });
+          const response = await getProducts({
+            ordering: "-created_at",
+            page: 1,
+            page_size: 6,
+          });
           setSlides(
             response.slice(0, 6).map((product) => ({
               product,
@@ -64,7 +68,11 @@ export function HeroSection() {
         }
 
         try {
-          const response = await getProducts({ ordering: "-created_at" });
+          const response = await getProducts({
+            ordering: "-created_at",
+            page: 1,
+            page_size: 6,
+          });
 
           if (isMounted) {
             setSlides(

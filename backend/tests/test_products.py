@@ -62,15 +62,19 @@ def authorization_header(user):
 
 def test_list_products_allows_public_access(client, product):
     response = client.get(reverse("products:product-list"))
+    data = response.json()
 
     assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["name"] == product.name
-    assert response.json()[0]["category"]["slug"] == product.category.slug
-    assert response.json()[0]["brand"]["slug"] == product.brand.slug
-    assert response.json()[0]["final_price"] == product.discount_price
-    assert response.json()[0]["is_in_stock"] is True
-    assert response.json()[0]["main_image"] is None
+    assert data["count"] == 1
+    assert data["next"] is None
+    assert data["previous"] is None
+    assert len(data["results"]) == 1
+    assert data["results"][0]["name"] == product.name
+    assert data["results"][0]["category"]["slug"] == product.category.slug
+    assert data["results"][0]["brand"]["slug"] == product.brand.slug
+    assert data["results"][0]["final_price"] == product.discount_price
+    assert data["results"][0]["is_in_stock"] is True
+    assert data["results"][0]["main_image"] is None
 
 
 def test_create_product_requires_admin(client, category, brand):
@@ -193,11 +197,67 @@ def test_product_list_filtering_search_and_ordering(client, product, category, b
     )
 
     assert filtered_response.status_code == 200
-    assert [item["sku"] for item in filtered_response.json()] == [product.sku]
-    assert [item["sku"] for item in ordered_response.json()] == [
+    assert [item["sku"] for item in filtered_response.json()["results"]] == [
+        product.sku
+    ]
+    assert [item["sku"] for item in ordered_response.json()["results"]] == [
         "PUZZLE-001",
         product.sku,
     ]
+
+
+def test_product_list_is_paginated(client, category, brand):
+    for index in range(13):
+        Product.objects.create(
+            category=category,
+            brand=brand,
+            name=f"Puzzle {index}",
+            slug=f"puzzle-{index}",
+            description="A scalable product list item.",
+            sku=f"PUZZLE-{index:03}",
+            price=1000 + index,
+            stock=5,
+            age_group=Product.AgeGroup.SIX_TO_EIGHT,
+            gender=Product.Gender.UNISEX,
+        )
+
+    first_page = client.get(reverse("products:product-list"), {"page": 1})
+    second_page = client.get(reverse("products:product-list"), {"page": 2})
+
+    assert first_page.status_code == 200
+    assert second_page.status_code == 200
+    assert first_page.json()["count"] == 13
+    assert len(first_page.json()["results"]) == 12
+    assert len(second_page.json()["results"]) == 1
+    assert first_page.json()["next"] is not None
+    assert second_page.json()["previous"] is not None
+
+
+def test_product_list_pagination_respects_filters(client, category, brand):
+    other_category = Category.objects.create(name="Card Games", slug="card-games")
+    for index in range(14):
+        Product.objects.create(
+            category=category if index < 13 else other_category,
+            brand=brand,
+            name=f"Filtered Game {index}",
+            slug=f"filtered-game-{index}",
+            description="Filter pagination test.",
+            sku=f"FILTER-{index:03}",
+            price=2000 + index,
+            stock=5,
+            age_group=Product.AgeGroup.TWELVE_PLUS,
+            gender=Product.Gender.UNISEX,
+        )
+
+    response = client.get(
+        reverse("products:product-list"),
+        {"category": category.id, "page": 2},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 13
+    assert len(response.json()["results"]) == 1
+    assert response.json()["results"][0]["category"]["id"] == category.id
 
 
 def test_homepage_sections_endpoint_groups_active_slots(
