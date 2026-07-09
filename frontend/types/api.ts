@@ -47,18 +47,6 @@ export type ProductOption = {
   values: ProductOptionValue[];
 };
 
-export type ProductVariant = {
-  id: number;
-  sku: string;
-  price: number | string;
-  stock: number;
-  is_active: boolean;
-  is_available: boolean;
-  option_value_ids: number[];
-  selected_options_label: string;
-  image: string | null;
-};
-
 export type Product = {
   id: number;
   name: string;
@@ -75,7 +63,7 @@ export type Product = {
   gender: "unisex" | "boy" | "girl";
   is_active: boolean;
   is_featured: boolean;
-  has_variants?: boolean;
+  has_options?: boolean;
   category: number | Category;
   category_detail?: Category | null;
   brand: number | Brand | null;
@@ -83,7 +71,6 @@ export type Product = {
   images?: ProductImage[];
   main_image?: ProductImage | null;
   options?: ProductOption[];
-  variants?: ProductVariant[];
   average_rating?: number | string | null;
   review_count?: number;
   created_at: string;
@@ -180,9 +167,7 @@ export type TokenRefreshResponse = {
 export type CartItem = {
   id: number;
   product: Product;
-  variant?: number | null;
-  variant_id?: number | null;
-  variant_price?: number;
+  selected_options?: Record<string, string>;
   selected_options_label?: string;
   quantity: number;
   line_total?: number;
@@ -218,8 +203,7 @@ export type Coupon = {
 export type OrderItem = {
   id: number;
   product: number | Product;
-  variant?: number | ProductVariant | null;
-  selected_options_snapshot?: string;
+  selected_options_snapshot?: Record<string, string>;
   product_name: string;
   product_price: number;
   quantity: number;

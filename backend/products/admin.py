@@ -1,4 +1,3 @@
-from django import forms
 from django.contrib import admin
 
 from products.models import (
@@ -10,9 +9,7 @@ from products.models import (
     ProductOption,
     ProductOptionValue,
     ProductReview,
-    ProductVariant,
     WishlistItem,
-    validate_variant_option_values,
 )
 
 
@@ -29,40 +26,6 @@ class ProductOptionInline(admin.TabularInline):
     extra = 0
     fields = ("name", "sort_order", "is_active")
     show_change_link = True
-
-
-class ProductVariantAdminForm(forms.ModelForm):
-    class Meta:
-        model = ProductVariant
-        fields = "__all__"
-
-    def clean(self):
-        cleaned_data = super().clean()
-        product = cleaned_data.get("product")
-        option_values = list(cleaned_data.get("option_values") or [])
-        if not product or not option_values:
-            return cleaned_data
-
-        errors = validate_variant_option_values(product, option_values)
-        if errors:
-            raise forms.ValidationError(errors)
-
-        selected_value_ids = sorted(value.id for value in option_values)
-        existing_variants = (
-            ProductVariant.objects.filter(product=product)
-            .exclude(pk=self.instance.pk)
-            .prefetch_related("option_values")
-        )
-        for variant in existing_variants:
-            variant_value_ids = sorted(
-                variant.option_values.values_list("id", flat=True)
-            )
-            if variant_value_ids == selected_value_ids:
-                raise forms.ValidationError(
-                    {"option_values": "This variant combination already exists."}
-                )
-
-        return cleaned_data
 
 
 @admin.register(Category)
@@ -192,45 +155,6 @@ class ProductOptionValueAdmin(admin.ModelAdmin):
     list_editable = ("sort_order", "is_active")
     readonly_fields = ("created_at", "updated_at")
     ordering = ("option__product__name", "option__sort_order", "sort_order", "id")
-
-
-@admin.register(ProductVariant)
-class ProductVariantAdmin(admin.ModelAdmin):
-    form = ProductVariantAdminForm
-    list_display = (
-        "product",
-        "display_option_values",
-        "sku",
-        "price",
-        "stock",
-        "is_active",
-        "sort_order",
-    )
-    list_filter = ("product", "is_active")
-    search_fields = (
-        "product__name",
-        "product__sku",
-        "sku",
-        "option_values__value",
-    )
-    list_select_related = ("product",)
-    autocomplete_fields = ("product",)
-    filter_horizontal = ("option_values",)
-    list_editable = ("price", "stock", "is_active", "sort_order")
-    readonly_fields = ("created_at", "updated_at")
-    ordering = ("product__name", "sort_order", "id")
-
-    def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .select_related("product")
-            .prefetch_related("option_values__option")
-        )
-
-    @admin.display(description="Options")
-    def display_option_values(self, obj):
-        return obj.selected_options_label
 
 
 @admin.register(ProductImage)

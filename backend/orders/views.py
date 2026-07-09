@@ -20,7 +20,6 @@ from orders.serializers import (
 def get_user_cart(user):
     return Cart.objects.prefetch_related(
         "items__product",
-        "items__variant__option_values__option",
     ).get_or_create(user=user)[0]
 
 
@@ -73,8 +72,7 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return (
-            CartItem.objects.select_related("product", "variant")
-            .prefetch_related("variant__option_values__option")
+            CartItem.objects.select_related("product")
             .filter(cart__user=self.request.user)
         )
 
@@ -87,7 +85,7 @@ class CheckoutView(APIView):
         serializer = CheckoutSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
-        order = Order.objects.prefetch_related("items__variant").get(pk=order.pk)
+        order = Order.objects.prefetch_related("items").get(pk=order.pk)
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
@@ -97,9 +95,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        queryset = Order.objects.select_related("user").prefetch_related(
-            "items__variant"
-        )
+        queryset = Order.objects.select_related("user").prefetch_related("items")
         if getattr(self, "swagger_fake_view", False):
             return queryset.none()
         if self.request.user.is_staff:

@@ -41,15 +41,9 @@ import {
   getProductReviewCount,
   getProductShortDescription,
   getProductStock,
-  normalizeImageUrl,
 } from "@/lib/product-display";
 import { cn } from "@/lib/utils";
-import type {
-  Product,
-  ProductOption,
-  ProductReview,
-  ProductVariant,
-} from "@/types/api";
+import type { Product, ProductOption, ProductReview } from "@/types/api";
 
 const productBenefits: { label: string; icon: LucideIcon }[] = [
   { label: "ارسال سفارش", icon: Truck },
@@ -150,59 +144,33 @@ export function ProductDetailClient({ slug }: { slug: string }) {
       (product?.options || [])
         .map((option) => ({
           ...option,
-          values: option.values.filter((value) =>
-            (product?.variants || []).some((variant) =>
-              variant.option_value_ids.includes(value.id),
-            ),
-          ),
+          values: option.values.filter((value) => Boolean(value.id)),
         }))
         .filter((option) => option.values.length > 0),
     [product],
   );
-  const activeVariants = useMemo(
-    () => (product?.variants || []).filter((variant) => variant.is_active),
-    [product],
-  );
-  const hasVariants = activeVariants.length > 0 && activeOptions.length > 0;
-  const selectedVariant = useMemo(
-    () =>
-      hasVariants
-        ? findMatchingVariant(activeVariants, activeOptions, selectedOptionValueIds)
-        : null,
-    [activeOptions, activeVariants, hasVariants, selectedOptionValueIds],
-  );
-  const isVariantSelectionComplete =
-    hasVariants &&
+  const hasOptions = activeOptions.length > 0;
+  const isOptionSelectionComplete =
+    hasOptions &&
     activeOptions.every((option) => selectedOptionValueIds[option.id]);
-  const variantMessage =
-    hasVariants && !isVariantSelectionComplete
+  const optionMessage =
+    hasOptions && !isOptionSelectionComplete
       ? "لطفاً گزینه‌های محصول را انتخاب کنید."
-      : hasVariants && !selectedVariant
-        ? "این ترکیب از گزینه‌ها موجود نیست."
-        : "";
+      : "";
+  const selectedOptionsPayload = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(selectedOptionValueIds).map(([optionId, valueId]) => [
+          optionId,
+          valueId,
+        ]),
+      ),
+    [selectedOptionValueIds],
+  );
 
   useEffect(() => {
-    if (!product) {
-      setSelectedOptionValueIds({});
-      return;
-    }
-
-    const variants = (product.variants || []).filter((variant) => variant.is_active);
-    const defaultVariant =
-      variants.find((variant) => variant.is_available) || variants[0];
-
-    setSelectedOptionValueIds(
-      defaultVariant
-        ? buildSelectionFromVariant(defaultVariant, product.options || [])
-        : {},
-    );
+    setSelectedOptionValueIds({});
   }, [product]);
-
-  useEffect(() => {
-    if (selectedVariant?.image) {
-      setSelectedImage(normalizeImageUrl(selectedVariant.image));
-    }
-  }, [selectedVariant?.id, selectedVariant?.image]);
 
   if (isLoading) {
     return (
@@ -221,14 +189,9 @@ export function ProductDetailClient({ slug }: { slug: string }) {
   const imageClass = getProductImageClass(product);
   const mainImageUrl =
     selectedImage || galleryImages[0]?.image || getProductImageUrl(product);
-  const simpleProductIsInStock = getProductIsInStock(product);
-  const displayPrice = selectedVariant
-    ? Number(selectedVariant.price)
-    : getProductPrice(product);
-  const displayStock = selectedVariant ? selectedVariant.stock : getProductStock(product);
-  const isInStock = hasVariants
-    ? Boolean(selectedVariant?.is_available)
-    : simpleProductIsInStock;
+  const displayPrice = getProductPrice(product);
+  const displayStock = getProductStock(product);
+  const isInStock = getProductIsInStock(product);
   const rating = getProductRating(product);
   const reviewCount = reviews.length || getProductReviewCount(product);
 
@@ -326,10 +289,10 @@ export function ProductDetailClient({ slug }: { slug: string }) {
           <PriceText
             amount={displayPrice}
             className="mt-6"
-            oldAmount={hasVariants ? undefined : getProductOldPrice(product)}
+            oldAmount={getProductOldPrice(product)}
           />
 
-          {hasVariants ? (
+          {hasOptions ? (
             <ProductOptionSelectors
               options={activeOptions}
               selectedOptionValueIds={selectedOptionValueIds}
@@ -342,9 +305,9 @@ export function ProductDetailClient({ slug }: { slug: string }) {
             />
           ) : null}
 
-          {variantMessage ? (
+          {optionMessage ? (
             <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 ring-1 ring-amber-100 dark:bg-amber-950/35 dark:text-amber-100 dark:ring-amber-800/50">
-              {variantMessage}
+              {optionMessage}
             </p>
           ) : null}
 
@@ -362,9 +325,9 @@ export function ProductDetailClient({ slug }: { slug: string }) {
             availableStock={displayStock}
             isInStock={isInStock}
             productId={product.id}
-            requiresVariant={hasVariants}
-            variantId={selectedVariant?.id}
-            variantMessage={variantMessage}
+            requiresOptions={hasOptions}
+            selectedOptions={selectedOptionsPayload}
+            optionMessage={optionMessage}
           />
         </section>
       </div>
@@ -495,47 +458,6 @@ function ProductOptionSelectors({
         </fieldset>
       ))}
     </div>
-  );
-}
-
-function buildSelectionFromVariant(
-  variant: ProductVariant,
-  options: ProductOption[],
-) {
-  return options.reduce<Record<number, number>>((selection, option) => {
-    const value = option.values.find((item) =>
-      variant.option_value_ids.includes(item.id),
-    );
-    if (value) {
-      selection[option.id] = value.id;
-    }
-    return selection;
-  }, {});
-}
-
-function findMatchingVariant(
-  variants: ProductVariant[],
-  options: ProductOption[],
-  selectedOptionValueIds: Record<number, number>,
-) {
-  if (!options.every((option) => selectedOptionValueIds[option.id])) {
-    return null;
-  }
-
-  const selectedValues = options
-    .map((option) => selectedOptionValueIds[option.id])
-    .sort((first, second) => first - second);
-
-  return (
-    variants.find((variant) => {
-      const variantValues = [...variant.option_value_ids].sort(
-        (first, second) => first - second,
-      );
-      return (
-        variantValues.length === selectedValues.length &&
-        variantValues.every((value, index) => value === selectedValues[index])
-      );
-    }) || null
   );
 }
 

@@ -544,7 +544,6 @@ function getCartItemTotal(item: CartItem) {
   return (
     item.subtotal ||
     item.line_total ||
-    (item.variant_price ? item.variant_price * item.quantity : 0) ||
     getProductPrice(item.product) * item.quantity
   );
 }

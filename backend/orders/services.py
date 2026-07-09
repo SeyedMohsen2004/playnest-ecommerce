@@ -3,7 +3,7 @@ from django.db import transaction
 
 from orders.models import Coupon, Order
 from orders.pricing import validate_coupon
-from products.models import Product, ProductVariant
+from products.models import Product
 
 
 @transaction.atomic
@@ -12,32 +12,16 @@ def mark_order_as_paid(order):
     if locked_order.stock_reduced or locked_order.status == Order.Status.PAID:
         return locked_order
 
-    order_items = list(
-        locked_order.items.select_related("product", "variant").all()
-    )
+    order_items = list(locked_order.items.select_related("product").all())
     products = {
         product.id: product
         for product in Product.objects.select_for_update().filter(
-            id__in=[
-                item.product_id for item in order_items if item.variant_id is None
-            ]
-        )
-    }
-    variants = {
-        variant.id: variant
-        for variant in ProductVariant.objects.select_for_update().filter(
-            id__in=[item.variant_id for item in order_items if item.variant_id]
+            id__in=[item.product_id for item in order_items]
         )
     }
 
     errors = []
     for item in order_items:
-        if item.variant_id:
-            variant = variants.get(item.variant_id)
-            if variant is None or item.quantity > variant.stock:
-                errors.append(f"Insufficient stock for {item.product_name}.")
-            continue
-
         product = products.get(item.product_id)
         if product is None or item.quantity > product.stock:
             errors.append(f"Insufficient stock for {item.product_name}.")
@@ -45,14 +29,9 @@ def mark_order_as_paid(order):
         raise ValidationError({"stock": errors})
 
     for item in order_items:
-        if item.variant_id:
-            variant = variants[item.variant_id]
-            variant.stock -= item.quantity
-            variant.save(update_fields=("stock", "updated_at"))
-        else:
-            product = products[item.product_id]
-            product.stock -= item.quantity
-            product.save(update_fields=("stock",))
+        product = products[item.product_id]
+        product.stock -= item.quantity
+        product.save(update_fields=("stock",))
 
     if locked_order.coupon_id:
         coupon = Coupon.objects.select_for_update().get(pk=locked_order.coupon_id)

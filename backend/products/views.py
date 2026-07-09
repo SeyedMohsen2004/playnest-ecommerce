@@ -13,7 +13,6 @@ from products.models import (
     ProductImage,
     ProductOption,
     ProductReview,
-    ProductVariant,
     WishlistItem,
 )
 from products.pagination import ProductPagination
@@ -74,9 +73,9 @@ class ProductViewSet(viewsets.ModelViewSet):
                 filter=Q(reviews__is_approved=True),
                 distinct=True,
             ),
-            active_variant_count=Count(
-                "variants",
-                filter=Q(variants__is_active=True),
+            active_option_count=Count(
+                "options",
+                filter=Q(options__is_active=True, options__values__is_active=True),
                 distinct=True,
             ),
         )
@@ -107,12 +106,6 @@ class ProductViewSet(viewsets.ModelViewSet):
                     "options",
                     queryset=ProductOption.objects.prefetch_related(
                         "values"
-                    ).order_by("sort_order", "id"),
-                ),
-                Prefetch(
-                    "variants",
-                    queryset=ProductVariant.objects.prefetch_related(
-                        "option_values__option"
                     ).order_by("sort_order", "id"),
                 ),
             )

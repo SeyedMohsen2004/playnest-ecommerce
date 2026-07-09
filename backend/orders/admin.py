@@ -63,8 +63,8 @@ class CartItemInline(admin.TabularInline):
     model = CartItem
     extra = 0
     readonly_fields = ("created_at",)
-    fields = ("product", "variant", "quantity", "created_at")
-    autocomplete_fields = ("product", "variant")
+    fields = ("product", "selected_options", "quantity", "created_at")
+    autocomplete_fields = ("product",)
 
 
 @admin.register(Cart)
@@ -81,16 +81,15 @@ class CartAdmin(admin.ModelAdmin):
 
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ("id", "cart", "product", "variant", "quantity", "created_at")
+    list_display = ("id", "cart", "product", "quantity", "created_at")
     search_fields = (
         "cart__user__phone_number",
         "product__name",
         "product__sku",
-        "variant__sku",
     )
     list_filter = ("created_at",)
-    list_select_related = ("cart", "cart__user", "product", "variant")
-    autocomplete_fields = ("cart", "product", "variant")
+    list_select_related = ("cart", "cart__user", "product")
+    autocomplete_fields = ("cart", "product")
     readonly_fields = ("created_at",)
 
 
@@ -99,7 +98,6 @@ class OrderItemInline(admin.TabularInline):
     extra = 0
     fields = (
         "product",
-        "variant",
         "product_name",
         "selected_options_snapshot",
         "product_price",
@@ -108,7 +106,6 @@ class OrderItemInline(admin.TabularInline):
     )
     readonly_fields = (
         "product",
-        "variant",
         "product_name",
         "selected_options_snapshot",
         "product_price",
@@ -231,13 +228,13 @@ class OrderItemAdmin(admin.ModelAdmin):
         "quantity",
         "line_total",
     )
-    search_fields = ("order__id", "product_name", "product__sku", "variant__sku")
+    search_fields = ("order__id", "product_name", "product__sku")
     list_filter = ("order__status",)
-    list_select_related = ("order", "product", "variant")
+    list_select_related = ("order", "product")
     readonly_fields = (
         "product_name",
         "selected_options_snapshot",
         "product_price",
         "line_total",
     )
-    autocomplete_fields = ("order", "product", "variant")
+    autocomplete_fields = ("order", "product")
