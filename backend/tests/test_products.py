@@ -4,7 +4,15 @@ from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
-from products.models import Brand, Category, HomepageProductSlot, Product
+from products.models import (
+    Brand,
+    Category,
+    HomepageProductSlot,
+    Product,
+    ProductOption,
+    ProductOptionValue,
+    ProductVariant,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -74,7 +82,67 @@ def test_list_products_allows_public_access(client, product):
     assert data["results"][0]["brand"]["slug"] == product.brand.slug
     assert data["results"][0]["final_price"] == product.discount_price
     assert data["results"][0]["is_in_stock"] is True
+    assert data["results"][0]["has_variants"] is False
     assert data["results"][0]["main_image"] is None
+
+
+def test_simple_product_detail_returns_empty_variant_data(client, product):
+    response = client.get(reverse("products:product-detail", args=(product.slug,)))
+
+    assert response.status_code == 200
+    assert response.json()["options"] == []
+    assert response.json()["variants"] == []
+    assert response.json()["has_variants"] is False
+
+
+def test_variant_product_detail_returns_options_and_variants(client, product):
+    size_option = ProductOption.objects.create(product=product, name="Size")
+    small_value = ProductOptionValue.objects.create(
+        option=size_option,
+        value="Small",
+    )
+    large_value = ProductOptionValue.objects.create(
+        option=size_option,
+        value="Large",
+    )
+    inactive_value = ProductOptionValue.objects.create(
+        option=size_option,
+        value="Inactive",
+        is_active=False,
+    )
+    variant = ProductVariant.objects.create(
+        product=product,
+        sku="BLOCK-SM",
+        price=1200,
+        stock=4,
+    )
+    variant.option_values.set([small_value])
+    inactive_variant = ProductVariant.objects.create(
+        product=product,
+        sku="BLOCK-LG",
+        price=1600,
+        stock=2,
+        is_active=False,
+    )
+    inactive_variant.option_values.set([large_value, inactive_value])
+
+    response = client.get(reverse("products:product-detail", args=(product.slug,)))
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data["has_variants"] is True
+    assert data["options"] == [
+        {
+            "id": size_option.id,
+            "name": "Size",
+            "sort_order": 0,
+            "values": [{"id": small_value.id, "value": "Small", "sort_order": 0}],
+        }
+    ]
+    assert len(data["variants"]) == 1
+    assert data["variants"][0]["id"] == variant.id
+    assert data["variants"][0]["option_value_ids"] == [small_value.id]
+    assert data["variants"][0]["price"] == 1200
 
 
 def test_create_product_requires_admin(client, category, brand):

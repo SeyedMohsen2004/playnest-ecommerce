@@ -7,7 +7,10 @@ from products.models import (
     HomepageProductSlot,
     Product,
     ProductImage,
+    ProductOption,
+    ProductOptionValue,
     ProductReview,
+    ProductVariant,
     WishlistItem,
 )
 
@@ -50,12 +53,62 @@ class ProductImageSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class ProductOptionValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductOptionValue
+        fields = ("id", "value", "sort_order")
+        read_only_fields = fields
+
+
+class ProductOptionSerializer(serializers.ModelSerializer):
+    values = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductOption
+        fields = ("id", "name", "sort_order", "values")
+        read_only_fields = fields
+
+    @extend_schema_field(ProductOptionValueSerializer(many=True))
+    def get_values(self, obj):
+        values = obj.values.all()
+        return ProductOptionValueSerializer(
+            [value for value in values if value.is_active],
+            many=True,
+        ).data
+
+
+class ProductVariantSerializer(serializers.ModelSerializer):
+    option_value_ids = serializers.SerializerMethodField()
+    is_available = serializers.BooleanField(read_only=True)
+    selected_options_label = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = ProductVariant
+        fields = (
+            "id",
+            "sku",
+            "price",
+            "stock",
+            "is_active",
+            "is_available",
+            "option_value_ids",
+            "selected_options_label",
+            "image",
+        )
+        read_only_fields = fields
+
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
+    def get_option_value_ids(self, obj):
+        return list(obj.option_values.values_list("id", flat=True))
+
+
 class ProductListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
     final_price = serializers.IntegerField(read_only=True)
     is_in_stock = serializers.BooleanField(read_only=True)
     main_image = serializers.SerializerMethodField()
+    has_variants = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -74,6 +127,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "age_group",
             "gender",
             "is_featured",
+            "has_variants",
             "main_image",
             "created_at",
         )
@@ -85,6 +139,13 @@ class ProductListSerializer(serializers.ModelSerializer):
             return None
         return ProductImageSerializer(image, context=self.context).data
 
+    @extend_schema_field(serializers.BooleanField())
+    def get_has_variants(self, obj):
+        active_variant_count = getattr(obj, "active_variant_count", None)
+        if active_variant_count is not None:
+            return active_variant_count > 0
+        return obj.variants.filter(is_active=True).exists()
+
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     category_detail = CategorySerializer(source="category", read_only=True)
@@ -94,6 +155,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     is_in_stock = serializers.BooleanField(read_only=True)
     average_rating = serializers.FloatField(read_only=True, allow_null=True)
     review_count = serializers.IntegerField(read_only=True)
+    options = serializers.SerializerMethodField()
+    variants = serializers.SerializerMethodField()
+    has_variants = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -118,6 +182,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "is_active",
             "is_featured",
             "images",
+            "options",
+            "variants",
+            "has_variants",
             "average_rating",
             "review_count",
             "created_at",
@@ -144,6 +211,29 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 {"discount_price": "Discount price must be less than price."}
             )
         return attrs
+
+    @extend_schema_field(ProductOptionSerializer(many=True))
+    def get_options(self, obj):
+        options = [
+            option
+            for option in obj.options.all()
+            if option.is_active
+            and any(value.is_active for value in option.values.all())
+        ]
+        return ProductOptionSerializer(options, many=True).data
+
+    @extend_schema_field(ProductVariantSerializer(many=True))
+    def get_variants(self, obj):
+        variants = [variant for variant in obj.variants.all() if variant.is_active]
+        return ProductVariantSerializer(
+            variants,
+            many=True,
+            context=self.context,
+        ).data
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_has_variants(self, obj):
+        return any(variant.is_active for variant in obj.variants.all())
 
 
 class HomepageProductSlotSerializer(serializers.ModelSerializer):

@@ -257,7 +257,15 @@ function CartItemRow({
             {item.product.name}
           </h2>
         </Link>
-        <PriceText amount={getProductPrice(item.product)} className="mt-3" />
+        {item.selected_options_label ? (
+          <p className="mt-2 rounded-2xl bg-cream px-3 py-2 text-xs font-bold leading-6 text-ink/60">
+            {item.selected_options_label}
+          </p>
+        ) : null}
+        <PriceText
+          amount={item.variant_price || getProductPrice(item.product)}
+          className="mt-3"
+        />
         <p className="mt-2 text-xs font-bold text-ink/45">
           جمع این ردیف: {formatToman(getCartItemTotal(item))}
         </p>
@@ -307,6 +315,7 @@ function getCartItemTotal(item: CartItem) {
   return (
     item.line_total ||
     item.subtotal ||
+    (item.variant_price ? item.variant_price * item.quantity : 0) ||
     getProductPrice(item.product) * item.quantity
   );
 }

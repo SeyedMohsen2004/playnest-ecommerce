@@ -9,11 +9,13 @@ export function addCartItem(
   accessToken: string,
   productId: number,
   quantity: number,
+  variantId?: number | null,
 ) {
   return apiClient.post<CartItem>(
     "/cart/items/",
     {
       product: productId,
+      ...(variantId ? { variant_id: variantId } : {}),
       quantity,
     },
     { token: accessToken },

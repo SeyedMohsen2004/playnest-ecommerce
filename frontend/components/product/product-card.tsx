@@ -37,6 +37,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
   const imageClass = getProductImageClass(product);
   const isInStock = getProductIsInStock(product);
   const productId = isApiProduct(product) ? product.id : null;
+  const hasSelectableVariants = isApiProduct(product) && Boolean(product.has_variants);
   const availableStock = getProductStock(product);
   const rating = getProductRating(product);
   const reviewCount = getProductReviewCount(product);
@@ -53,6 +54,13 @@ export function ProductCard({ product }: { product: ProductSource }) {
       setMessageTone("error");
       setMessage("برای افزودن محصول به سبد خرید ابتدا وارد شوید.");
       router.push("/login");
+      return;
+    }
+
+    if (hasSelectableVariants) {
+      setMessageTone("error");
+      setMessage("برای انتخاب گزینه‌های محصول وارد صفحه جزئیات شوید.");
+      router.push(`/products/${product.slug}`);
       return;
     }
 
@@ -192,7 +200,9 @@ export function ProductCard({ product }: { product: ProductSource }) {
             <ShoppingCart className="size-4" />
             {isAdding
               ? "در حال افزودن..."
-              : isInStock
+              : hasSelectableVariants && isInStock
+                ? "انتخاب گزینه"
+                : isInStock
                 ? "سبد خرید"
                 : "ناموجود"}
           </Button>

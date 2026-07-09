@@ -63,8 +63,8 @@ class CartItemInline(admin.TabularInline):
     model = CartItem
     extra = 0
     readonly_fields = ("created_at",)
-    fields = ("product", "quantity", "created_at")
-    autocomplete_fields = ("product",)
+    fields = ("product", "variant", "quantity", "created_at")
+    autocomplete_fields = ("product", "variant")
 
 
 @admin.register(Cart)
@@ -81,21 +81,36 @@ class CartAdmin(admin.ModelAdmin):
 
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ("id", "cart", "product", "quantity", "created_at")
-    search_fields = ("cart__user__phone_number", "product__name", "product__sku")
+    list_display = ("id", "cart", "product", "variant", "quantity", "created_at")
+    search_fields = (
+        "cart__user__phone_number",
+        "product__name",
+        "product__sku",
+        "variant__sku",
+    )
     list_filter = ("created_at",)
-    list_select_related = ("cart", "cart__user", "product")
-    autocomplete_fields = ("cart", "product")
+    list_select_related = ("cart", "cart__user", "product", "variant")
+    autocomplete_fields = ("cart", "product", "variant")
     readonly_fields = ("created_at",)
 
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    fields = ("product", "product_name", "product_price", "quantity", "line_total")
+    fields = (
+        "product",
+        "variant",
+        "product_name",
+        "selected_options_snapshot",
+        "product_price",
+        "quantity",
+        "line_total",
+    )
     readonly_fields = (
         "product",
+        "variant",
         "product_name",
+        "selected_options_snapshot",
         "product_price",
         "quantity",
         "line_total",
@@ -211,12 +226,18 @@ class OrderItemAdmin(admin.ModelAdmin):
         "id",
         "order",
         "product_name",
+        "selected_options_snapshot",
         "product_price",
         "quantity",
         "line_total",
     )
-    search_fields = ("order__id", "product_name", "product__sku")
+    search_fields = ("order__id", "product_name", "product__sku", "variant__sku")
     list_filter = ("order__status",)
-    list_select_related = ("order", "product")
-    readonly_fields = ("product_name", "product_price", "line_total")
-    autocomplete_fields = ("order", "product")
+    list_select_related = ("order", "product", "variant")
+    readonly_fields = (
+        "product_name",
+        "selected_options_snapshot",
+        "product_price",
+        "line_total",
+    )
+    autocomplete_fields = ("order", "product", "variant")

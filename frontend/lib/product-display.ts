@@ -170,7 +170,7 @@ export function getProductImageClass(product: ProductSource) {
     : product.imageClass;
 }
 
-function normalizeImageUrl(imageUrl?: string | null) {
+export function normalizeImageUrl(imageUrl?: string | null) {
   if (!imageUrl) {
     return null;
   }

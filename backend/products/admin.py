@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 
 from products.models import (
@@ -6,8 +7,12 @@ from products.models import (
     HomepageProductSlot,
     Product,
     ProductImage,
+    ProductOption,
+    ProductOptionValue,
     ProductReview,
+    ProductVariant,
     WishlistItem,
+    validate_variant_option_values,
 )
 
 
@@ -17,6 +22,47 @@ class ProductImageInline(admin.TabularInline):
     fields = ("image", "alt_text", "is_main", "created_at")
     readonly_fields = ("created_at",)
     show_change_link = True
+
+
+class ProductOptionInline(admin.TabularInline):
+    model = ProductOption
+    extra = 0
+    fields = ("name", "sort_order", "is_active")
+    show_change_link = True
+
+
+class ProductVariantAdminForm(forms.ModelForm):
+    class Meta:
+        model = ProductVariant
+        fields = "__all__"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        product = cleaned_data.get("product")
+        option_values = list(cleaned_data.get("option_values") or [])
+        if not product or not option_values:
+            return cleaned_data
+
+        errors = validate_variant_option_values(product, option_values)
+        if errors:
+            raise forms.ValidationError(errors)
+
+        selected_value_ids = sorted(value.id for value in option_values)
+        existing_variants = (
+            ProductVariant.objects.filter(product=product)
+            .exclude(pk=self.instance.pk)
+            .prefetch_related("option_values")
+        )
+        for variant in existing_variants:
+            variant_value_ids = sorted(
+                variant.option_values.values_list("id", flat=True)
+            )
+            if variant_value_ids == selected_value_ids:
+                raise forms.ValidationError(
+                    {"option_values": "This variant combination already exists."}
+                )
+
+        return cleaned_data
 
 
 @admin.register(Category)
@@ -89,7 +135,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
     list_editable = ("price", "stock", "is_active", "is_featured")
     autocomplete_fields = ("category", "brand")
-    inlines = (ProductImageInline,)
+    inlines = (ProductImageInline, ProductOptionInline)
     date_hierarchy = "created_at"
     fieldsets = (
         (
@@ -122,6 +168,69 @@ class ProductAdmin(admin.ModelAdmin):
     @admin.display(boolean=True, description="In stock")
     def is_in_stock_display(self, obj):
         return obj.is_in_stock
+
+
+@admin.register(ProductOption)
+class ProductOptionAdmin(admin.ModelAdmin):
+    list_display = ("product", "name", "sort_order", "is_active")
+    list_filter = ("product", "is_active")
+    search_fields = ("product__name", "product__sku", "name")
+    list_select_related = ("product",)
+    autocomplete_fields = ("product",)
+    list_editable = ("sort_order", "is_active")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("product__name", "sort_order", "id")
+
+
+@admin.register(ProductOptionValue)
+class ProductOptionValueAdmin(admin.ModelAdmin):
+    list_display = ("option", "value", "sort_order", "is_active")
+    list_filter = ("option", "is_active")
+    search_fields = ("option__name", "value", "option__product__name")
+    list_select_related = ("option", "option__product")
+    autocomplete_fields = ("option",)
+    list_editable = ("sort_order", "is_active")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("option__product__name", "option__sort_order", "sort_order", "id")
+
+
+@admin.register(ProductVariant)
+class ProductVariantAdmin(admin.ModelAdmin):
+    form = ProductVariantAdminForm
+    list_display = (
+        "product",
+        "display_option_values",
+        "sku",
+        "price",
+        "stock",
+        "is_active",
+        "sort_order",
+    )
+    list_filter = ("product", "is_active")
+    search_fields = (
+        "product__name",
+        "product__sku",
+        "sku",
+        "option_values__value",
+    )
+    list_select_related = ("product",)
+    autocomplete_fields = ("product",)
+    filter_horizontal = ("option_values",)
+    list_editable = ("price", "stock", "is_active", "sort_order")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("product__name", "sort_order", "id")
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("product")
+            .prefetch_related("option_values__option")
+        )
+
+    @admin.display(description="Options")
+    def display_option_values(self, obj):
+        return obj.selected_options_label
 
 
 @admin.register(ProductImage)

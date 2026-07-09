@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem
 from orders.pricing import calculate_order_totals
-from products.models import Product
+from products.models import Product, ProductVariant
 
 
 class CartProductSerializer(serializers.ModelSerializer):
@@ -18,11 +18,25 @@ class CartProductSerializer(serializers.ModelSerializer):
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = CartProductSerializer(read_only=True)
+    variant = serializers.PrimaryKeyRelatedField(read_only=True)
+    variant_id = serializers.IntegerField(source="variant.id", read_only=True)
+    variant_price = serializers.IntegerField(source="unit_price", read_only=True)
+    selected_options_label = serializers.CharField(read_only=True)
     subtotal = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = CartItem
-        fields = ("id", "product", "quantity", "subtotal", "created_at")
+        fields = (
+            "id",
+            "product",
+            "variant",
+            "variant_id",
+            "variant_price",
+            "selected_options_label",
+            "quantity",
+            "subtotal",
+            "created_at",
+        )
         read_only_fields = fields
 
 
@@ -66,15 +80,41 @@ class ApplyCouponSerializer(serializers.Serializer):
 
 class CartItemCreateSerializer(serializers.Serializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    variant_id = serializers.PrimaryKeyRelatedField(
+        queryset=ProductVariant.objects.select_related("product").all(),
+        source="variant",
+        required=False,
+        allow_null=True,
+    )
     quantity = serializers.IntegerField(min_value=1)
 
     def validate(self, attrs):
         product = attrs["product"]
         quantity = attrs["quantity"]
+        variant = attrs.get("variant")
         if not product.is_active:
             raise serializers.ValidationError(
                 {"product": "Inactive products cannot be added to a cart."}
             )
+        active_variants_exist = product.variants.filter(is_active=True).exists()
+        if active_variants_exist and variant is None:
+            raise serializers.ValidationError(
+                {"variant_id": "لطفاً گزینه‌های محصول را انتخاب کنید."}
+            )
+        if variant is not None:
+            if variant.product_id != product.id:
+                raise serializers.ValidationError(
+                    {"variant_id": "Variant does not belong to this product."}
+                )
+            if not variant.is_active:
+                raise serializers.ValidationError(
+                    {"variant_id": "Selected variant is inactive."}
+                )
+            if quantity > variant.stock:
+                raise serializers.ValidationError(
+                    {"quantity": "Quantity cannot exceed selected variant stock."}
+                )
+            return attrs
         if quantity > product.stock:
             raise serializers.ValidationError(
                 {"quantity": "Quantity cannot exceed available stock."}
@@ -85,18 +125,21 @@ class CartItemCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         cart = validated_data.pop("cart")
         product = validated_data["product"]
+        variant = validated_data.get("variant")
         quantity = validated_data["quantity"]
         item = (
             CartItem.objects.select_for_update()
             .filter(
                 cart=cart,
                 product=product,
+                variant=variant,
             )
             .first()
         )
         if item:
             quantity += item.quantity
-            if quantity > product.stock:
+            available_stock = variant.stock if variant else product.stock
+            if quantity > available_stock:
                 raise serializers.ValidationError(
                     {"quantity": "Quantity cannot exceed available stock."}
                 )
@@ -113,10 +156,17 @@ class CartItemUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {"quantity": {"min_value": 1}}
 
     def validate_quantity(self, value):
-        if value > self.instance.product.stock:
+        available_stock = (
+            self.instance.variant.stock
+            if self.instance.variant_id
+            else self.instance.product.stock
+        )
+        if value > available_stock:
             raise serializers.ValidationError("Quantity cannot exceed available stock.")
         if not self.instance.product.is_active:
             raise serializers.ValidationError("This product is inactive.")
+        if self.instance.variant_id and not self.instance.variant.is_active:
+            raise serializers.ValidationError("Selected variant is inactive.")
         return value
 
 
@@ -126,7 +176,9 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "product",
+            "variant",
             "product_name",
+            "selected_options_snapshot",
             "product_price",
             "quantity",
             "line_total",
@@ -177,7 +229,7 @@ class CheckoutSerializer(serializers.Serializer):
         cart = (
             Cart.objects.select_for_update()
             .filter(user=user)
-            .prefetch_related("items__product")
+            .prefetch_related("items__product", "items__variant__option_values__option")
             .first()
         )
         if cart is None or not cart.items.exists():
@@ -190,6 +242,12 @@ class CheckoutSerializer(serializers.Serializer):
                 id__in=[item.product_id for item in cart_items]
             )
         }
+        variants = {
+            variant.id: variant
+            for variant in ProductVariant.objects.select_for_update()
+            .filter(id__in=[item.variant_id for item in cart_items if item.variant_id])
+            .prefetch_related("option_values__option")
+        }
         subtotal_amount = 0
         order_lines = []
         for item in cart_items:
@@ -198,18 +256,34 @@ class CheckoutSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"cart": f"{product.name} is inactive."}
                 )
-            if item.quantity > product.stock:
-                raise serializers.ValidationError(
-                    {"cart": f"Insufficient stock for {product.name}."}
-                )
+            if item.variant_id:
+                variant = variants[item.variant_id]
+                if not variant.is_active:
+                    raise serializers.ValidationError(
+                        {"cart": f"{product.name} selected variant is inactive."}
+                    )
+                if item.quantity > variant.stock:
+                    raise serializers.ValidationError(
+                        {"cart": f"Insufficient stock for {product.name}."}
+                    )
+                price = variant.price
+                selected_options_snapshot = variant.selected_options_label
+            else:
+                if item.quantity > product.stock:
+                    raise serializers.ValidationError(
+                        {"cart": f"Insufficient stock for {product.name}."}
+                    )
+                price = product.final_price
+                selected_options_snapshot = ""
 
-            price = product.final_price
             line_total = price * item.quantity
             subtotal_amount += line_total
             order_lines.append(
                 {
                     "product": product,
+                    "variant": item.variant if item.variant_id else None,
                     "product_name": product.name,
+                    "selected_options_snapshot": selected_options_snapshot,
                     "product_price": price,
                     "quantity": item.quantity,
                     "line_total": line_total,

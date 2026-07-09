@@ -5,7 +5,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
 from orders.models import Cart, CartItem, Order, OrderItem
-from products.models import Brand, Category, Product
+from products.models import (
+    Brand,
+    Category,
+    Product,
+    ProductOption,
+    ProductOptionValue,
+    ProductVariant,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -95,6 +102,23 @@ def create_order(user, product):
     return order
 
 
+@pytest.fixture
+def product_variant(product):
+    size_option = ProductOption.objects.create(product=product, name="Size")
+    large_value = ProductOptionValue.objects.create(
+        option=size_option,
+        value="Large",
+    )
+    variant = ProductVariant.objects.create(
+        product=product,
+        sku="CAR-LARGE",
+        price=1400,
+        stock=4,
+    )
+    variant.option_values.set([large_value])
+    return variant
+
+
 def test_add_to_cart(client, user, product):
     response = client.post(
         reverse("orders:cart-item-list"),
@@ -109,6 +133,41 @@ def test_add_to_cart(client, user, product):
     cart_response = client.get(reverse("orders:cart"), **auth(user))
     assert cart_response.json()["total_items"] == 2
     assert cart_response.json()["total_price"] == 1600
+
+
+def test_variant_product_requires_variant_id_for_cart(client, user, product_variant):
+    response = client.post(
+        reverse("orders:cart-item-list"),
+        {"product": product_variant.product_id, "quantity": 1},
+        content_type="application/json",
+        **auth(user),
+    )
+
+    assert response.status_code == 400
+    assert "variant_id" in response.json()
+
+
+def test_add_variant_to_cart_uses_variant_price(client, user, product_variant):
+    response = client.post(
+        reverse("orders:cart-item-list"),
+        {
+            "product": product_variant.product_id,
+            "variant_id": product_variant.id,
+            "quantity": 2,
+        },
+        content_type="application/json",
+        **auth(user),
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    item = CartItem.objects.get(cart__user=user, product=product_variant.product)
+    assert item.variant == product_variant
+    assert item.subtotal == 2800
+    assert data["variant_id"] == product_variant.id
+    assert data["variant_price"] == 1400
+    assert data["subtotal"] == 2800
+    assert data["selected_options_label"] == "Size: Large"
 
 
 def test_update_quantity(client, user, product):
@@ -178,6 +237,39 @@ def test_checkout_creates_order_without_reducing_stock(client, user, product):
     assert product.stock == 10
 
 
+def test_checkout_preserves_variant_snapshot_without_reducing_stock(
+    client,
+    user,
+    product_variant,
+):
+    product = product_variant.product
+    CartItem.objects.create(
+        cart=Cart.objects.create(user=user),
+        product=product,
+        variant=product_variant,
+        quantity=2,
+    )
+
+    response = client.post(
+        reverse("orders:checkout"),
+        checkout_payload(),
+        content_type="application/json",
+        **auth(user),
+    )
+
+    assert response.status_code == 201
+    order = Order.objects.get(user=user)
+    order_item = order.items.get()
+    assert order.subtotal_amount == 2800
+    assert order_item.variant == product_variant
+    assert order_item.product_price == 1400
+    assert order_item.selected_options_snapshot == "Size: Large"
+    product.refresh_from_db()
+    product_variant.refresh_from_db()
+    assert product.stock == 10
+    assert product_variant.stock == 4
+
+
 def test_mark_as_paid_reduces_stock(client, user, product):
     CartItem.objects.create(
         cart=Cart.objects.create(user=user),
@@ -199,6 +291,35 @@ def test_mark_as_paid_reduces_stock(client, user, product):
     assert order.status == Order.Status.PAID
     assert order.stock_reduced is True
     assert product.stock == 7
+
+
+def test_mark_as_paid_reduces_variant_stock_only(user, product_variant):
+    product = product_variant.product
+    order = Order.objects.create(
+        user=user,
+        total_amount=product_variant.price,
+        shipping_address="123 Play Street",
+        postal_code="1234567890",
+        recipient_name="Play User",
+        recipient_phone=user.phone_number,
+    )
+    OrderItem.objects.create(
+        order=order,
+        product=product,
+        variant=product_variant,
+        product_name=product.name,
+        selected_options_snapshot=product_variant.selected_options_label,
+        product_price=product_variant.price,
+        quantity=2,
+        line_total=product_variant.price * 2,
+    )
+
+    order.mark_as_paid()
+
+    product.refresh_from_db()
+    product_variant.refresh_from_db()
+    assert product.stock == 10
+    assert product_variant.stock == 2
 
 
 def test_mark_as_paid_does_not_reduce_stock_twice(user, product):

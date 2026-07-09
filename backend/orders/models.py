@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from products.models import Product
+from products.models import Product, ProductVariant
 
 
 class Coupon(models.Model):
@@ -62,7 +62,10 @@ class Cart(models.Model):
 
     @property
     def subtotal(self):
-        return sum(item.subtotal for item in self.items.select_related("product"))
+        return sum(
+            item.subtotal
+            for item in self.items.select_related("product", "variant")
+        )
 
     @property
     def total_items(self):
@@ -76,6 +79,13 @@ class CartItem(models.Model):
         on_delete=models.CASCADE,
         related_name="cart_items",
     )
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.PROTECT,
+        related_name="cart_items",
+        blank=True,
+        null=True,
+    )
     quantity = models.PositiveIntegerField(validators=(MinValueValidator(1),))
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -83,8 +93,13 @@ class CartItem(models.Model):
         ordering = ("created_at",)
         constraints = [
             models.UniqueConstraint(
+                fields=("cart", "product", "variant"),
+                name="unique_product_variant_per_cart",
+            ),
+            models.UniqueConstraint(
                 fields=("cart", "product"),
-                name="unique_product_per_cart",
+                condition=models.Q(variant__isnull=True),
+                name="unique_simple_product_per_cart",
             ),
             models.CheckConstraint(
                 condition=models.Q(quantity__gte=1),
@@ -100,14 +115,32 @@ class CartItem(models.Model):
         errors = {}
         if not self.product.is_active:
             errors["product"] = "Inactive products cannot be added to a cart."
-        if self.quantity > self.product.stock:
+        active_variants_exist = self.product.variants.filter(is_active=True).exists()
+        if active_variants_exist and self.variant_id is None:
+            errors["variant"] = "لطفاً گزینه‌های محصول را انتخاب کنید."
+        if self.variant_id is not None:
+            if self.variant.product_id != self.product_id:
+                errors["variant"] = "Variant does not belong to this product."
+            elif not self.variant.is_active:
+                errors["variant"] = "Selected variant is inactive."
+            elif self.quantity > self.variant.stock:
+                errors["quantity"] = "Quantity cannot exceed selected variant stock."
+        elif self.quantity > self.product.stock:
             errors["quantity"] = "Quantity cannot exceed available stock."
         if errors:
             raise ValidationError(errors)
 
     @property
     def subtotal(self):
-        return self.product.final_price * self.quantity
+        return self.unit_price * self.quantity
+
+    @property
+    def unit_price(self):
+        return self.variant.price if self.variant_id else self.product.final_price
+
+    @property
+    def selected_options_label(self):
+        return self.variant.selected_options_label if self.variant_id else ""
 
 
 class Order(models.Model):
@@ -167,7 +200,15 @@ class OrderItem(models.Model):
         on_delete=models.PROTECT,
         related_name="order_items",
     )
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.PROTECT,
+        related_name="order_items",
+        blank=True,
+        null=True,
+    )
     product_name = models.CharField(max_length=255)
+    selected_options_snapshot = models.CharField(max_length=500, blank=True)
     product_price = models.PositiveBigIntegerField()
     quantity = models.PositiveIntegerField(validators=(MinValueValidator(1),))
     line_total = models.PositiveBigIntegerField()
