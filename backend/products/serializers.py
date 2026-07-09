@@ -70,9 +70,15 @@ class ProductOptionSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(ProductOptionValueSerializer(many=True))
     def get_values(self, obj):
-        values = obj.values.all()
+        allowed_value_ids = self.context.get("allowed_value_ids")
+        values = [
+            value
+            for value in obj.values.all()
+            if value.is_active
+            and (allowed_value_ids is None or value.id in allowed_value_ids)
+        ]
         return ProductOptionValueSerializer(
-            [value for value in values if value.is_active],
+            values,
             many=True,
         ).data
 
@@ -214,13 +220,29 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(ProductOptionSerializer(many=True))
     def get_options(self, obj):
+        active_variants = [
+            variant for variant in obj.variants.all() if variant.is_active
+        ]
+        allowed_value_ids = {
+            value.id
+            for variant in active_variants
+            for value in variant.option_values.all()
+            if value.is_active
+        }
         options = [
             option
             for option in obj.options.all()
             if option.is_active
-            and any(value.is_active for value in option.values.all())
+            and any(
+                value.is_active and value.id in allowed_value_ids
+                for value in option.values.all()
+            )
         ]
-        return ProductOptionSerializer(options, many=True).data
+        return ProductOptionSerializer(
+            options,
+            many=True,
+            context={**self.context, "allowed_value_ids": allowed_value_ids},
+        ).data
 
     @extend_schema_field(ProductVariantSerializer(many=True))
     def get_variants(self, obj):
