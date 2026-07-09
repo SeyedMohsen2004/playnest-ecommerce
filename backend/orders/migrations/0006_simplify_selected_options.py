@@ -30,6 +30,15 @@ class Migration(migrations.Migration):
             name="selected_options",
             field=models.JSONField(blank=True, default=dict),
         ),
+        migrations.RunSQL(
+            sql="""
+            UPDATE orders_orderitem
+            SET selected_options_snapshot = '{}'
+            WHERE selected_options_snapshot IS NULL
+               OR btrim(selected_options_snapshot) = '';
+            """,
+            reverse_sql=migrations.RunSQL.noop,
+        ),
         migrations.AlterField(
             model_name="orderitem",
             name="selected_options_snapshot",
