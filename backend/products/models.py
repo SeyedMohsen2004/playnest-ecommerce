@@ -134,61 +134,6 @@ class ProductImage(models.Model):
         return self.alt_text or f"Image for {self.product}"
 
 
-class ProductOption(models.Model):
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
-        related_name="options",
-    )
-    name = models.CharField(max_length=100)
-    sort_order = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ("sort_order", "id")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("product", "name"),
-                name="unique_product_option_name",
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.product} - {self.name}"
-
-
-class ProductOptionValue(models.Model):
-    option = models.ForeignKey(
-        ProductOption,
-        on_delete=models.CASCADE,
-        related_name="values",
-    )
-    value = models.CharField(max_length=100)
-    stock = models.PositiveIntegerField(default=0)
-    sort_order = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ("option__sort_order", "sort_order", "id")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("option", "value"),
-                name="unique_product_option_value",
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.option.name}: {self.value}"
-
-    @property
-    def is_available(self):
-        return self.is_active and self.stock > 0
-
-
 class HomepageProductSlot(models.Model):
     class Section(models.TextChoices):
         HERO_SLIDER = "hero_slider", "Hero slider"

@@ -13,6 +13,7 @@ import { addCartItem } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
 import { getCartErrorMessage } from "@/lib/api/errors";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
+import { toPersianDigits } from "@/lib/format";
 import {
   getProductBadge,
   getProductCategoryName,
@@ -27,7 +28,6 @@ import {
   isApiProduct,
   type ProductSource,
 } from "@/lib/product-display";
-import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: ProductSource }) {
@@ -37,7 +37,6 @@ export function ProductCard({ product }: { product: ProductSource }) {
   const imageClass = getProductImageClass(product);
   const isInStock = getProductIsInStock(product);
   const productId = isApiProduct(product) ? product.id : null;
-  const hasOptions = isApiProduct(product) && Boolean(product.has_options);
   const availableStock = getProductStock(product);
   const rating = getProductRating(product);
   const reviewCount = getProductReviewCount(product);
@@ -54,13 +53,6 @@ export function ProductCard({ product }: { product: ProductSource }) {
       setMessageTone("error");
       setMessage("برای افزودن محصول به سبد خرید ابتدا وارد شوید.");
       router.push("/login");
-      return;
-    }
-
-    if (hasOptions) {
-      setMessageTone("error");
-      setMessage("برای انتخاب گزینه‌های محصول وارد صفحه جزئیات شوید.");
-      router.push(`/products/${product.slug}`);
       return;
     }
 
@@ -198,13 +190,7 @@ export function ProductCard({ product }: { product: ProductSource }) {
             variant="coral"
           >
             <ShoppingCart className="size-4" />
-            {isAdding
-              ? "در حال افزودن..."
-              : hasOptions && isInStock
-                ? "انتخاب گزینه"
-                : isInStock
-                ? "سبد خرید"
-                : "ناموجود"}
+            {isAdding ? "در حال افزودن..." : isInStock ? "سبد خرید" : "ناموجود"}
           </Button>
         </div>
         {message ? (

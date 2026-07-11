@@ -6,8 +6,6 @@ from products.models import (
     HomepageProductSlot,
     Product,
     ProductImage,
-    ProductOption,
-    ProductOptionValue,
     ProductReview,
     WishlistItem,
 )
@@ -18,13 +16,6 @@ class ProductImageInline(admin.TabularInline):
     extra = 1
     fields = ("image", "alt_text", "is_main", "created_at")
     readonly_fields = ("created_at",)
-    show_change_link = True
-
-
-class ProductOptionInline(admin.TabularInline):
-    model = ProductOption
-    extra = 0
-    fields = ("name", "sort_order", "is_active")
     show_change_link = True
 
 
@@ -98,7 +89,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
     list_editable = ("price", "stock", "is_active", "is_featured")
     autocomplete_fields = ("category", "brand")
-    inlines = (ProductImageInline, ProductOptionInline)
+    inlines = (ProductImageInline,)
     date_hierarchy = "created_at"
     fieldsets = (
         (
@@ -131,30 +122,6 @@ class ProductAdmin(admin.ModelAdmin):
     @admin.display(boolean=True, description="In stock")
     def is_in_stock_display(self, obj):
         return obj.is_in_stock
-
-
-@admin.register(ProductOption)
-class ProductOptionAdmin(admin.ModelAdmin):
-    list_display = ("product", "name", "sort_order", "is_active")
-    list_filter = ("product", "is_active")
-    search_fields = ("product__name", "product__sku", "name")
-    list_select_related = ("product",)
-    autocomplete_fields = ("product",)
-    list_editable = ("sort_order", "is_active")
-    readonly_fields = ("created_at", "updated_at")
-    ordering = ("product__name", "sort_order", "id")
-
-
-@admin.register(ProductOptionValue)
-class ProductOptionValueAdmin(admin.ModelAdmin):
-    list_display = ("option", "value", "stock", "sort_order", "is_active")
-    list_filter = ("option", "is_active")
-    search_fields = ("option__name", "value", "option__product__name")
-    list_select_related = ("option", "option__product")
-    autocomplete_fields = ("option",)
-    list_editable = ("stock", "sort_order", "is_active")
-    readonly_fields = ("created_at", "updated_at")
-    ordering = ("option__product__name", "option__sort_order", "sort_order", "value")
 
 
 @admin.register(ProductImage)

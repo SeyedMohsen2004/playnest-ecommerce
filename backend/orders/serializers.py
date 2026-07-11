@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem
 from orders.pricing import calculate_order_totals
-from products.models import Product, ProductOptionValue
+from products.models import Product
 
 
 class CartProductSerializer(serializers.ModelSerializer):
@@ -18,7 +18,6 @@ class CartProductSerializer(serializers.ModelSerializer):
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = CartProductSerializer(read_only=True)
-    selected_options_label = serializers.CharField(read_only=True)
     subtotal = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -26,9 +25,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "product",
-            "selected_options",
-            "selected_option_value_ids",
-            "selected_options_label",
             "quantity",
             "subtotal",
             "created_at",
@@ -74,90 +70,8 @@ class ApplyCouponSerializer(serializers.Serializer):
             raise serializers.ValidationError(exc.message_dict) from exc
 
 
-def normalize_selected_options(product, selected_option_value_ids, quantity):
-    active_options = [
-        option
-        for option in product.options.all()
-        if option.is_active and any(value.is_active for value in option.values.all())
-    ]
-    if not active_options:
-        return {}, []
-
-    if not selected_option_value_ids:
-        raise serializers.ValidationError(
-            {"selected_options": "لطفاً گزینه‌های محصول را انتخاب کنید."}
-        )
-
-    try:
-        selected_ids = [int(value_id) for value_id in selected_option_value_ids]
-    except (TypeError, ValueError) as exc:
-        raise serializers.ValidationError(
-            {"selected_options": "گزینه انتخاب‌شده برای این محصول معتبر نیست."}
-        ) from exc
-
-    selected_ids = list(dict.fromkeys(selected_ids))
-    values = {
-        value.id: value
-        for option in active_options
-        for value in option.values.all()
-        if value.is_active
-    }
-    selected_values = [values.get(value_id) for value_id in selected_ids]
-    if any(value is None for value in selected_values):
-        raise serializers.ValidationError(
-            {"selected_options": "گزینه انتخاب‌شده برای این محصول معتبر نیست."}
-        )
-
-    normalized = {}
-    for option in active_options:
-        option_values = [
-            value
-            for value in selected_values
-            if value is not None and value.option_id == option.id
-        ]
-        if len(option_values) != 1:
-            raise serializers.ValidationError(
-                {"selected_options": "لطفاً گزینه‌های محصول را انتخاب کنید."}
-            )
-
-        value = option_values[0]
-        if value.stock < quantity:
-            raise serializers.ValidationError(
-                {"selected_options": "موجودی گزینه انتخاب‌شده کافی نیست."}
-            )
-        normalized[option.name] = value.value
-
-    sorted_ids = [
-        value.id
-        for value in sorted(
-            selected_values,
-            key=lambda item: (
-                item.option.sort_order,
-                item.option_id,
-                item.sort_order,
-                item.id,
-            ),
-        )
-        if value is not None
-    ]
-
-    return normalized, sorted_ids
-
-
 class CartItemCreateSerializer(serializers.Serializer):
-    product = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.prefetch_related("options__values").all(),
-    )
-    selected_options = serializers.DictField(
-        child=serializers.IntegerField(),
-        required=False,
-        allow_empty=True,
-    )
-    selected_option_value_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        required=False,
-        allow_empty=True,
-    )
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     quantity = serializers.IntegerField(min_value=1)
 
     def validate(self, attrs):
@@ -167,17 +81,7 @@ class CartItemCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"product": "Inactive products cannot be added to a cart."}
             )
-        selected_ids = attrs.get("selected_option_value_ids")
-        if selected_ids is None and attrs.get("selected_options"):
-            selected_ids = list(attrs["selected_options"].values())
-        selected_options, selected_option_value_ids = normalize_selected_options(
-            product,
-            selected_ids or [],
-            quantity,
-        )
-        attrs["selected_options"] = selected_options
-        attrs["selected_option_value_ids"] = selected_option_value_ids
-        if not selected_option_value_ids and quantity > product.stock:
+        if quantity > product.stock:
             raise serializers.ValidationError(
                 {"quantity": "Quantity cannot exceed available stock."}
             )
@@ -188,34 +92,19 @@ class CartItemCreateSerializer(serializers.Serializer):
         cart = validated_data.pop("cart")
         product = validated_data["product"]
         quantity = validated_data["quantity"]
-        selected_options = validated_data.get("selected_options", {})
-        selected_option_value_ids = validated_data.get("selected_option_value_ids", [])
         item = (
             CartItem.objects.select_for_update()
-            .filter(
-                cart=cart,
-                product=product,
-                selected_option_value_ids=selected_option_value_ids,
-            )
+            .filter(cart=cart, product=product)
             .first()
         )
         if item:
             quantity += item.quantity
-            normalize_selected_options(product, selected_option_value_ids, quantity)
-            if not selected_option_value_ids and quantity > product.stock:
+            if quantity > product.stock:
                 raise serializers.ValidationError(
                     {"quantity": "Quantity cannot exceed available stock."}
                 )
             item.quantity = quantity
-            item.selected_options = selected_options
-            item.selected_option_value_ids = selected_option_value_ids
-            item.save(
-                update_fields=(
-                    "quantity",
-                    "selected_options",
-                    "selected_option_value_ids",
-                )
-            )
+            item.save(update_fields=("quantity",))
             return item
         return CartItem.objects.create(cart=cart, **validated_data)
 
@@ -227,15 +116,7 @@ class CartItemUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {"quantity": {"min_value": 1}}
 
     def validate_quantity(self, value):
-        if self.instance.selected_option_value_ids:
-            values = ProductOptionValue.objects.filter(
-                id__in=self.instance.selected_option_value_ids,
-            )
-            if any(option_value.stock < value for option_value in values):
-                raise serializers.ValidationError(
-                    "موجودی گزینه انتخاب‌شده کافی نیست."
-                )
-        elif value > self.instance.product.stock:
+        if value > self.instance.product.stock:
             raise serializers.ValidationError("Quantity cannot exceed available stock.")
         if not self.instance.product.is_active:
             raise serializers.ValidationError("This product is inactive.")
@@ -249,8 +130,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "id",
             "product",
             "product_name",
-            "selected_options_snapshot",
-            "selected_option_value_ids_snapshot",
             "product_price",
             "quantity",
             "line_total",
@@ -314,16 +193,6 @@ class CheckoutSerializer(serializers.Serializer):
                 id__in=[item.product_id for item in cart_items]
             )
         }
-        option_values = {
-            value.id: value
-            for value in ProductOptionValue.objects.select_for_update().filter(
-                id__in=[
-                    value_id
-                    for item in cart_items
-                    for value_id in item.selected_option_value_ids
-                ]
-            )
-        }
         subtotal_amount = 0
         order_lines = []
         for item in cart_items:
@@ -332,14 +201,7 @@ class CheckoutSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"cart": f"{product.name} is inactive."}
                 )
-            if item.selected_option_value_ids:
-                for value_id in item.selected_option_value_ids:
-                    option_value = option_values.get(value_id)
-                    if option_value is None or item.quantity > option_value.stock:
-                        raise serializers.ValidationError(
-                            {"cart": f"Insufficient stock for {product.name}."}
-                        )
-            elif item.quantity > product.stock:
+            if item.quantity > product.stock:
                 raise serializers.ValidationError(
                     {"cart": f"Insufficient stock for {product.name}."}
                 )
@@ -351,10 +213,6 @@ class CheckoutSerializer(serializers.Serializer):
                 {
                     "product": product,
                     "product_name": product.name,
-                    "selected_options_snapshot": item.selected_options,
-                    "selected_option_value_ids_snapshot": (
-                        item.selected_option_value_ids
-                    ),
                     "product_price": price,
                     "quantity": item.quantity,
                     "line_total": line_total,

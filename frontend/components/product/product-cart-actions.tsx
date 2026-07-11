@@ -15,18 +15,12 @@ type ProductCartActionsProps = {
   productId: number | null;
   isInStock: boolean;
   availableStock?: number | null;
-  selectedOptionValueIds?: number[];
-  requiresOptions?: boolean;
-  optionMessage?: string;
 };
 
 export function ProductCartActions({
   productId,
   isInStock,
   availableStock,
-  selectedOptionValueIds = [],
-  requiresOptions = false,
-  optionMessage = "",
 }: ProductCartActionsProps) {
   const router = useRouter();
   const { isAuthenticated, logout } = useAuth();
@@ -65,12 +59,6 @@ export function ProductCartActions({
       return;
     }
 
-    if (requiresOptions && optionMessage) {
-      setMessageTone("error");
-      setMessage(optionMessage || "لطفاً گزینه‌های محصول را انتخاب کنید.");
-      return;
-    }
-
     if (
       normalizedAvailableStock !== null &&
       quantity > normalizedAvailableStock
@@ -83,7 +71,7 @@ export function ProductCartActions({
     setIsSubmitting(true);
 
     try {
-      await addCartItem(accessToken, productId, quantity, selectedOptionValueIds);
+      await addCartItem(accessToken, productId, quantity);
       setMessageTone("success");
       setMessage("محصول به سبد خرید اضافه شد.");
     } catch (error) {
@@ -120,11 +108,7 @@ export function ProductCartActions({
         />
         <Button
           className="min-h-12 w-full px-6 py-3 text-center leading-6 whitespace-normal sm:w-auto sm:min-w-56 sm:flex-1"
-          disabled={
-            isSubmitting ||
-            !isInStock ||
-            (requiresOptions && Boolean(optionMessage))
-          }
+          disabled={isSubmitting || !isInStock}
           onClick={handleAddToCart}
           type="button"
           variant="coral"

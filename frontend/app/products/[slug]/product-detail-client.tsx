@@ -43,7 +43,7 @@ import {
   getProductStock,
 } from "@/lib/product-display";
 import { cn } from "@/lib/utils";
-import type { Product, ProductOption, ProductReview } from "@/types/api";
+import type { Product, ProductReview } from "@/types/api";
 
 const productBenefits: { label: string; icon: LucideIcon }[] = [
   { label: "ارسال سفارش", icon: Truck },
@@ -66,9 +66,6 @@ export function ProductDetailClient({ slug }: { slug: string }) {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedOptionValueIds, setSelectedOptionValueIds] = useState<
-    Record<number, number>
-  >({});
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -139,67 +136,6 @@ export function ProductDetailClient({ slug }: { slug: string }) {
     () => (product ? getProductImages(product) : []),
     [product],
   );
-  const activeOptions = useMemo(
-    () =>
-      (product?.options || [])
-        .map((option) => ({
-          ...option,
-          values: option.values.filter((value) => Boolean(value.id)),
-        }))
-        .filter((option) => option.values.length > 0),
-    [product],
-  );
-  const hasOptions = activeOptions.length > 0;
-  const isOptionSelectionComplete =
-    hasOptions &&
-    activeOptions.every((option) => selectedOptionValueIds[option.id]);
-  const optionMessage =
-    hasOptions && !isOptionSelectionComplete
-      ? "لطفاً گزینه‌های محصول را انتخاب کنید."
-      : "";
-  const selectedOptionValueIdsPayload = useMemo(
-    () =>
-      activeOptions
-        .map((option) => selectedOptionValueIds[option.id])
-        .filter((valueId): valueId is number => Boolean(valueId)),
-    [activeOptions, selectedOptionValueIds],
-  );
-  const selectedOptionValues = useMemo(
-    () =>
-      activeOptions
-        .map((option) =>
-          option.values.find((value) => value.id === selectedOptionValueIds[option.id]),
-        )
-        .filter((value): value is NonNullable<typeof value> => Boolean(value)),
-    [activeOptions, selectedOptionValueIds],
-  );
-  const selectedOptionStock = useMemo(
-    () =>
-      selectedOptionValues.length > 0
-        ? Math.min(...selectedOptionValues.map((value) => value.stock))
-        : null,
-    [selectedOptionValues],
-  );
-  const hasUnavailableSelection =
-    hasOptions &&
-    isOptionSelectionComplete &&
-    selectedOptionValues.some((value) => value.stock <= 0);
-  const stockMessage =
-    hasOptions && isOptionSelectionComplete && selectedOptionStock !== null
-      ? `موجودی گزینه انتخاب‌شده: ${toPersianDigits(selectedOptionStock)} عدد`
-      : "";
-  const effectiveStock = hasOptions
-    ? selectedOptionStock ?? 0
-    : getProductStock(product || ({} as Product));
-  const effectiveIsInStock = hasOptions
-    ? isOptionSelectionComplete && !hasUnavailableSelection
-    : product
-      ? getProductIsInStock(product)
-      : false;
-
-  useEffect(() => {
-    setSelectedOptionValueIds({});
-  }, [product]);
 
   if (isLoading) {
     return (
@@ -220,7 +156,7 @@ export function ProductDetailClient({ slug }: { slug: string }) {
     selectedImage || galleryImages[0]?.image || getProductImageUrl(product);
   const displayPrice = getProductPrice(product);
   const displayStock = getProductStock(product);
-  const isInStock = effectiveIsInStock;
+  const isInStock = getProductIsInStock(product);
   const rating = getProductRating(product);
   const reviewCount = reviews.length || getProductReviewCount(product);
 
@@ -321,57 +257,20 @@ export function ProductDetailClient({ slug }: { slug: string }) {
             oldAmount={getProductOldPrice(product)}
           />
 
-          {hasOptions ? (
-            <ProductOptionSelectors
-              options={activeOptions}
-              selectedOptionValueIds={selectedOptionValueIds}
-              onSelect={(optionId, valueId) =>
-                setSelectedOptionValueIds((current) => ({
-                  ...current,
-                  [optionId]: valueId,
-                }))
-              }
-            />
-          ) : null}
-
-          {optionMessage ? (
-            <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 ring-1 ring-amber-100 dark:bg-amber-950/35 dark:text-amber-100 dark:ring-amber-800/50">
-              {optionMessage}
-            </p>
-          ) : null}
-          {hasUnavailableSelection ? (
-            <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950/45 dark:text-rose-100 dark:ring-rose-800/50">
-              موجودی گزینه انتخاب‌شده کافی نیست.
-            </p>
-          ) : null}
-          {stockMessage ? (
-            <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/50">
-              {stockMessage}
-            </p>
-          ) : null}
-
           <dl className="mt-6 grid gap-3 rounded-3xl bg-cream p-5 text-sm sm:grid-cols-2">
             <DetailMeta label="برند" value={getProductBrandName(product)} />
             <DetailMeta label="رده سنی" value={getProductAgeGroup(product)} />
             <DetailMeta label="گروه استفاده" value={getProductGender(product)} />
             <DetailMeta
               label="موجودی"
-              value={`${
-                toPersianDigits(hasOptions ? effectiveStock : displayStock)
-              } عدد`}
+              value={`${toPersianDigits(displayStock)} عدد`}
             />
           </dl>
 
           <ProductCartActions
-            availableStock={hasOptions ? effectiveStock : displayStock}
+            availableStock={displayStock}
             isInStock={isInStock}
             productId={product.id}
-            requiresOptions={hasOptions}
-            selectedOptionValueIds={selectedOptionValueIdsPayload}
-            optionMessage={
-              optionMessage ||
-              (hasUnavailableSelection ? "موجودی گزینه انتخاب‌شده کافی نیست." : "")
-            }
           />
         </section>
       </div>
@@ -420,9 +319,13 @@ export function ProductDetailClient({ slug }: { slug: string }) {
           </div>
         ) : (
           <div className="mt-5 rounded-3xl bg-cream p-5 text-sm leading-7 text-ink/65">
-            <p className="font-bold">هنوز نظری برای این محصول ثبت نشده است.</p>
+            <p className="font-bold">
+              هنوز نظری برای این محصول ثبت نشده است.
+            </p>
             {!isAuthenticated ? (
-              <p className="mt-2">برای ثبت نظر ابتدا وارد حساب کاربری شوید.</p>
+              <p className="mt-2">
+                برای ثبت نظر ابتدا وارد حساب کاربری شوید.
+              </p>
             ) : (
               <p className="mt-2">
                 امکان ثبت نظر از پنل کاربری در مرحله بعدی فعال می‌شود.
@@ -462,54 +365,6 @@ function buildRelatedProducts(product: Product, products: Product[]) {
   );
 
   return [...sameCategory, ...otherProducts].slice(0, 3);
-}
-
-function ProductOptionSelectors({
-  options,
-  selectedOptionValueIds,
-  onSelect,
-}: {
-  options: ProductOption[];
-  selectedOptionValueIds: Record<number, number>;
-  onSelect: (optionId: number, valueId: number) => void;
-}) {
-  return (
-    <div className="mt-6 space-y-5 rounded-3xl bg-cream p-5">
-      {options.map((option) => (
-        <fieldset key={option.id}>
-          <legend className="text-sm font-black text-ink">{option.name}</legend>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {option.values.map((value) => {
-              const isSelected = selectedOptionValueIds[option.id] === value.id;
-              const isUnavailable = value.stock <= 0;
-
-              return (
-                <button
-                  className={cn(
-                    "rounded-2xl px-4 py-2 text-sm font-black transition",
-                    isSelected
-                      ? "bg-coral text-white shadow-sm"
-                      : "bg-white text-ink ring-1 ring-ink/10 hover:text-coral dark:bg-white/10 dark:ring-white/10",
-                    isUnavailable &&
-                      "cursor-not-allowed opacity-45 hover:text-ink",
-                  )}
-                  disabled={isUnavailable}
-                  key={value.id}
-                  onClick={() => onSelect(option.id, value.id)}
-                  type="button"
-                >
-                  <span>{value.value}</span>
-                  {isUnavailable ? (
-                    <span className="mr-2 text-[0.65rem]">ناموجود</span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-      ))}
-    </div>
-  );
 }
 
 function ProductNotFound() {

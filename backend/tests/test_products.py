@@ -9,8 +9,6 @@ from products.models import (
     Category,
     HomepageProductSlot,
     Product,
-    ProductOption,
-    ProductOptionValue,
 )
 
 pytestmark = pytest.mark.django_db
@@ -81,73 +79,18 @@ def test_list_products_allows_public_access(client, product):
     assert data["results"][0]["brand"]["slug"] == product.brand.slug
     assert data["results"][0]["final_price"] == product.discount_price
     assert data["results"][0]["is_in_stock"] is True
-    assert data["results"][0]["has_options"] is False
     assert data["results"][0]["main_image"] is None
 
 
-def test_product_detail_returns_empty_options_for_simple_product(client, product):
-    response = client.get(reverse("products:product-detail", args=(product.slug,)))
-
-    assert response.status_code == 200
-    assert response.json()["options"] == []
-    assert response.json()["has_options"] is False
-
-
-def test_product_detail_returns_active_options_and_values(client, product):
-    size_option = ProductOption.objects.create(product=product, name="Size")
-    small_value = ProductOptionValue.objects.create(
-        option=size_option,
-        value="Small",
-        stock=10,
-    )
-    large_value = ProductOptionValue.objects.create(
-        option=size_option,
-        value="Large",
-        stock=2,
-    )
-    inactive_value = ProductOptionValue.objects.create(
-        option=size_option,
-        value="Inactive",
-        is_active=False,
-    )
-    inactive_option = ProductOption.objects.create(
-        product=product,
-        name="Inactive Option",
-        is_active=False,
-    )
-    ProductOptionValue.objects.create(option=inactive_option, value="Hidden")
-
+def test_product_detail_returns_simple_product_fields(client, product):
     response = client.get(reverse("products:product-detail", args=(product.slug,)))
     data = response.json()
 
     assert response.status_code == 200
-    assert data["has_options"] is True
-    assert data["options"] == [
-        {
-            "id": size_option.id,
-            "name": "Size",
-            "sort_order": 0,
-            "values": [
-                {
-                    "id": small_value.id,
-                    "value": "Small",
-                    "stock": 10,
-                    "is_available": True,
-                    "sort_order": 0,
-                },
-                {
-                    "id": large_value.id,
-                    "value": "Large",
-                    "stock": 2,
-                    "is_available": True,
-                    "sort_order": 0,
-                },
-            ],
-        }
-    ]
-    assert inactive_value.id not in [
-        value["id"] for value in data["options"][0]["values"]
-    ]
+    assert data["name"] == product.name
+    assert data["final_price"] == product.discount_price
+    assert "options" not in data
+    assert "has_options" not in data
 
 
 def test_create_product_requires_admin(client, category, brand):

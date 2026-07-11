@@ -11,7 +11,6 @@ from products.models import (
     HomepageProductSlot,
     Product,
     ProductImage,
-    ProductOption,
     ProductReview,
     WishlistItem,
 )
@@ -73,11 +72,6 @@ class ProductViewSet(viewsets.ModelViewSet):
                 filter=Q(reviews__is_approved=True),
                 distinct=True,
             ),
-            active_option_count=Count(
-                "options",
-                filter=Q(options__is_active=True, options__values__is_active=True),
-                distinct=True,
-            ),
         )
     )
     permission_classes = (IsAdminOrReadOnly,)
@@ -100,15 +94,6 @@ class ProductViewSet(viewsets.ModelViewSet):
                 is_active=True,
                 category__is_active=True,
             ).filter(Q(brand__isnull=True) | Q(brand__is_active=True))
-        if self.action == "retrieve":
-            queryset = queryset.prefetch_related(
-                Prefetch(
-                    "options",
-                    queryset=ProductOption.objects.prefetch_related(
-                        "values"
-                    ).order_by("sort_order", "id"),
-                ),
-            )
         if not self.request.user.is_staff:
             return queryset
         return queryset

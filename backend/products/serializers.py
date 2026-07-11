@@ -7,8 +7,6 @@ from products.models import (
     HomepageProductSlot,
     Product,
     ProductImage,
-    ProductOption,
-    ProductOptionValue,
     ProductReview,
     WishlistItem,
 )
@@ -52,39 +50,12 @@ class ProductImageSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class ProductOptionValueSerializer(serializers.ModelSerializer):
-    is_available = serializers.BooleanField(read_only=True)
-
-    class Meta:
-        model = ProductOptionValue
-        fields = ("id", "value", "stock", "is_available", "sort_order")
-        read_only_fields = fields
-
-
-class ProductOptionSerializer(serializers.ModelSerializer):
-    values = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProductOption
-        fields = ("id", "name", "sort_order", "values")
-        read_only_fields = fields
-
-    @extend_schema_field(ProductOptionValueSerializer(many=True))
-    def get_values(self, obj):
-        values = [value for value in obj.values.all() if value.is_active]
-        return ProductOptionValueSerializer(
-            values,
-            many=True,
-        ).data
-
-
 class ProductListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
     final_price = serializers.IntegerField(read_only=True)
     is_in_stock = serializers.BooleanField(read_only=True)
     main_image = serializers.SerializerMethodField()
-    has_options = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -103,7 +74,6 @@ class ProductListSerializer(serializers.ModelSerializer):
             "age_group",
             "gender",
             "is_featured",
-            "has_options",
             "main_image",
             "created_at",
         )
@@ -115,14 +85,6 @@ class ProductListSerializer(serializers.ModelSerializer):
             return None
         return ProductImageSerializer(image, context=self.context).data
 
-    @extend_schema_field(serializers.BooleanField())
-    def get_has_options(self, obj):
-        active_option_count = getattr(obj, "active_option_count", None)
-        if active_option_count is not None:
-            return active_option_count > 0
-        return obj.options.filter(is_active=True, values__is_active=True).exists()
-
-
 class ProductDetailSerializer(serializers.ModelSerializer):
     category_detail = CategorySerializer(source="category", read_only=True)
     brand_detail = BrandSerializer(source="brand", read_only=True)
@@ -131,8 +93,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     is_in_stock = serializers.BooleanField(read_only=True)
     average_rating = serializers.FloatField(read_only=True, allow_null=True)
     review_count = serializers.IntegerField(read_only=True)
-    options = serializers.SerializerMethodField()
-    has_options = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -157,8 +117,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "is_active",
             "is_featured",
             "images",
-            "options",
-            "has_options",
             "average_rating",
             "review_count",
             "created_at",
@@ -185,27 +143,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 {"discount_price": "Discount price must be less than price."}
             )
         return attrs
-
-    @extend_schema_field(ProductOptionSerializer(many=True))
-    def get_options(self, obj):
-        options = [
-            option
-            for option in obj.options.all()
-            if option.is_active
-            and any(
-                value.is_active for value in option.values.all()
-            )
-        ]
-        return ProductOptionSerializer(options, many=True).data
-
-    @extend_schema_field(serializers.BooleanField())
-    def get_has_options(self, obj):
-        return any(
-            option.is_active
-            and any(value.is_active for value in option.values.all())
-            for option in obj.options.all()
-        )
-
 
 class HomepageProductSlotSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)

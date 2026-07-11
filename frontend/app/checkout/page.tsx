@@ -421,11 +421,6 @@ function CheckoutSummary({
               <p className="mt-1 text-xs text-ink/45">
                 تعداد: {toPersianDigits(item.quantity)}
               </p>
-              {item.selected_options_label ? (
-                <p className="mt-1 text-xs font-bold leading-6 text-ink/55">
-                  {item.selected_options_label}
-                </p>
-              ) : null}
             </div>
             <span className="whitespace-nowrap text-xs font-black text-ink">
               {formatToman(getCartItemTotal(item))}
