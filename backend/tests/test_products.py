@@ -307,6 +307,11 @@ def test_homepage_sections_endpoint_groups_active_slots(
         product=product,
         sort_order=1,
     )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.FEATURED_PRODUCTS,
+        product=second_product,
+        sort_order=1,
+    )
 
     response = client.get(reverse("products:homepage-sections"))
 
@@ -325,18 +330,149 @@ def test_homepage_sections_endpoint_groups_active_slots(
     assert data["hero_slider"][1]["title_override"] == "Hero title"
     assert data["popular_marquee"][0]["product"]["slug"] == product.slug
     assert data["latest_carousel"] == []
-    assert data["featured_products"] == []
+    assert data["featured_products"][0]["product"]["slug"] == second_product.slug
 
 
 def test_homepage_sections_endpoint_ignores_inactive_slots(client, product):
+    other_product = Product.objects.create(
+        category=product.category,
+        brand=product.brand,
+        name="Active Featured Game",
+        slug="active-featured-game",
+        description="An active selected product.",
+        sku="ACTIVE-FEATURED-001",
+        price=2000,
+        stock=4,
+        age_group=Product.AgeGroup.SIX_TO_EIGHT,
+        gender=Product.Gender.UNISEX,
+    )
     HomepageProductSlot.objects.create(
         section=HomepageProductSlot.Section.FEATURED_PRODUCTS,
         product=product,
         sort_order=1,
         is_active=False,
     )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.FEATURED_PRODUCTS,
+        product=other_product,
+        sort_order=2,
+    )
 
     response = client.get(reverse("products:homepage-sections"))
 
     assert response.status_code == 200
-    assert response.json()["featured_products"] == []
+    featured_slugs = [
+        item["product"]["slug"] for item in response.json()["featured_products"]
+    ]
+    assert featured_slugs == [other_product.slug]
+
+
+def test_homepage_sections_endpoint_returns_admin_selected_popular_and_featured(
+    client, product, category, brand
+):
+    popular_product = Product.objects.create(
+        category=category,
+        brand=brand,
+        name="Popular Game",
+        slug="popular-game",
+        description="Popular game.",
+        sku="POPULAR-001",
+        price=3200,
+        stock=5,
+        age_group=Product.AgeGroup.TWELVE_PLUS,
+        gender=Product.Gender.UNISEX,
+    )
+    featured_product = Product.objects.create(
+        category=category,
+        brand=brand,
+        name="Featured Game",
+        slug="featured-game",
+        description="Featured game.",
+        sku="FEATURED-001",
+        price=4500,
+        stock=5,
+        age_group=Product.AgeGroup.TWELVE_PLUS,
+        gender=Product.Gender.UNISEX,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.POPULAR_MARQUEE,
+        product=popular_product,
+        sort_order=2,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.POPULAR_MARQUEE,
+        product=product,
+        sort_order=1,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.FEATURED_PRODUCTS,
+        product=featured_product,
+        sort_order=1,
+    )
+
+    response = client.get(reverse("products:homepage-sections"))
+
+    assert response.status_code == 200
+    data = response.json()
+    assert [item["product"]["slug"] for item in data["popular_marquee"]] == [
+        product.slug,
+        popular_product.slug,
+    ]
+    assert [item["product"]["slug"] for item in data["featured_products"]] == [
+        featured_product.slug,
+    ]
+
+
+def test_homepage_sections_endpoint_ignores_inactive_products(
+    client, product, category, brand
+):
+    inactive_product = Product.objects.create(
+        category=category,
+        brand=brand,
+        name="Inactive Popular Game",
+        slug="inactive-popular-game",
+        description="Inactive product.",
+        sku="INACTIVE-POPULAR-001",
+        price=2000,
+        stock=5,
+        age_group=Product.AgeGroup.SIX_TO_EIGHT,
+        gender=Product.Gender.UNISEX,
+        is_active=False,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.POPULAR_MARQUEE,
+        product=inactive_product,
+        sort_order=1,
+    )
+
+    response = client.get(reverse("products:homepage-sections"))
+
+    assert response.status_code == 200
+    popular_slugs = [
+        item["product"]["slug"] for item in response.json()["popular_marquee"]
+    ]
+    assert inactive_product.slug not in popular_slugs
+
+
+def test_homepage_sections_endpoint_fallbacks_are_limited(client, category, brand):
+    for index in range(15):
+        Product.objects.create(
+            category=category,
+            brand=brand,
+            name=f"Fallback Game {index}",
+            slug=f"fallback-game-{index}",
+            description="Fallback product.",
+            sku=f"FALLBACK-{index:03}",
+            price=1000 + index,
+            stock=5,
+            age_group=Product.AgeGroup.SIX_TO_EIGHT,
+            gender=Product.Gender.UNISEX,
+        )
+
+    response = client.get(reverse("products:homepage-sections"))
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["popular_marquee"]) == 12
+    assert len(data["featured_products"]) == 8
+    assert data["latest_carousel"] == []

@@ -107,11 +107,14 @@ class ProductViewSet(viewsets.ModelViewSet):
 class HomepageSectionsView(generics.GenericAPIView):
     serializer_class = HomepageProductSlotSerializer
     permission_classes = (permissions.AllowAny,)
+    fallback_limits = {
+        HomepageProductSlot.Section.POPULAR_MARQUEE: 12,
+        HomepageProductSlot.Section.FEATURED_PRODUCTS: 8,
+    }
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return HomepageProductSlot.objects.none()
-
         return (
             HomepageProductSlot.objects.filter(
                 is_active=True,
@@ -133,11 +136,54 @@ class HomepageSectionsView(generics.GenericAPIView):
             .order_by("section", "sort_order", "id")
         )
 
+    def get_fallback_products(self, section, limit):
+        queryset = (
+            Product.objects.filter(
+                is_active=True,
+                category__is_active=True,
+            )
+            .filter(Q(brand__isnull=True) | Q(brand__is_active=True))
+            .select_related("category", "brand")
+            .prefetch_related(
+                Prefetch(
+                    "images",
+                    queryset=ProductImage.objects.order_by("-is_main", "created_at"),
+                )
+            )
+        )
+        if section == HomepageProductSlot.Section.FEATURED_PRODUCTS:
+            queryset = queryset.order_by("-is_featured", "-created_at", "id")
+        else:
+            queryset = queryset.order_by("-created_at", "id")
+        return list(queryset[:limit])
+
+    def build_fallback_slots(self, section, products):
+        serialized_products = ProductListSerializer(
+            products,
+            many=True,
+            context=self.get_serializer_context(),
+        ).data
+        return [
+            {
+                "id": product["id"],
+                "section": section,
+                "product": product,
+                "title_override": "",
+                "subtitle_override": "",
+                "badge_text": "",
+                "sort_order": index,
+            }
+            for index, product in enumerate(serialized_products, start=1)
+        ]
+
     def get(self, request, *args, **kwargs):
         grouped_sections = {
             section_value: []
             for section_value, _section_label in HomepageProductSlot.Section.choices
         }
+
+        if getattr(self, "swagger_fake_view", False):
+            return Response(grouped_sections)
 
         serializer = self.get_serializer(
             self.get_queryset(),
@@ -147,6 +193,14 @@ class HomepageSectionsView(generics.GenericAPIView):
 
         for item in serializer.data:
             grouped_sections[item["section"]].append(item)
+
+        for section, limit in self.fallback_limits.items():
+            if grouped_sections[section]:
+                continue
+            grouped_sections[section] = self.build_fallback_slots(
+                section,
+                self.get_fallback_products(section, limit),
+            )
 
         return Response(grouped_sections)
 

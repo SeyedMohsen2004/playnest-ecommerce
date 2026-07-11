@@ -37,7 +37,7 @@ export function FeaturedProducts() {
         }
 
         if (homepageProducts.length > 0) {
-          setProducts(homepageProducts.slice(0, 4));
+          setProducts(homepageProducts);
           return;
         }
 

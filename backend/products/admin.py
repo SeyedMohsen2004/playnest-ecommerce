@@ -109,7 +109,7 @@ class ProductAdmin(admin.ModelAdmin):
         ),
         ("Inventory", {"fields": ("stock", "is_in_stock_display")}),
         ("Classification", {"fields": ("category", "brand", "age_group", "gender")}),
-        ("Display options", {"fields": ("is_active", "is_featured")}),
+        ("Visibility", {"fields": ("is_active", "is_featured")}),
         ("SEO / slug", {"fields": ("slug",)}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
@@ -138,14 +138,14 @@ class ProductImageAdmin(admin.ModelAdmin):
 @admin.register(HomepageProductSlot)
 class HomepageProductSlotAdmin(admin.ModelAdmin):
     list_display = (
+        "section_label",
         "product",
-        "section",
         "sort_order",
         "is_active",
         "badge_text",
         "updated_at",
     )
-    search_fields = ("product__name", "product__sku", "title_override")
+    search_fields = ("product__name", "product__sku", "section", "title_override")
     list_filter = ("section", "is_active")
     list_select_related = ("product", "product__category", "product__brand")
     autocomplete_fields = ("product",)
@@ -158,9 +158,9 @@ class HomepageProductSlotAdmin(admin.ModelAdmin):
             {
                 "fields": ("section", "product", "sort_order", "is_active"),
                 "description": (
-                    "Hero slider: top banner products. Popular marquee: "
-                    "continuous moving strip. Latest carousel: one-card step "
-                    "slider. Featured products: selected products block."
+                    "بنر اصلی: اسلایدر بالای صفحه. محصولات پرطرفدار نواری: "
+                    "نوار متحرک محصولات پرطرفدار. تازه‌های فروشگاه: اسلایدر "
+                    "محصولات جدید. محصولات منتخب: بخش انتخاب‌های فروشگاه."
                 ),
             },
         ),
@@ -170,6 +170,10 @@ class HomepageProductSlotAdmin(admin.ModelAdmin):
         ),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
+
+    @admin.display(description="Section", ordering="section")
+    def section_label(self, obj):
+        return obj.get_section_display()
 
 
 @admin.register(WishlistItem)

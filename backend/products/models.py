@@ -136,10 +136,10 @@ class ProductImage(models.Model):
 
 class HomepageProductSlot(models.Model):
     class Section(models.TextChoices):
-        HERO_SLIDER = "hero_slider", "Hero slider"
-        POPULAR_MARQUEE = "popular_marquee", "Popular marquee"
-        LATEST_CAROUSEL = "latest_carousel", "Latest carousel"
-        FEATURED_PRODUCTS = "featured_products", "Featured products"
+        HERO_SLIDER = "hero_slider", "بنر اصلی"
+        POPULAR_MARQUEE = "popular_marquee", "محصولات پرطرفدار نواری"
+        LATEST_CAROUSEL = "latest_carousel", "تازه‌های فروشگاه"
+        FEATURED_PRODUCTS = "featured_products", "محصولات منتخب"
 
     section = models.CharField(max_length=30, choices=Section.choices)
     product = models.ForeignKey(
