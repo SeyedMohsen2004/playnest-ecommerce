@@ -147,14 +147,14 @@ class ProductOptionAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOptionValue)
 class ProductOptionValueAdmin(admin.ModelAdmin):
-    list_display = ("option", "value", "sort_order", "is_active")
+    list_display = ("option", "value", "stock", "sort_order", "is_active")
     list_filter = ("option", "is_active")
     search_fields = ("option__name", "value", "option__product__name")
     list_select_related = ("option", "option__product")
     autocomplete_fields = ("option",)
-    list_editable = ("sort_order", "is_active")
+    list_editable = ("stock", "sort_order", "is_active")
     readonly_fields = ("created_at", "updated_at")
-    ordering = ("option__product__name", "option__sort_order", "sort_order", "id")
+    ordering = ("option__product__name", "option__sort_order", "sort_order", "value")
 
 
 @admin.register(ProductImage)

@@ -107,6 +107,7 @@ def product_option_value(product):
     return ProductOptionValue.objects.create(
         option=size_option,
         value="Large",
+        stock=4,
     )
 
 
@@ -152,9 +153,7 @@ def test_add_option_product_to_cart_stores_selected_options(
         reverse("orders:cart-item-list"),
         {
             "product": product.id,
-            "selected_options": {
-                str(product_option_value.option_id): product_option_value.id
-            },
+            "selected_option_value_ids": [product_option_value.id],
             "quantity": 2,
         },
         content_type="application/json",
@@ -165,10 +164,84 @@ def test_add_option_product_to_cart_stores_selected_options(
     data = response.json()
     item = CartItem.objects.get(cart__user=user, product=product)
     assert item.selected_options == {"Size": "Large"}
+    assert item.selected_option_value_ids == [product_option_value.id]
     assert item.subtotal == 1600
     assert data["selected_options"] == {"Size": "Large"}
+    assert data["selected_option_value_ids"] == [product_option_value.id]
     assert data["subtotal"] == 1600
     assert data["selected_options_label"] == "Size: Large"
+
+
+def test_same_product_with_different_options_creates_separate_cart_items(
+    client,
+    user,
+    product_option_value,
+):
+    product = product_option_value.option.product
+    small_value = ProductOptionValue.objects.create(
+        option=product_option_value.option,
+        value="Small",
+        stock=5,
+    )
+
+    for value in (product_option_value, small_value):
+        response = client.post(
+            reverse("orders:cart-item-list"),
+            {
+                "product": product.id,
+                "selected_option_value_ids": [value.id],
+                "quantity": 1,
+            },
+            content_type="application/json",
+            **auth(user),
+        )
+        assert response.status_code == 201
+
+    assert CartItem.objects.filter(cart__user=user, product=product).count() == 2
+
+
+def test_same_product_with_same_options_merges_cart_item(
+    client,
+    user,
+    product_option_value,
+):
+    product = product_option_value.option.product
+
+    for _index in range(2):
+        response = client.post(
+            reverse("orders:cart-item-list"),
+            {
+                "product": product.id,
+                "selected_option_value_ids": [product_option_value.id],
+                "quantity": 1,
+            },
+            content_type="application/json",
+            **auth(user),
+        )
+        assert response.status_code == 201
+
+    item = CartItem.objects.get(cart__user=user, product=product)
+    assert item.quantity == 2
+
+
+def test_add_to_cart_rejects_insufficient_option_value_stock(
+    client,
+    user,
+    product_option_value,
+):
+    response = client.post(
+        reverse("orders:cart-item-list"),
+        {
+            "product": product_option_value.option.product_id,
+            "selected_option_value_ids": [product_option_value.id],
+            "quantity": product_option_value.stock + 1,
+        },
+        content_type="application/json",
+        **auth(user),
+    )
+
+    assert response.status_code == 400
+    assert "selected_options" in response.json()
 
 
 def test_add_to_cart_rejects_options_from_another_product(
@@ -195,7 +268,7 @@ def test_add_to_cart_rejects_options_from_another_product(
         reverse("orders:cart-item-list"),
         {
             "product": product_option_value.option.product_id,
-            "selected_options": {str(other_option.id): other_value.id},
+            "selected_option_value_ids": [other_value.id],
             "quantity": 1,
         },
         content_type="application/json",
@@ -283,6 +356,7 @@ def test_checkout_preserves_selected_options_snapshot_without_reducing_stock(
         cart=Cart.objects.create(user=user),
         product=product,
         selected_options={"Size": "Large"},
+        selected_option_value_ids=[product_option_value.id],
         quantity=2,
     )
 
@@ -299,8 +373,11 @@ def test_checkout_preserves_selected_options_snapshot_without_reducing_stock(
     assert order.subtotal_amount == 1600
     assert order_item.product_price == 800
     assert order_item.selected_options_snapshot == {"Size": "Large"}
+    assert order_item.selected_option_value_ids_snapshot == [product_option_value.id]
     product.refresh_from_db()
+    product_option_value.refresh_from_db()
     assert product.stock == 10
+    assert product_option_value.stock == 4
 
 
 def test_mark_as_paid_reduces_stock(client, user, product):
@@ -324,6 +401,35 @@ def test_mark_as_paid_reduces_stock(client, user, product):
     assert order.status == Order.Status.PAID
     assert order.stock_reduced is True
     assert product.stock == 7
+
+
+def test_mark_as_paid_reduces_option_value_stock_only(user, product_option_value):
+    product = product_option_value.option.product
+    order = Order.objects.create(
+        user=user,
+        total_amount=product.final_price * 2,
+        shipping_address="123 Play Street",
+        postal_code="1234567890",
+        recipient_name="Play User",
+        recipient_phone=user.phone_number,
+    )
+    OrderItem.objects.create(
+        order=order,
+        product=product,
+        product_name=product.name,
+        selected_options_snapshot={"Size": "Large"},
+        selected_option_value_ids_snapshot=[product_option_value.id],
+        product_price=product.final_price,
+        quantity=2,
+        line_total=product.final_price * 2,
+    )
+
+    order.mark_as_paid()
+
+    product.refresh_from_db()
+    product_option_value.refresh_from_db()
+    assert product.stock == 10
+    assert product_option_value.stock == 2
 
 
 def test_mark_as_paid_does_not_reduce_stock_twice(user, product):

@@ -63,7 +63,13 @@ class CartItemInline(admin.TabularInline):
     model = CartItem
     extra = 0
     readonly_fields = ("created_at",)
-    fields = ("product", "selected_options", "quantity", "created_at")
+    fields = (
+        "product",
+        "selected_options",
+        "selected_option_value_ids",
+        "quantity",
+        "created_at",
+    )
     autocomplete_fields = ("product",)
 
 
@@ -100,6 +106,7 @@ class OrderItemInline(admin.TabularInline):
         "product",
         "product_name",
         "selected_options_snapshot",
+        "selected_option_value_ids_snapshot",
         "product_price",
         "quantity",
         "line_total",
@@ -108,6 +115,7 @@ class OrderItemInline(admin.TabularInline):
         "product",
         "product_name",
         "selected_options_snapshot",
+        "selected_option_value_ids_snapshot",
         "product_price",
         "quantity",
         "line_total",
@@ -224,6 +232,7 @@ class OrderItemAdmin(admin.ModelAdmin):
         "order",
         "product_name",
         "selected_options_snapshot",
+        "selected_option_value_ids_snapshot",
         "product_price",
         "quantity",
         "line_total",
@@ -234,6 +243,7 @@ class OrderItemAdmin(admin.ModelAdmin):
     readonly_fields = (
         "product_name",
         "selected_options_snapshot",
+        "selected_option_value_ids_snapshot",
         "product_price",
         "line_total",
     )

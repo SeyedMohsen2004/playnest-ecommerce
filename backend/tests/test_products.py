@@ -98,10 +98,12 @@ def test_product_detail_returns_active_options_and_values(client, product):
     small_value = ProductOptionValue.objects.create(
         option=size_option,
         value="Small",
+        stock=10,
     )
     large_value = ProductOptionValue.objects.create(
         option=size_option,
         value="Large",
+        stock=2,
     )
     inactive_value = ProductOptionValue.objects.create(
         option=size_option,
@@ -126,8 +128,20 @@ def test_product_detail_returns_active_options_and_values(client, product):
             "name": "Size",
             "sort_order": 0,
             "values": [
-                {"id": small_value.id, "value": "Small", "sort_order": 0},
-                {"id": large_value.id, "value": "Large", "sort_order": 0},
+                {
+                    "id": small_value.id,
+                    "value": "Small",
+                    "stock": 10,
+                    "is_available": True,
+                    "sort_order": 0,
+                },
+                {
+                    "id": large_value.id,
+                    "value": "Large",
+                    "stock": 2,
+                    "is_available": True,
+                    "sort_order": 0,
+                },
             ],
         }
     ]

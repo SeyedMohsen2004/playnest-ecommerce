@@ -15,7 +15,7 @@ type ProductCartActionsProps = {
   productId: number | null;
   isInStock: boolean;
   availableStock?: number | null;
-  selectedOptions?: Record<string, number>;
+  selectedOptionValueIds?: number[];
   requiresOptions?: boolean;
   optionMessage?: string;
 };
@@ -24,7 +24,7 @@ export function ProductCartActions({
   productId,
   isInStock,
   availableStock,
-  selectedOptions = {},
+  selectedOptionValueIds = [],
   requiresOptions = false,
   optionMessage = "",
 }: ProductCartActionsProps) {
@@ -83,7 +83,7 @@ export function ProductCartActions({
     setIsSubmitting(true);
 
     try {
-      await addCartItem(accessToken, productId, quantity, selectedOptions);
+      await addCartItem(accessToken, productId, quantity, selectedOptionValueIds);
       setMessageTone("success");
       setMessage("محصول به سبد خرید اضافه شد.");
     } catch (error) {

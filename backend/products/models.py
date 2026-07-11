@@ -166,6 +166,7 @@ class ProductOptionValue(models.Model):
         related_name="values",
     )
     value = models.CharField(max_length=100)
+    stock = models.PositiveIntegerField(default=0)
     sort_order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -182,6 +183,10 @@ class ProductOptionValue(models.Model):
 
     def __str__(self):
         return f"{self.option.name}: {self.value}"
+
+    @property
+    def is_available(self):
+        return self.is_active and self.stock > 0
 
 
 class HomepageProductSlot(models.Model):

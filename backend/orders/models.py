@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from products.models import Product
+from products.models import Product, ProductOptionValue
 
 
 class Coupon(models.Model):
@@ -77,16 +77,13 @@ class CartItem(models.Model):
         related_name="cart_items",
     )
     selected_options = models.JSONField(default=dict, blank=True)
+    selected_option_value_ids = models.JSONField(default=list, blank=True)
     quantity = models.PositiveIntegerField(validators=(MinValueValidator(1),))
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ("created_at",)
         constraints = [
-            models.UniqueConstraint(
-                fields=("cart", "product"),
-                name="unique_product_per_cart",
-            ),
             models.CheckConstraint(
                 condition=models.Q(quantity__gte=1),
                 name="cart_item_quantity_minimum_one",
@@ -101,7 +98,13 @@ class CartItem(models.Model):
         errors = {}
         if not self.product.is_active:
             errors["product"] = "Inactive products cannot be added to a cart."
-        if self.quantity > self.product.stock:
+        if self.selected_option_value_ids:
+            values = ProductOptionValue.objects.filter(
+                id__in=self.selected_option_value_ids,
+            )
+            if any(value.stock < self.quantity for value in values):
+                errors["quantity"] = "موجودی گزینه انتخاب‌شده کافی نیست."
+        elif self.quantity > self.product.stock:
             errors["quantity"] = "Quantity cannot exceed available stock."
         if errors:
             raise ValidationError(errors)
@@ -184,6 +187,7 @@ class OrderItem(models.Model):
     )
     product_name = models.CharField(max_length=255)
     selected_options_snapshot = models.JSONField(default=dict, blank=True)
+    selected_option_value_ids_snapshot = models.JSONField(default=list, blank=True)
     product_price = models.PositiveBigIntegerField()
     quantity = models.PositiveIntegerField(validators=(MinValueValidator(1),))
     line_total = models.PositiveBigIntegerField()

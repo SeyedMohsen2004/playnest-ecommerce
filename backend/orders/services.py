@@ -3,7 +3,7 @@ from django.db import transaction
 
 from orders.models import Coupon, Order
 from orders.pricing import validate_coupon
-from products.models import Product
+from products.models import Product, ProductOptionValue
 
 
 @transaction.atomic
@@ -16,12 +16,33 @@ def mark_order_as_paid(order):
     products = {
         product.id: product
         for product in Product.objects.select_for_update().filter(
-            id__in=[item.product_id for item in order_items]
+            id__in=[
+                item.product_id
+                for item in order_items
+                if not item.selected_option_value_ids_snapshot
+            ]
+        )
+    }
+    option_values = {
+        value.id: value
+        for value in ProductOptionValue.objects.select_for_update().filter(
+            id__in=[
+                value_id
+                for item in order_items
+                for value_id in item.selected_option_value_ids_snapshot
+            ]
         )
     }
 
     errors = []
     for item in order_items:
+        if item.selected_option_value_ids_snapshot:
+            for value_id in item.selected_option_value_ids_snapshot:
+                option_value = option_values.get(value_id)
+                if option_value is None or item.quantity > option_value.stock:
+                    errors.append(f"Insufficient stock for {item.product_name}.")
+            continue
+
         product = products.get(item.product_id)
         if product is None or item.quantity > product.stock:
             errors.append(f"Insufficient stock for {item.product_name}.")
@@ -29,6 +50,13 @@ def mark_order_as_paid(order):
         raise ValidationError({"stock": errors})
 
     for item in order_items:
+        if item.selected_option_value_ids_snapshot:
+            for value_id in item.selected_option_value_ids_snapshot:
+                option_value = option_values[value_id]
+                option_value.stock -= item.quantity
+                option_value.save(update_fields=("stock", "updated_at"))
+            continue
+
         product = products[item.product_id]
         product.stock -= item.quantity
         product.save(update_fields=("stock",))

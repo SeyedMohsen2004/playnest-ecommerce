@@ -157,16 +157,45 @@ export function ProductDetailClient({ slug }: { slug: string }) {
     hasOptions && !isOptionSelectionComplete
       ? "لطفاً گزینه‌های محصول را انتخاب کنید."
       : "";
-  const selectedOptionsPayload = useMemo(
+  const selectedOptionValueIdsPayload = useMemo(
     () =>
-      Object.fromEntries(
-        Object.entries(selectedOptionValueIds).map(([optionId, valueId]) => [
-          optionId,
-          valueId,
-        ]),
-      ),
-    [selectedOptionValueIds],
+      activeOptions
+        .map((option) => selectedOptionValueIds[option.id])
+        .filter((valueId): valueId is number => Boolean(valueId)),
+    [activeOptions, selectedOptionValueIds],
   );
+  const selectedOptionValues = useMemo(
+    () =>
+      activeOptions
+        .map((option) =>
+          option.values.find((value) => value.id === selectedOptionValueIds[option.id]),
+        )
+        .filter((value): value is NonNullable<typeof value> => Boolean(value)),
+    [activeOptions, selectedOptionValueIds],
+  );
+  const selectedOptionStock = useMemo(
+    () =>
+      selectedOptionValues.length > 0
+        ? Math.min(...selectedOptionValues.map((value) => value.stock))
+        : null,
+    [selectedOptionValues],
+  );
+  const hasUnavailableSelection =
+    hasOptions &&
+    isOptionSelectionComplete &&
+    selectedOptionValues.some((value) => value.stock <= 0);
+  const stockMessage =
+    hasOptions && isOptionSelectionComplete && selectedOptionStock !== null
+      ? `موجودی گزینه انتخاب‌شده: ${toPersianDigits(selectedOptionStock)} عدد`
+      : "";
+  const effectiveStock = hasOptions
+    ? selectedOptionStock ?? 0
+    : getProductStock(product || ({} as Product));
+  const effectiveIsInStock = hasOptions
+    ? isOptionSelectionComplete && !hasUnavailableSelection
+    : product
+      ? getProductIsInStock(product)
+      : false;
 
   useEffect(() => {
     setSelectedOptionValueIds({});
@@ -191,7 +220,7 @@ export function ProductDetailClient({ slug }: { slug: string }) {
     selectedImage || galleryImages[0]?.image || getProductImageUrl(product);
   const displayPrice = getProductPrice(product);
   const displayStock = getProductStock(product);
-  const isInStock = getProductIsInStock(product);
+  const isInStock = effectiveIsInStock;
   const rating = getProductRating(product);
   const reviewCount = reviews.length || getProductReviewCount(product);
 
@@ -310,6 +339,16 @@ export function ProductDetailClient({ slug }: { slug: string }) {
               {optionMessage}
             </p>
           ) : null}
+          {hasUnavailableSelection ? (
+            <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950/45 dark:text-rose-100 dark:ring-rose-800/50">
+              موجودی گزینه انتخاب‌شده کافی نیست.
+            </p>
+          ) : null}
+          {stockMessage ? (
+            <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-100 dark:ring-emerald-800/50">
+              {stockMessage}
+            </p>
+          ) : null}
 
           <dl className="mt-6 grid gap-3 rounded-3xl bg-cream p-5 text-sm sm:grid-cols-2">
             <DetailMeta label="برند" value={getProductBrandName(product)} />
@@ -317,17 +356,22 @@ export function ProductDetailClient({ slug }: { slug: string }) {
             <DetailMeta label="گروه استفاده" value={getProductGender(product)} />
             <DetailMeta
               label="موجودی"
-              value={`${toPersianDigits(displayStock)} عدد`}
+              value={`${
+                toPersianDigits(hasOptions ? effectiveStock : displayStock)
+              } عدد`}
             />
           </dl>
 
           <ProductCartActions
-            availableStock={displayStock}
+            availableStock={hasOptions ? effectiveStock : displayStock}
             isInStock={isInStock}
             productId={product.id}
             requiresOptions={hasOptions}
-            selectedOptions={selectedOptionsPayload}
-            optionMessage={optionMessage}
+            selectedOptionValueIds={selectedOptionValueIdsPayload}
+            optionMessage={
+              optionMessage ||
+              (hasUnavailableSelection ? "موجودی گزینه انتخاب‌شده کافی نیست." : "")
+            }
           />
         </section>
       </div>
@@ -437,6 +481,7 @@ function ProductOptionSelectors({
           <div className="mt-3 flex flex-wrap gap-2">
             {option.values.map((value) => {
               const isSelected = selectedOptionValueIds[option.id] === value.id;
+              const isUnavailable = value.stock <= 0;
 
               return (
                 <button
@@ -445,12 +490,18 @@ function ProductOptionSelectors({
                     isSelected
                       ? "bg-coral text-white shadow-sm"
                       : "bg-white text-ink ring-1 ring-ink/10 hover:text-coral dark:bg-white/10 dark:ring-white/10",
+                    isUnavailable &&
+                      "cursor-not-allowed opacity-45 hover:text-ink",
                   )}
+                  disabled={isUnavailable}
                   key={value.id}
                   onClick={() => onSelect(option.id, value.id)}
                   type="button"
                 >
-                  {value.value}
+                  <span>{value.value}</span>
+                  {isUnavailable ? (
+                    <span className="mr-2 text-[0.65rem]">ناموجود</span>
+                  ) : null}
                 </button>
               );
             })}

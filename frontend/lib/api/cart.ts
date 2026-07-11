@@ -9,14 +9,14 @@ export function addCartItem(
   accessToken: string,
   productId: number,
   quantity: number,
-  selectedOptions?: Record<string, number>,
+  selectedOptionValueIds?: number[],
 ) {
   return apiClient.post<CartItem>(
     "/cart/items/",
     {
       product: productId,
-      ...(selectedOptions && Object.keys(selectedOptions).length > 0
-        ? { selected_options: selectedOptions }
+      ...(selectedOptionValueIds && selectedOptionValueIds.length > 0
+        ? { selected_option_value_ids: selectedOptionValueIds }
         : {}),
       quantity,
     },

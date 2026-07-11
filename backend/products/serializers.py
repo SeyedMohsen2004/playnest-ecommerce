@@ -53,9 +53,11 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 
 class ProductOptionValueSerializer(serializers.ModelSerializer):
+    is_available = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = ProductOptionValue
-        fields = ("id", "value", "sort_order")
+        fields = ("id", "value", "stock", "is_available", "sort_order")
         read_only_fields = fields
 
 
@@ -69,11 +71,7 @@ class ProductOptionSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(ProductOptionValueSerializer(many=True))
     def get_values(self, obj):
-        values = [
-            value
-            for value in obj.values.all()
-            if value.is_active
-        ]
+        values = [value for value in obj.values.all() if value.is_active]
         return ProductOptionValueSerializer(
             values,
             many=True,
@@ -195,8 +193,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             for option in obj.options.all()
             if option.is_active
             and any(
-                value.is_active
-                for value in option.values.all()
+                value.is_active for value in option.values.all()
             )
         ]
         return ProductOptionSerializer(options, many=True).data

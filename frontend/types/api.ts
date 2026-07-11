@@ -37,6 +37,8 @@ export type ProductImage = {
 export type ProductOptionValue = {
   id: number;
   value: string;
+  stock: number;
+  is_available: boolean;
   sort_order: number;
 };
 
@@ -168,6 +170,7 @@ export type CartItem = {
   id: number;
   product: Product;
   selected_options?: Record<string, string>;
+  selected_option_value_ids?: number[];
   selected_options_label?: string;
   quantity: number;
   line_total?: number;
@@ -204,6 +207,7 @@ export type OrderItem = {
   id: number;
   product: number | Product;
   selected_options_snapshot?: Record<string, string>;
+  selected_option_value_ids_snapshot?: number[];
   product_name: string;
   product_price: number;
   quantity: number;
