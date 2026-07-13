@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
 
-import { API_BASE_URL } from "@/lib/api/client";
-import { absoluteUrl } from "@/lib/seo";
-import type { PaginatedResponse, Product } from "@/types/api";
+import { absoluteUrl, SITE_URL } from "@/lib/seo";
+import type { PaginatedResponse } from "@/types/api";
 
 const publicRoutes = [
   "",
@@ -18,35 +17,87 @@ const publicRoutes = [
 
 export const revalidate = 3600;
 
+const PRODUCT_SITEMAP_PAGE_SIZE = 48;
+const PRODUCT_SITEMAP_MAX_PAGES = 20;
+const SITEMAP_API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL || `${SITE_URL}/api/v1`
+).replace(/\/+$/, "");
+
+type ProductSitemapItem = {
+  slug?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+function getProductsEndpoint(page: number) {
+  const url = new URL(`${SITEMAP_API_BASE_URL}/products/`);
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("page_size", String(PRODUCT_SITEMAP_PAGE_SIZE));
+  url.searchParams.set("ordering", "-created_at");
+  return url;
+}
+
+async function fetchProductSitemapPage(page: number) {
+  const response = await fetch(getProductsEndpoint(page).toString(), {
+    headers: {
+      Accept: "application/json",
+    },
+    next: {
+      revalidate,
+    },
+  });
+
+  if (!response.ok) {
+    return {
+      products: [],
+      hasNextPage: false,
+    };
+  }
+
+  const productsResponse = (await response.json()) as
+    | ProductSitemapItem[]
+    | PaginatedResponse<ProductSitemapItem>;
+
+  if (Array.isArray(productsResponse)) {
+    return {
+      products: productsResponse,
+      hasNextPage: false,
+    };
+  }
+
+  return {
+    products: productsResponse.results,
+    hasNextPage: Boolean(productsResponse.next),
+  };
+}
+
 async function getProductRoutes(): Promise<MetadataRoute.Sitemap> {
   try {
-    const url = new URL(`${API_BASE_URL}/products/`);
-    url.searchParams.set("page", "1");
-    url.searchParams.set("page_size", "48");
-    url.searchParams.set("ordering", "-created_at");
+    const products: ProductSitemapItem[] = [];
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Accept: "application/json",
-      },
-      next: {
-        revalidate,
-      },
-    });
+    for (let page = 1; page <= PRODUCT_SITEMAP_MAX_PAGES; page += 1) {
+      const { products: pageProducts, hasNextPage } =
+        await fetchProductSitemapPage(page);
+      products.push(...pageProducts);
 
-    if (!response.ok) {
-      return [];
+      if (!hasNextPage) {
+        break;
+      }
     }
 
-    const productsResponse = (await response.json()) as
-      | Product[]
-      | PaginatedResponse<Product>;
-    const products = Array.isArray(productsResponse)
-      ? productsResponse
-      : productsResponse.results;
+    const seenSlugs = new Set<string>();
 
     return products
-      .filter((product) => product.is_active && product.slug)
+      .filter((product) => product.is_active !== false && product.slug)
+      .filter((product): product is ProductSitemapItem & { slug: string } => {
+        if (!product.slug || seenSlugs.has(product.slug)) {
+          return false;
+        }
+
+        seenSlugs.add(product.slug);
+        return true;
+      })
       .map((product) => ({
         url: absoluteUrl(`/products/${product.slug}`),
         lastModified: product.updated_at
