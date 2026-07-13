@@ -170,7 +170,7 @@ function HeroSlide({
         <div className="relative z-10 order-2 lg:order-1">
           <div className="inline-flex items-center gap-2 rounded-full bg-cream/85 px-4 py-2 text-sm font-black text-coral shadow-sm ring-1 ring-white/70 dark:ring-white/10">
             <Sparkles className="size-4" />
-            بنر ویژه فروشگاه IpakToys
+            ایپک تویز | فروشگاه اسباب‌بازی، بازی فکری و بردگیم
           </div>
 
           <div className="animate-hero-slide-in" key={product.slug}>

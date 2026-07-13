@@ -1,7 +1,27 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 
 import { ProductsPageClient } from "@/components/product/products-page-client";
 import { PageHeader } from "@/components/shared/page-header";
+import { absoluteUrl, SITE_NAME } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: "خرید اسباب‌بازی، بازی فکری و بردگیم",
+  description:
+    "مشاهده و خرید بازی فکری، بردگیم، پازل، لگو و اسباب‌بازی از فروشگاه ایپک تویز در تبریز.",
+  alternates: {
+    canonical: absoluteUrl("/products"),
+  },
+  openGraph: {
+    title: `خرید اسباب‌بازی، بازی فکری و بردگیم | ${SITE_NAME}`,
+    description:
+      "محصولات ایپک تویز شامل بازی فکری، بردگیم، پازل، لگو و سرگرمی‌های خانوادگی.",
+    url: absoluteUrl("/products"),
+    siteName: SITE_NAME,
+    locale: "fa_IR",
+    type: "website",
+  },
+};
 
 export default function ProductsPage() {
   return (

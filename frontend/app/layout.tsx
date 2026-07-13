@@ -4,30 +4,41 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
+  SEO_KEYWORDS,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/seo";
 import "./globals.css";
 
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000")
-  .replace(/\/+$/, "");
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "IpakToys | فروشگاه بازی فکری و بردگیم",
-    template: "%s | IpakToys",
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "فروشگاه آنلاین بازی فکری، بردگیم، پازل و محصولات ساختنی برای خریدی ساده و مطمئن.",
+  description: DEFAULT_DESCRIPTION,
+  keywords: SEO_KEYWORDS,
   alternates: {
     canonical: "/",
   },
+  icons: {
+    icon: "/icon.png",
+  },
   openGraph: {
-    title: "IpakToys | فروشگاه بازی فکری و بردگیم",
-    description:
-      "خرید بازی فکری، بردگیم، پازل و محصولات ساختنی برای کودک، نوجوان و خانواده.",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
     locale: "fa_IR",
-    siteName: "IpakToys",
+    siteName: SITE_NAME,
     type: "website",
     url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
   },
   robots: {
     index: true,
