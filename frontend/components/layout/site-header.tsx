@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu, ShoppingCart, X } from "lucide-react";
+import { ClipboardList, LogOut, Menu, ShoppingCart, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -108,6 +108,17 @@ export function SiteHeader() {
 
           {isAuthenticated ? (
             <>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="bg-white/65 shadow-sm"
+              >
+                <Link href="/account/orders">
+                  <ClipboardList className="size-5" />
+                  سفارش‌های من
+                </Link>
+              </Button>
               <span className="max-w-32 truncate rounded-full bg-white px-4 py-2 text-xs font-black text-ink shadow-sm">
                 {displayName}
               </span>
@@ -178,6 +189,15 @@ export function SiteHeader() {
                 <div className="rounded-2xl bg-cream px-4 py-3 text-sm font-black text-ink">
                   {displayName}
                 </div>
+                <Button asChild variant="outline">
+                  <Link
+                    href="/account/orders"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <ClipboardList className="size-5" />
+                    سفارش‌های من
+                  </Link>
+                </Button>
                 <Button onClick={handleLogout} variant="outline">
                   <LogOut className="size-5" />
                   خروج

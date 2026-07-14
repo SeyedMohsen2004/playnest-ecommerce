@@ -77,7 +77,7 @@ export function PaymentClient({ orderId }: { orderId: string }) {
       if (error instanceof APIError && error.status === 401) {
         handleUnauthorized();
       } else {
-        setErrorMessage("پرداخت ناموفق بود یا تایید نشد.");
+        setErrorMessage(getPaymentRequestError(error));
       }
     } finally {
       setIsRequesting(false);
@@ -351,4 +351,25 @@ function orderStatus(order: Order) {
   };
 
   return labels[order.status];
+}
+
+function getPaymentRequestError(error: unknown) {
+  if (error instanceof APIError) {
+    const data = error.data as
+      | { detail?: unknown; items?: Array<{ product_name?: string }> }
+      | undefined;
+
+    const detail = Array.isArray(data?.detail) ? data.detail[0] : data?.detail;
+
+    if (typeof detail === "string") {
+      const itemNames = data?.items
+        ?.map((item) => item.product_name)
+        .filter(Boolean)
+        .join("، ");
+
+      return itemNames ? `${detail} (${itemNames})` : detail;
+    }
+  }
+
+  return "پرداخت ناموفق بود یا تایید نشد.";
 }

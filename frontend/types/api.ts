@@ -181,10 +181,14 @@ export type Coupon = {
 export type OrderItem = {
   id: number;
   product: number | Product;
+  product_slug?: string;
+  product_image?: ProductImage | null;
   product_name: string;
   product_price: number;
+  unit_price?: number;
   quantity: number;
   line_total: number;
+  total_price?: number;
 };
 
 export type Order = {
@@ -200,6 +204,7 @@ export type Order = {
     | "cancelled";
   status_label?: string;
   payment_status?: "pending" | "paid" | "failed" | "cancelled" | null;
+  payment_status_label?: string | null;
   can_retry_payment?: boolean;
   stock_reduced: boolean;
   coupon: number | Coupon | null;

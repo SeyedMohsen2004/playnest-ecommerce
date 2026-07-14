@@ -1,11 +1,13 @@
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import serializers
 
 from orders.models import Order
 from orders.serializers import OrderSerializer
 from payments.models import Payment
 from payments.services import payment_url, request_payment
+from products.models import Product
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -43,23 +45,62 @@ class PaymentRequestSerializer(serializers.Serializer):
     def validate_order_id(self, value):
         request = self.context["request"]
         queryset = Order.objects.filter(pk=value)
-        if not request.user.is_staff:
-            queryset = queryset.filter(user=request.user)
         order = queryset.first()
         if order is None:
             raise serializers.ValidationError("Order was not found.")
+        if not request.user.is_staff and order.user_id != request.user.id:
+            raise PermissionDenied("You do not have permission to pay this order.")
         if order.status == Order.Status.PAID:
-            raise serializers.ValidationError("Order is already paid.")
+            raise serializers.ValidationError("این سفارش قبلاً پرداخت شده است.")
+        if order.status == Order.Status.CANCELLED:
+            raise serializers.ValidationError(
+                "این سفارش لغو شده است و امکان پرداخت ندارد."
+            )
         if order.status not in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED):
-            raise serializers.ValidationError("Only unpaid orders can be paid.")
+            raise serializers.ValidationError("این سفارش در وضعیت قابل پرداخت نیست.")
         self.order = order
         return value
+
+    def validate(self, attrs):
+        order = Order.objects.filter(pk=self.order.pk).prefetch_related("items").first()
+        self.validate_order_stock(order)
+        return attrs
+
+    def validate_order_stock(self, order, lock_products=False):
+        order_items = list(order.items.all())
+        product_ids = [item.product_id for item in order_items]
+        products = Product.objects.filter(id__in=product_ids)
+        if lock_products:
+            products = products.select_for_update()
+        products_by_id = {product.id: product for product in products}
+        stock_errors = []
+        for item in order_items:
+            product = products_by_id.get(item.product_id)
+            if product is None or not product.is_active or product.stock < item.quantity:
+                stock_errors.append(
+                    {
+                        "product_name": item.product_name,
+                        "requested_quantity": item.quantity,
+                        "available_stock": (
+                            product.stock if product and product.is_active else 0
+                        ),
+                    }
+                )
+
+        if stock_errors:
+            raise serializers.ValidationError(
+                {
+                    "detail": "موجودی برخی از محصولات این سفارش کافی نیست.",
+                    "items": stock_errors,
+                }
+            )
 
     @transaction.atomic
     def create(self, validated_data):
         order = Order.objects.select_for_update().get(pk=self.order.pk)
         if order.status not in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED):
-            raise serializers.ValidationError("Only unpaid orders can be paid.")
+            raise serializers.ValidationError("این سفارش در وضعیت قابل پرداخت نیست.")
+        self.validate_order_stock(order, lock_products=True)
         payment = Payment.objects.filter(
             order=order,
             status=Payment.Status.PENDING,

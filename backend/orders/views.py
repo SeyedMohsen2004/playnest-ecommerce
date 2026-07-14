@@ -117,7 +117,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = Order.objects.select_related("user").prefetch_related(
-            "items",
+            "items__product__images",
             "payments",
         )
         if getattr(self, "swagger_fake_view", False):

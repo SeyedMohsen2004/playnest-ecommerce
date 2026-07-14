@@ -345,6 +345,38 @@ def test_user_cannot_retrieve_another_users_order(client, user, other_user, prod
     assert response.status_code == 404
 
 
+def test_user_retrieves_order_detail_with_items_and_product_image(
+    client,
+    user,
+    product,
+):
+    ProductImage.objects.create(
+        product=product,
+        image="products/order-detail.png",
+        alt_text="Order detail image",
+        is_main=True,
+    )
+    order = create_order(user, product)
+
+    response = client.get(
+        reverse("orders:order-detail", args=(order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == order.id
+    assert data["status_label"] == "در انتظار پرداخت"
+    assert data["can_retry_payment"] is True
+    assert data["items"][0]["product_name"] == product.name
+    assert data["items"][0]["product_slug"] == product.slug
+    assert data["items"][0]["unit_price"] == product.final_price
+    assert data["items"][0]["total_price"] == product.final_price
+    assert data["items"][0]["product_image"]["image"].endswith(
+        "/media/products/order-detail.png"
+    )
+
+
 def test_paid_order_cannot_retry_payment(client, user, product):
     order = create_order(user, product)
     order.status = Order.Status.PAID

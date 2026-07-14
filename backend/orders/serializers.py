@@ -140,23 +140,39 @@ class CartItemUpdateSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product_slug = serializers.CharField(source="product.slug", read_only=True)
+    product_image = serializers.SerializerMethodField()
+    unit_price = serializers.IntegerField(source="product_price", read_only=True)
+    total_price = serializers.IntegerField(source="line_total", read_only=True)
+
     class Meta:
         model = OrderItem
         fields = (
             "id",
             "product",
+            "product_slug",
+            "product_image",
             "product_name",
             "product_price",
+            "unit_price",
             "quantity",
             "line_total",
+            "total_price",
         )
         read_only_fields = fields
+
+    def get_product_image(self, obj):
+        image = next(iter(obj.product.images.all()), None)
+        if image is None:
+            return None
+        return ProductImageSerializer(image, context=self.context).data
 
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     status_label = serializers.SerializerMethodField()
     payment_status = serializers.SerializerMethodField()
+    payment_status_label = serializers.SerializerMethodField()
     can_retry_payment = serializers.SerializerMethodField()
 
     class Meta:
@@ -166,6 +182,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "status",
             "status_label",
             "payment_status",
+            "payment_status_label",
             "can_retry_payment",
             "stock_reduced",
             "coupon",
@@ -198,6 +215,18 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_payment_status(self, obj):
         payment = obj.payments.order_by("-created_at").first()
         return payment.status if payment else None
+
+    def get_payment_status_label(self, obj):
+        status = self.get_payment_status(obj)
+        if status is None:
+            return None
+        labels = {
+            "pending": "در انتظار پرداخت",
+            "paid": "پرداخت شده",
+            "failed": "ناموفق",
+            "cancelled": "لغو شده",
+        }
+        return labels.get(status, status)
 
     def get_can_retry_payment(self, obj):
         return obj.status in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED)

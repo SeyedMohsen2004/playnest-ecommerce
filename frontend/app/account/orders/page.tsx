@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { APIError } from "@/lib/api/client";
 import { getOrders } from "@/lib/api/orders";
+import { requestPayment } from "@/lib/api/payments";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import { formatToman, toPersianDigits } from "@/lib/format";
 import type { Order } from "@/types/api";
@@ -20,6 +21,7 @@ export default function AccountOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [retryingOrderId, setRetryingOrderId] = useState<number | null>(null);
 
   const handleUnauthorized = useCallback(() => {
     clearTokens();
@@ -65,6 +67,34 @@ export default function AccountOrdersPage() {
     loadOrders();
   }, [handleUnauthorized, isAuthenticated, isAuthLoading]);
 
+  async function handleRetryPayment(orderId: number) {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      handleUnauthorized();
+      return;
+    }
+
+    setRetryingOrderId(orderId);
+    setErrorMessage("");
+
+    try {
+      const response = await requestPayment(accessToken, orderId);
+      if (response.payment_url) {
+        window.location.href = response.payment_url;
+        return;
+      }
+      window.location.href = `/payment/${orderId}`;
+    } catch (error) {
+      if (error instanceof APIError && error.status === 401) {
+        handleUnauthorized();
+      } else {
+        setErrorMessage(getPaymentRetryError(error));
+      }
+    } finally {
+      setRetryingOrderId(null);
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -91,7 +121,12 @@ export default function AccountOrdersPage() {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
+              <OrderCard
+                key={order.id}
+                onRetryPayment={handleRetryPayment}
+                order={order}
+                retryingOrderId={retryingOrderId}
+              />
             ))}
           </div>
         )}
@@ -100,7 +135,15 @@ export default function AccountOrdersPage() {
   );
 }
 
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({
+  order,
+  retryingOrderId,
+  onRetryPayment,
+}: {
+  order: Order;
+  retryingOrderId: number | null;
+  onRetryPayment: (orderId: number) => void;
+}) {
   return (
     <article
       id={`order-${order.id}`}
@@ -138,16 +181,42 @@ function OrderCard({ order }: { order: Order }) {
       </div>
       <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
         {order.can_retry_payment ? (
-          <Button asChild variant="coral">
-            <Link href={`/payment/${order.id}`}>پرداخت مجدد</Link>
+          <Button
+            disabled={retryingOrderId === order.id}
+            onClick={() => onRetryPayment(order.id)}
+            type="button"
+            variant="coral"
+          >
+            {retryingOrderId === order.id ? "در حال آماده‌سازی..." : "پرداخت مجدد"}
           </Button>
         ) : null}
         <Button asChild variant="outline">
-          <Link href={`/account/orders#order-${order.id}`}>مشاهده جزئیات</Link>
+          <Link href={`/account/orders/${order.id}`}>جزئیات سفارش</Link>
         </Button>
       </div>
     </article>
   );
+}
+
+function getPaymentRetryError(error: unknown) {
+  if (error instanceof APIError) {
+    const data = error.data as
+      | { detail?: unknown; items?: Array<{ product_name?: string }> }
+      | undefined;
+
+    const detail = Array.isArray(data?.detail) ? data.detail[0] : data?.detail;
+
+    if (typeof detail === "string") {
+      const itemNames = data?.items
+        ?.map((item) => item.product_name)
+        .filter(Boolean)
+        .join("، ");
+
+      return itemNames ? `${detail} (${itemNames})` : detail;
+    }
+  }
+
+  return "امکان آماده‌سازی پرداخت وجود ندارد. لطفاً دوباره تلاش کنید.";
 }
 
 function LoginRequiredState() {

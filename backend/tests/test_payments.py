@@ -115,7 +115,7 @@ def test_request_payment_for_own_pending_order(client, user, order):
 def test_cannot_pay_another_users_order(client, other_user, order):
     response = request_payment(client, other_user, order)
 
-    assert response.status_code == 400
+    assert response.status_code == 403
     assert Payment.objects.count() == 0
 
 
@@ -128,6 +128,41 @@ def test_cannot_pay_already_paid_order(client, user, order):
 
     assert response.status_code == 400
     assert Payment.objects.count() == 0
+
+
+def test_cannot_pay_cancelled_order(client, user, order):
+    order.status = Order.Status.CANCELLED
+    order.save(update_fields=("status",))
+
+    response = request_payment(client, user, order)
+
+    assert response.status_code == 400
+    assert Payment.objects.count() == 0
+
+
+def test_request_payment_validates_stock_before_gateway(client, user, order, product):
+    product.stock = 1
+    product.save(update_fields=("stock",))
+
+    response = request_payment(client, user, order)
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == ["موجودی برخی از محصولات این سفارش کافی نیست."]
+    assert data["items"][0]["product_name"] == product.name
+    assert int(data["items"][0]["requested_quantity"]) == 2
+    assert int(data["items"][0]["available_stock"]) == 1
+    assert Payment.objects.count() == 0
+    product.refresh_from_db()
+    assert product.stock == 1
+
+
+def test_request_payment_does_not_reduce_stock(client, user, order, product):
+    response = request_payment(client, user, order)
+
+    assert response.status_code == 201
+    product.refresh_from_db()
+    assert product.stock == 10
 
 
 def test_existing_pending_payment_is_reused(client, user, order):
