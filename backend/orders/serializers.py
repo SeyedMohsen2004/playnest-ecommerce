@@ -5,15 +5,31 @@ from rest_framework import serializers
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem
 from orders.pricing import calculate_order_totals
 from products.models import Product
+from products.serializers import ProductImageSerializer
 
 
 class CartProductSerializer(serializers.ModelSerializer):
     final_price = serializers.IntegerField(read_only=True)
+    main_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ("id", "name", "slug", "sku", "final_price", "stock")
+        fields = (
+            "id",
+            "name",
+            "slug",
+            "sku",
+            "final_price",
+            "stock",
+            "main_image",
+        )
         read_only_fields = fields
+
+    def get_main_image(self, obj):
+        image = next(iter(obj.images.all()), None)
+        if image is None:
+            return None
+        return ProductImageSerializer(image, context=self.context).data
 
 
 class CartItemSerializer(serializers.ModelSerializer):

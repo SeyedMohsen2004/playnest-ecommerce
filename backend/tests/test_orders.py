@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
 from orders.models import Cart, CartItem, Order, OrderItem
-from products.models import Brand, Category, Product
+from products.models import Brand, Category, Product, ProductImage
 
 pytestmark = pytest.mark.django_db
 
@@ -109,6 +109,43 @@ def test_add_to_cart(client, user, product):
     cart_response = client.get(reverse("orders:cart"), **auth(user))
     assert cart_response.json()["total_items"] == 2
     assert cart_response.json()["total_price"] == 1600
+
+
+def test_cart_includes_product_main_image(client, user, product):
+    ProductImage.objects.create(
+        product=product,
+        image="products/cart-main.png",
+        alt_text="Cart main image",
+        is_main=True,
+    )
+    CartItem.objects.create(
+        cart=Cart.objects.create(user=user),
+        product=product,
+        quantity=1,
+    )
+
+    response = client.get(reverse("orders:cart"), **auth(user))
+
+    assert response.status_code == 200
+    product_data = response.json()["items"][0]["product"]
+    assert product_data["main_image"]["image"].endswith(
+        "/media/products/cart-main.png"
+    )
+    assert product_data["main_image"]["alt_text"] == "Cart main image"
+    assert product_data["main_image"]["is_main"] is True
+
+
+def test_cart_handles_product_without_image(client, user, product):
+    CartItem.objects.create(
+        cart=Cart.objects.create(user=user),
+        product=product,
+        quantity=1,
+    )
+
+    response = client.get(reverse("orders:cart"), **auth(user))
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["product"]["main_image"] is None
 
 
 def test_same_product_merges_cart_item(client, user, product):

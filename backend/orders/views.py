@@ -1,3 +1,4 @@
+from django.db.models import Prefetch
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status, viewsets
 from rest_framework.permissions import IsAuthenticated
@@ -15,11 +16,16 @@ from orders.serializers import (
     CheckoutSerializer,
     OrderSerializer,
 )
+from products.models import ProductImage
 
 
 def get_user_cart(user):
     return Cart.objects.prefetch_related(
         "items__product",
+        Prefetch(
+            "items__product__images",
+            queryset=ProductImage.objects.order_by("-is_main", "created_at"),
+        ),
     ).get_or_create(user=user)[0]
 
 
@@ -28,7 +34,12 @@ class CartView(APIView):
 
     @extend_schema(responses={200: CartSerializer})
     def get(self, request):
-        return Response(CartSerializer(get_user_cart(request.user)).data)
+        return Response(
+            CartSerializer(
+                get_user_cart(request.user),
+                context={"request": request},
+            ).data
+        )
 
 
 class ApplyCouponView(APIView):
@@ -59,8 +70,18 @@ class CartItemCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        item = (
+            CartItem.objects.select_related("product")
+            .prefetch_related(
+                Prefetch(
+                    "product__images",
+                    queryset=ProductImage.objects.order_by("-is_main", "created_at"),
+                )
+            )
+            .get(pk=self.item.pk)
+        )
         return Response(
-            CartItemSerializer(self.item).data,
+            CartItemSerializer(item, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
