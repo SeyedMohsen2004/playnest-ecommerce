@@ -207,6 +207,7 @@ export type Order = {
   payment_status_label?: string | null;
   can_retry_payment?: boolean;
   can_cancel?: boolean;
+  can_edit_shipping_info?: boolean;
   stock_reduced: boolean;
   coupon: number | Coupon | null;
   subtotal_amount: number;
@@ -228,6 +229,13 @@ export type CheckoutPayload = {
   recipient_name: string;
   recipient_phone: string;
   coupon_code?: string;
+};
+
+export type OrderShippingPayload = {
+  shipping_address?: string;
+  postal_code?: string;
+  recipient_name?: string;
+  recipient_phone?: string;
 };
 
 export type CheckoutResponse = Order | { order: Order };

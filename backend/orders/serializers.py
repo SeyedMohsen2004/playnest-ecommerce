@@ -175,6 +175,7 @@ class OrderSerializer(serializers.ModelSerializer):
     payment_status_label = serializers.SerializerMethodField()
     can_retry_payment = serializers.SerializerMethodField()
     can_cancel = serializers.SerializerMethodField()
+    can_edit_shipping_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -186,6 +187,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "payment_status_label",
             "can_retry_payment",
             "can_cancel",
+            "can_edit_shipping_info",
             "stock_reduced",
             "coupon",
             "subtotal_amount",
@@ -235,6 +237,30 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_can_cancel(self, obj):
         return obj.status in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED)
+
+    def get_can_edit_shipping_info(self, obj):
+        return obj.status in (
+            Order.Status.PENDING,
+            Order.Status.PAYMENT_FAILED,
+            Order.Status.PAID,
+        )
+
+
+class OrderShippingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = (
+            "recipient_name",
+            "recipient_phone",
+            "shipping_address",
+            "postal_code",
+        )
+        extra_kwargs = {
+            "recipient_name": {"required": False},
+            "recipient_phone": {"required": False},
+            "shipping_address": {"required": False},
+            "postal_code": {"required": False},
+        }
 
 
 class CheckoutSerializer(serializers.Serializer):

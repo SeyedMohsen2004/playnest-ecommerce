@@ -76,6 +76,15 @@ def checkout_payload():
     }
 
 
+def shipping_update_payload():
+    return {
+        "recipient_name": "Updated Receiver",
+        "recipient_phone": "09129999999",
+        "shipping_address": "Updated shipping street",
+        "postal_code": "9876543210",
+    }
+
+
 def create_order(user, product):
     order = Order.objects.create(
         user=user,
@@ -370,6 +379,7 @@ def test_user_retrieves_order_detail_with_items_and_product_image(
     assert data["status_label"] == "در انتظار پرداخت"
     assert data["can_retry_payment"] is True
     assert data["can_cancel"] is True
+    assert data["can_edit_shipping_info"] is True
     assert data["items"][0]["product_name"] == product.name
     assert data["items"][0]["product_slug"] == product.slug
     assert data["items"][0]["unit_price"] == product.final_price
@@ -394,6 +404,7 @@ def test_paid_order_cannot_retry_payment(client, user, product):
     assert response.json()["status_label"] == "پرداخت موفق، در انتظار تایید"
     assert response.json()["can_retry_payment"] is False
     assert response.json()["can_cancel"] is False
+    assert response.json()["can_edit_shipping_info"] is True
 
 
 def test_user_can_cancel_own_pending_order(client, user, product):
@@ -504,6 +515,99 @@ def test_cancelled_order_remains_in_user_order_list(client, user, product):
     assert data[0]["status"] == Order.Status.CANCELLED
     assert data[0]["can_cancel"] is False
     assert data[0]["can_retry_payment"] is False
+    assert data[0]["can_edit_shipping_info"] is False
+
+
+@pytest.mark.parametrize(
+    "order_status",
+    (
+        Order.Status.PENDING,
+        Order.Status.PAYMENT_FAILED,
+        Order.Status.PAID,
+    ),
+)
+def test_user_can_edit_shipping_info_for_allowed_statuses(
+    client,
+    user,
+    product,
+    order_status,
+):
+    order = create_order(user, product)
+    order.status = order_status
+    order.save(update_fields=("status",))
+
+    response = client.patch(
+        reverse("orders:order-shipping", args=(order.id,)),
+        shipping_update_payload(),
+        content_type="application/json",
+        **auth(user),
+    )
+
+    assert response.status_code == 200
+    order.refresh_from_db()
+    assert order.recipient_name == "Updated Receiver"
+    assert order.recipient_phone == "09129999999"
+    assert order.shipping_address == "Updated shipping street"
+    assert order.postal_code == "9876543210"
+    assert order.status == order_status
+    assert response.json()["can_edit_shipping_info"] is True
+
+
+@pytest.mark.parametrize(
+    "order_status",
+    (
+        Order.Status.PROCESSING,
+        Order.Status.SHIPPED,
+        Order.Status.DELIVERED,
+        Order.Status.CANCELLED,
+    ),
+)
+def test_user_cannot_edit_shipping_info_for_locked_statuses(
+    client,
+    user,
+    product,
+    order_status,
+):
+    order = create_order(user, product)
+    order.status = order_status
+    order.save(update_fields=("status",))
+
+    response = client.patch(
+        reverse("orders:order-shipping", args=(order.id,)),
+        shipping_update_payload(),
+        content_type="application/json",
+        **auth(user),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "امکان ویرایش اطلاعات ارسال این سفارش وجود ندارد."
+    )
+    order.refresh_from_db()
+    assert order.recipient_name == "Play User"
+    assert order.recipient_phone == user.phone_number
+    assert order.shipping_address == "123 Play Street"
+    assert order.postal_code == "1234567890"
+
+
+def test_user_cannot_edit_another_users_order_shipping_info(
+    client,
+    user,
+    other_user,
+    product,
+):
+    other_order = create_order(other_user, product)
+
+    response = client.patch(
+        reverse("orders:order-shipping", args=(other_order.id,)),
+        shipping_update_payload(),
+        content_type="application/json",
+        **auth(user),
+    )
+
+    assert response.status_code == 404
+    other_order.refresh_from_db()
+    assert other_order.recipient_name == "Play User"
 
 
 def test_admin_sees_all_orders(client, user, other_user, admin, product):

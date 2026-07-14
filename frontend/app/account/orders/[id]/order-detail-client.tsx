@@ -2,19 +2,34 @@
 
 import { LogIn, PackageOpen } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { APIError } from "@/lib/api/client";
-import { cancelOrder, getOrder } from "@/lib/api/orders";
+import { cancelOrder, getOrder, updateOrderShipping } from "@/lib/api/orders";
 import { requestPayment } from "@/lib/api/payments";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import { formatToman, toPersianDigits } from "@/lib/format";
 import { normalizeImageUrl } from "@/lib/product-display";
-import type { Order, OrderItem } from "@/types/api";
+import type { Order, OrderItem, OrderShippingPayload } from "@/types/api";
+
+type ShippingFormData = Required<OrderShippingPayload>;
+
+const emptyShippingForm: ShippingFormData = {
+  recipient_name: "",
+  recipient_phone: "",
+  postal_code: "",
+  shipping_address: "",
+};
 
 export function OrderDetailClient({ orderId }: { orderId: string }) {
   const numericOrderId = Number(orderId);
@@ -23,6 +38,10 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isEditingShipping, setIsEditingShipping] = useState(false);
+  const [isSavingShipping, setIsSavingShipping] = useState(false);
+  const [shippingForm, setShippingForm] =
+    useState<ShippingFormData>(emptyShippingForm);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -62,7 +81,9 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
       setSuccessMessage("");
 
       try {
-        setOrder(await getOrder(accessToken, numericOrderId));
+        const loadedOrder = await getOrder(accessToken, numericOrderId);
+        setOrder(loadedOrder);
+        setShippingForm(getShippingFormData(loadedOrder));
       } catch (error) {
         if (error instanceof APIError && error.status === 401) {
           handleUnauthorized();
@@ -123,6 +144,7 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
 
     try {
       setOrder(await cancelOrder(accessToken, order.id));
+      setIsEditingShipping(false);
       setSuccessMessage("سفارش با موفقیت لغو شد.");
     } catch (error) {
       if (error instanceof APIError && error.status === 401) {
@@ -134,6 +156,74 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
       }
     } finally {
       setIsCancelling(false);
+    }
+  }
+
+  function startEditingShipping() {
+    if (!order) {
+      return;
+    }
+    setShippingForm(getShippingFormData(order));
+    setIsEditingShipping(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+  }
+
+  function cancelEditingShipping() {
+    if (order) {
+      setShippingForm(getShippingFormData(order));
+    }
+    setIsEditingShipping(false);
+  }
+
+  function updateShippingField(
+    field: keyof ShippingFormData,
+    value: string,
+  ) {
+    setShippingForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleShippingSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!order) {
+      return;
+    }
+
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      handleUnauthorized();
+      return;
+    }
+
+    setIsSavingShipping(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const updatedOrder = await updateOrderShipping(accessToken, order.id, {
+        recipient_name: shippingForm.recipient_name.trim(),
+        recipient_phone: shippingForm.recipient_phone.trim(),
+        postal_code: shippingForm.postal_code.trim(),
+        shipping_address: shippingForm.shipping_address.trim(),
+      });
+      setOrder(updatedOrder);
+      setShippingForm(getShippingFormData(updatedOrder));
+      setIsEditingShipping(false);
+      setSuccessMessage("اطلاعات ارسال با موفقیت بروزرسانی شد.");
+    } catch (error) {
+      if (error instanceof APIError && error.status === 401) {
+        handleUnauthorized();
+      } else {
+        setErrorMessage(
+          getOrderActionError(
+            error,
+            "امکان بروزرسانی اطلاعات ارسال وجود ندارد.",
+          ),
+        );
+      }
+    } finally {
+      setIsSavingShipping(false);
     }
   }
 
@@ -200,15 +290,36 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
               </article>
 
               <article className="rounded-[2rem] bg-white p-6 shadow-sm dark:bg-slate-900/80">
-                <h2 className="text-xl font-black text-ink dark:text-white">
-                  اطلاعات مشتری و ارسال
-                </h2>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <Detail label="نام گیرنده" value={order.recipient_name} />
-                  <Detail label="شماره موبایل" value={order.recipient_phone} />
-                  <Detail label="کد پستی" value={order.postal_code} />
-                  <Detail label="آدرس ارسال" value={order.shipping_address} />
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="text-xl font-black text-ink dark:text-white">
+                    اطلاعات مشتری و ارسال
+                  </h2>
+                  {order.can_edit_shipping_info && !isEditingShipping ? (
+                    <Button
+                      onClick={startEditingShipping}
+                      type="button"
+                      variant="outline"
+                    >
+                      ویرایش اطلاعات ارسال
+                    </Button>
+                  ) : null}
                 </div>
+                {isEditingShipping ? (
+                  <ShippingEditForm
+                    formData={shippingForm}
+                    isSaving={isSavingShipping}
+                    onCancel={cancelEditingShipping}
+                    onChange={updateShippingField}
+                    onSubmit={handleShippingSubmit}
+                  />
+                ) : (
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <Detail label="نام گیرنده" value={order.recipient_name} />
+                    <Detail label="شماره موبایل" value={order.recipient_phone} />
+                    <Detail label="کد پستی" value={order.postal_code} />
+                    <Detail label="آدرس ارسال" value={order.shipping_address} />
+                  </div>
+                )}
               </article>
             </div>
 
@@ -248,6 +359,16 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
                     {isCancelling ? "در حال لغو..." : "لغو سفارش"}
                   </Button>
                 ) : null}
+                {order.can_edit_shipping_info ? (
+                  <Button
+                    disabled={isEditingShipping}
+                    onClick={startEditingShipping}
+                    type="button"
+                    variant="outline"
+                  >
+                    ویرایش اطلاعات ارسال
+                  </Button>
+                ) : null}
                 <Button asChild variant="outline">
                   <Link href="/account/orders">بازگشت به سفارش‌های من</Link>
                 </Button>
@@ -259,6 +380,100 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
         )}
       </section>
     </>
+  );
+}
+
+function ShippingEditForm({
+  formData,
+  isSaving,
+  onCancel,
+  onChange,
+  onSubmit,
+}: {
+  formData: ShippingFormData;
+  isSaving: boolean;
+  onCancel: () => void;
+  onChange: (field: keyof ShippingFormData, value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <form className="mt-5 space-y-5" onSubmit={onSubmit}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ShippingField
+          label="نام گیرنده"
+          onChange={(event) => onChange("recipient_name", event.target.value)}
+          placeholder="نام و نام خانوادگی"
+          required
+          value={formData.recipient_name}
+        />
+        <ShippingField
+          label="شماره موبایل گیرنده"
+          ltr
+          onChange={(event) => onChange("recipient_phone", event.target.value)}
+          placeholder="09120000000"
+          required
+          value={formData.recipient_phone}
+        />
+        <ShippingField
+          label="کد پستی"
+          ltr
+          onChange={(event) => onChange("postal_code", event.target.value)}
+          placeholder="1234567890"
+          required
+          value={formData.postal_code}
+        />
+      </div>
+      <label className="block">
+        <span className="text-sm font-bold text-ink dark:text-white">
+          آدرس کامل ارسال
+        </span>
+        <textarea
+          className="mt-2 min-h-32 w-full rounded-2xl border border-ink/10 bg-cream px-4 py-3 text-sm leading-7 text-ink outline-none transition placeholder:text-ink/30 focus:border-coral focus:ring-2 focus:ring-coral/20 dark:border-white/10 dark:bg-slate-950/60 dark:text-white dark:placeholder:text-white/35"
+          onChange={(event) => onChange("shipping_address", event.target.value)}
+          placeholder="استان، شهر، خیابان، پلاک و توضیحات لازم برای ارسال"
+          required
+          value={formData.shipping_address}
+        />
+      </label>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button disabled={isSaving} type="submit" variant="coral">
+          {isSaving ? "در حال ذخیره..." : "ذخیره اطلاعات ارسال"}
+        </Button>
+        <Button disabled={isSaving} onClick={onCancel} type="button" variant="outline">
+          انصراف
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function ShippingField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  required = false,
+  ltr = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  placeholder: string;
+  required?: boolean;
+  ltr?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-bold text-ink dark:text-white">{label}</span>
+      <input
+        className="mt-2 h-12 w-full rounded-2xl border border-ink/10 bg-cream px-4 text-sm text-ink outline-none transition placeholder:text-ink/30 focus:border-coral focus:ring-2 focus:ring-coral/20 dark:border-white/10 dark:bg-slate-950/60 dark:text-white dark:placeholder:text-white/35"
+        dir={ltr ? "ltr" : "rtl"}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        value={value}
+      />
+    </label>
   );
 }
 
@@ -362,6 +577,15 @@ function formatDate(value: string) {
     month: "long",
     day: "numeric",
   }).format(new Date(value));
+}
+
+function getShippingFormData(order: Order): ShippingFormData {
+  return {
+    recipient_name: order.recipient_name || "",
+    recipient_phone: order.recipient_phone || "",
+    postal_code: order.postal_code || "",
+    shipping_address: order.shipping_address || "",
+  };
 }
 
 function getPaymentRetryError(error: unknown) {

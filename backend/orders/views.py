@@ -17,6 +17,7 @@ from orders.serializers import (
     CartSummarySerializer,
     CheckoutSerializer,
     OrderSerializer,
+    OrderShippingSerializer,
 )
 from payments.models import Payment
 from products.models import ProductImage
@@ -150,5 +151,29 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
             status=Payment.Status.CANCELLED,
             updated_at=now,
         )
+        order = self.get_queryset().get(pk=order.pk)
+        return Response(self.get_serializer(order).data)
+
+    @extend_schema(request=OrderShippingSerializer, responses={200: OrderSerializer})
+    @action(detail=True, methods=("patch",), url_path="shipping")
+    def shipping(self, request, pk=None):
+        order = self.get_object()
+        if order.status not in (
+            Order.Status.PENDING,
+            Order.Status.PAYMENT_FAILED,
+            Order.Status.PAID,
+        ):
+            return Response(
+                {"detail": "امکان ویرایش اطلاعات ارسال این سفارش وجود ندارد."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = OrderShippingSerializer(
+            order,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         order = self.get_queryset().get(pk=order.pk)
         return Response(self.get_serializer(order).data)

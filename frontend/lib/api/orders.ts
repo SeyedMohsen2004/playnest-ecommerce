@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api/client";
-import type { Order } from "@/types/api";
+import type { Order, OrderShippingPayload } from "@/types/api";
 
 export function getOrders(accessToken: string) {
   return apiClient.get<Order[]>("/orders/", { token: accessToken });
@@ -15,4 +15,14 @@ export function cancelOrder(accessToken: string, orderId: number) {
     {},
     { token: accessToken },
   );
+}
+
+export function updateOrderShipping(
+  accessToken: string,
+  orderId: number,
+  payload: OrderShippingPayload,
+) {
+  return apiClient.patch<Order>(`/orders/${orderId}/shipping/`, payload, {
+    token: accessToken,
+  });
 }
