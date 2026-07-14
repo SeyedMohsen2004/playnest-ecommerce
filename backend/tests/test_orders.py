@@ -252,7 +252,7 @@ def test_checkout_creates_order_without_reducing_stock(client, user, product):
     assert order_item.product_price == 800
     assert order_item.quantity == 3
     assert order_item.line_total == 2400
-    assert CartItem.objects.filter(cart__user=user).exists() is False
+    assert CartItem.objects.filter(cart__user=user).exists() is True
     assert order.status == Order.Status.PENDING
     assert order.stock_reduced is False
     product.refresh_from_db()
@@ -327,7 +327,38 @@ def test_user_sees_own_orders_only(client, user, other_user, product):
     response = client.get(reverse("orders:order-list"), **auth(user))
 
     assert response.status_code == 200
-    assert [item["id"] for item in response.json()] == [own_order.id]
+    data = response.json()
+    assert [item["id"] for item in data] == [own_order.id]
+    assert data[0]["status_label"] == "در انتظار پرداخت"
+    assert data[0]["payment_status"] is None
+    assert data[0]["can_retry_payment"] is True
+
+
+def test_user_cannot_retrieve_another_users_order(client, user, other_user, product):
+    other_order = create_order(other_user, product)
+
+    response = client.get(
+        reverse("orders:order-detail", args=(other_order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 404
+
+
+def test_paid_order_cannot_retry_payment(client, user, product):
+    order = create_order(user, product)
+    order.status = Order.Status.PAID
+    order.stock_reduced = True
+    order.save(update_fields=("status", "stock_reduced"))
+
+    response = client.get(
+        reverse("orders:order-detail", args=(order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status_label"] == "پرداخت موفق، در انتظار تایید"
+    assert response.json()["can_retry_payment"] is False
 
 
 def test_admin_sees_all_orders(client, user, other_user, admin, product):

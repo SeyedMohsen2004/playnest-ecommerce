@@ -50,16 +50,16 @@ class PaymentRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError("Order was not found.")
         if order.status == Order.Status.PAID:
             raise serializers.ValidationError("Order is already paid.")
-        if order.status != Order.Status.PENDING:
-            raise serializers.ValidationError("Only pending orders can be paid.")
+        if order.status not in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED):
+            raise serializers.ValidationError("Only unpaid orders can be paid.")
         self.order = order
         return value
 
     @transaction.atomic
     def create(self, validated_data):
         order = Order.objects.select_for_update().get(pk=self.order.pk)
-        if order.status != Order.Status.PENDING:
-            raise serializers.ValidationError("Only pending orders can be paid.")
+        if order.status not in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED):
+            raise serializers.ValidationError("Only unpaid orders can be paid.")
         payment = Payment.objects.filter(
             order=order,
             status=Payment.Status.PENDING,

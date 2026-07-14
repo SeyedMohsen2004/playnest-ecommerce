@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
-from orders.models import Order, OrderItem
+from orders.models import Cart, CartItem, Order, OrderItem
 from payments.models import Payment
 from products.models import Brand, Category, Product
 
@@ -164,6 +164,18 @@ def test_verify_success_marks_payment_and_order_paid_and_reduces_stock(
     assert product.stock == 8
 
 
+def test_verify_success_clears_user_cart(client, user, order, product):
+    cart = Cart.objects.create(user=user)
+    CartItem.objects.create(cart=cart, product=product, quantity=2)
+    request_payment(client, user, order)
+    payment = Payment.objects.get(order=order)
+
+    response = verify_payment(client, payment)
+
+    assert response.status_code == 200
+    assert CartItem.objects.filter(cart=cart).exists() is False
+
+
 def test_verify_success_does_not_reduce_stock_twice(client, user, order, product):
     request_payment(client, user, order)
     payment = Payment.objects.get(order=order)
@@ -177,7 +189,14 @@ def test_verify_success_does_not_reduce_stock_twice(client, user, order, product
     assert product.stock == 8
 
 
-def test_verify_failure_marks_payment_failed(client, user, order, product):
+def test_verify_failure_marks_payment_and_order_failed_without_clearing_cart(
+    client,
+    user,
+    order,
+    product,
+):
+    cart = Cart.objects.create(user=user)
+    CartItem.objects.create(cart=cart, product=product, quantity=2)
     request_payment(client, user, order)
     payment = Payment.objects.get(order=order)
 
@@ -188,9 +207,22 @@ def test_verify_failure_marks_payment_failed(client, user, order, product):
     order.refresh_from_db()
     product.refresh_from_db()
     assert payment.status == Payment.Status.FAILED
-    assert order.status == Order.Status.PENDING
+    assert order.status == Order.Status.PAYMENT_FAILED
     assert order.stock_reduced is False
     assert product.stock == 10
+    assert CartItem.objects.filter(cart=cart).exists() is True
+
+
+def test_payment_can_be_retried_for_failed_order(client, user, order):
+    request_payment(client, user, order)
+    payment = Payment.objects.get(order=order)
+    verify_payment(client, payment, status="NOK")
+
+    response = request_payment(client, user, order)
+
+    assert response.status_code == 201
+    assert Payment.objects.filter(order=order).count() == 2
+    assert Payment.objects.filter(order=order, status=Payment.Status.PENDING).count() == 1
 
 
 def test_insufficient_stock_during_verify_fails_gracefully(

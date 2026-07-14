@@ -36,6 +36,9 @@ export function PaymentClient({ orderId }: { orderId: string }) {
   const isPaid =
     verifyResponse?.payment?.status === "paid" ||
     verifyResponse?.order?.status === "paid";
+  const isFailed =
+    verifyResponse?.payment?.status === "failed" ||
+    verifyResponse?.order?.status === "payment_failed";
 
   function handleUnauthorized() {
     clearTokens();
@@ -81,7 +84,7 @@ export function PaymentClient({ orderId }: { orderId: string }) {
     }
   }
 
-  async function handleVerifyPayment() {
+  async function handleVerifyPayment(status: "OK" | "NOK" = "OK") {
     const accessToken = getAccessToken();
 
     if (!accessToken) {
@@ -98,7 +101,7 @@ export function PaymentClient({ orderId }: { orderId: string }) {
     setErrorMessage("");
 
     try {
-      setVerifyResponse(await verifyPayment(accessToken, authority, "OK"));
+      setVerifyResponse(await verifyPayment(accessToken, authority, status));
     } catch (error) {
       if (process.env.NODE_ENV !== "production") {
         console.error("Payment verify error:", error);
@@ -166,11 +169,40 @@ export function PaymentClient({ orderId }: { orderId: string }) {
             <div className="mt-6 rounded-3xl bg-emerald-50 p-5 text-emerald-700">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="size-6" />
-                <p className="font-black">پرداخت با موفقیت انجام شد.</p>
+                <div>
+                  <p className="font-black">پرداخت با موفقیت انجام شد.</p>
+                  <p className="mt-1 text-sm leading-7">
+                    سفارش شما ثبت شد و در انتظار تایید فروشگاه است.
+                  </p>
+                </div>
               </div>
               <Button asChild className="mt-5" variant="coral">
                 <Link href="/account/orders">مشاهده سفارش‌ها</Link>
               </Button>
+            </div>
+          ) : isFailed ? (
+            <div className="mt-6 rounded-3xl bg-rose-50 p-5 text-rose-700">
+              <div className="flex items-start gap-3">
+                <XCircle className="mt-1 size-6 shrink-0" />
+                <div>
+                  <p className="font-black">پرداخت ناموفق بود.</p>
+                  <p className="mt-1 text-sm leading-7">
+                    سفارش شما ثبت شده اما پرداخت انجام نشده است. سبد خرید شما
+                    همچنان حفظ شده و می‌توانید دوباره تلاش کنید.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <Button onClick={handleRequestPayment} type="button" variant="coral">
+                  تلاش مجدد برای پرداخت
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/cart">بازگشت به سبد خرید</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/account/orders">مشاهده سفارش‌ها</Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -217,13 +249,22 @@ export function PaymentClient({ orderId }: { orderId: string }) {
               <Button
                 className="mt-4"
                 disabled={isVerifying}
-                onClick={handleVerifyPayment}
+                onClick={() => handleVerifyPayment("OK")}
                 type="button"
                 variant="coral"
               >
                 {isVerifying
                   ? "در حال تایید پرداخت..."
                   : "تایید پرداخت آزمایشی"}
+              </Button>
+              <Button
+                className="mt-3"
+                disabled={isVerifying}
+                onClick={() => handleVerifyPayment("NOK")}
+                type="button"
+                variant="outline"
+              >
+                ثبت پرداخت ناموفق آزمایشی
               </Button>
             </div>
           ) : null}
@@ -301,10 +342,11 @@ function paymentStatus(payment: Payment) {
 function orderStatus(order: Order) {
   const labels: Record<Order["status"], string> = {
     pending: "در انتظار پرداخت",
-    paid: "پرداخت شده",
-    processing: "در حال پردازش",
+    payment_failed: "پرداخت ناموفق",
+    paid: "پرداخت موفق، در انتظار تایید",
+    processing: "در حال آماده‌سازی",
     shipped: "ارسال شده",
-    delivered: "تحویل شده",
+    delivered: "تحویل داده شده",
     cancelled: "لغو شده",
   };
 

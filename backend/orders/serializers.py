@@ -155,12 +155,18 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    status_label = serializers.SerializerMethodField()
+    payment_status = serializers.SerializerMethodField()
+    can_retry_payment = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = (
             "id",
             "status",
+            "status_label",
+            "payment_status",
+            "can_retry_payment",
             "stock_reduced",
             "coupon",
             "subtotal_amount",
@@ -176,6 +182,25 @@ class OrderSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = fields
+
+    def get_status_label(self, obj):
+        labels = {
+            Order.Status.PENDING: "در انتظار پرداخت",
+            Order.Status.PAYMENT_FAILED: "پرداخت ناموفق",
+            Order.Status.PAID: "پرداخت موفق، در انتظار تایید",
+            Order.Status.PROCESSING: "در حال آماده‌سازی",
+            Order.Status.SHIPPED: "ارسال شده",
+            Order.Status.DELIVERED: "تحویل داده شده",
+            Order.Status.CANCELLED: "لغو شده",
+        }
+        return labels.get(obj.status, obj.get_status_display())
+
+    def get_payment_status(self, obj):
+        payment = obj.payments.order_by("-created_at").first()
+        return payment.status if payment else None
+
+    def get_can_retry_payment(self, obj):
+        return obj.status in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED)
 
 
 class CheckoutSerializer(serializers.Serializer):
@@ -260,5 +285,4 @@ class CheckoutSerializer(serializers.Serializer):
         OrderItem.objects.bulk_create(
             [OrderItem(order=order, **line) for line in order_lines]
         )
-        cart.items.all().delete()
         return order

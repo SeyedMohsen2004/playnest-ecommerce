@@ -6,12 +6,16 @@ const statusMap: Record<OrderStatus, { label: string; className: string }> = {
     label: "در انتظار پرداخت",
     className: "bg-amber-100 text-amber-700",
   },
+  payment_failed: {
+    label: "پرداخت ناموفق",
+    className: "bg-rose-100 text-rose-700",
+  },
   paid: {
-    label: "پرداخت شده",
+    label: "پرداخت موفق، در انتظار تایید",
     className: "bg-emerald-100 text-emerald-700",
   },
   processing: {
-    label: "در حال پردازش",
+    label: "در حال آماده‌سازی",
     className: "bg-sky-100 text-sky-700",
   },
   shipped: {
@@ -19,7 +23,7 @@ const statusMap: Record<OrderStatus, { label: string; className: string }> = {
     className: "bg-violet-100 text-violet-700",
   },
   delivered: {
-    label: "تحویل شده",
+    label: "تحویل داده شده",
     className: "bg-mint/30 text-emerald-800",
   },
   cancelled: {

@@ -192,11 +192,15 @@ export type Order = {
   user?: number | User;
   status:
     | "pending"
+    | "payment_failed"
     | "paid"
     | "processing"
     | "shipped"
     | "delivered"
     | "cancelled";
+  status_label?: string;
+  payment_status?: "pending" | "paid" | "failed" | "cancelled" | null;
+  can_retry_payment?: boolean;
   stock_reduced: boolean;
   coupon: number | Coupon | null;
   subtotal_amount: number;

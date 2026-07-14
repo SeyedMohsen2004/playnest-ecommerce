@@ -45,6 +45,7 @@ export type CartItem = {
 
 export type OrderStatus =
   | "pending"
+  | "payment_failed"
   | "paid"
   | "processing"
   | "shipped"

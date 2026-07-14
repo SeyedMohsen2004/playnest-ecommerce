@@ -117,6 +117,7 @@ class CartItem(models.Model):
 class Order(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
+        PAYMENT_FAILED = "payment_failed", "Payment failed"
         PAID = "paid", "Paid"
         PROCESSING = "processing", "Processing"
         SHIPPED = "shipped", "Shipped"

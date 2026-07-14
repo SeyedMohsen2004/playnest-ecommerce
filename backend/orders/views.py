@@ -116,7 +116,10 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        queryset = Order.objects.select_related("user").prefetch_related("items")
+        queryset = Order.objects.select_related("user").prefetch_related(
+            "items",
+            "payments",
+        )
         if getattr(self, "swagger_fake_view", False):
             return queryset.none()
         if self.request.user.is_staff:

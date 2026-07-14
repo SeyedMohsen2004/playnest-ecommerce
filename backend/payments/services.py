@@ -52,6 +52,10 @@ def verify_payment(payment, status):
             "verification_status": status,
         }
         payment.save(update_fields=("status", "gateway_response", "updated_at"))
+        order = Order.objects.select_for_update().get(pk=payment.order_id)
+        if order.status == Order.Status.PENDING:
+            order.status = Order.Status.PAYMENT_FAILED
+            order.save(update_fields=("status", "updated_at"))
         return payment
 
     order = Order.objects.select_for_update().get(pk=payment.order_id)
@@ -76,4 +80,6 @@ def verify_payment(payment, status):
             "updated_at",
         )
     )
+    if hasattr(order.user, "cart"):
+        order.user.cart.items.all().delete()
     return payment
