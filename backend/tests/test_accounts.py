@@ -25,8 +25,8 @@ def registration_payload():
     }
 
 
-@patch("accounts.views.send_sms_otp")
-def test_register_sends_otp(send_sms_otp, client):
+@patch("accounts.services.send_sms_otp")
+def test_register_creates_verified_user_without_otp_or_sms(send_sms_otp, client):
     response = client.post(
         reverse("accounts:register"),
         registration_payload(),
@@ -34,14 +34,15 @@ def test_register_sends_otp(send_sms_otp, client):
     )
 
     assert response.status_code == 201
-    assert response.json() == {"message": "Verification code sent."}
+    data = response.json()
+    assert data["access"]
+    assert data["refresh"]
+    assert data["user"]["phone_number"] == PHONE_NUMBER
     user = User.objects.get(phone_number=PHONE_NUMBER)
-    otp = PhoneOTP.objects.get(phone_number=PHONE_NUMBER)
-    assert user.is_active is False
-    assert user.is_phone_verified is False
-    assert len(otp.code) == 6
-    assert otp.code.isdigit()
-    send_sms_otp.assert_called_once_with(PHONE_NUMBER, otp.code)
+    assert user.is_active is True
+    assert user.is_phone_verified is True
+    assert PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).count() == 0
+    send_sms_otp.assert_not_called()
 
 
 @override_settings(SMS_PROVIDER="console")
@@ -104,16 +105,73 @@ def test_kavenegar_regular_sms_delivery_is_mocked(kavenegar_api):
 
 
 @override_settings(SMS_PROVIDER="console")
-def test_registration_response_does_not_expose_otp(client):
+def test_registration_response_returns_tokens_without_exposing_otp(client):
     response = client.post(
         reverse("accounts:register"),
         registration_payload(),
         content_type="application/json",
     )
-    otp = PhoneOTP.objects.get(phone_number=PHONE_NUMBER)
 
     assert response.status_code == 201
-    assert otp.code not in response.content.decode()
+    data = response.json()
+    assert data["access"]
+    assert data["refresh"]
+    assert "code" not in data
+    assert "message" not in data
+    assert PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).count() == 0
+
+
+def test_registered_user_can_login_immediately(client):
+    register_response = client.post(
+        reverse("accounts:register"),
+        registration_payload(),
+        content_type="application/json",
+    )
+    login_response = client.post(
+        reverse("accounts:login"),
+        {"phone_number": PHONE_NUMBER, "password": PASSWORD},
+        content_type="application/json",
+    )
+
+    assert register_response.status_code == 201
+    assert login_response.status_code == 200
+    assert login_response.json()["access"]
+    assert login_response.json()["refresh"]
+
+
+def test_duplicate_phone_registration_fails(client):
+    User.objects.create_user(
+        phone_number=PHONE_NUMBER,
+        password=PASSWORD,
+        first_name="Play",
+        last_name="Tester",
+        is_active=True,
+        is_phone_verified=True,
+    )
+
+    response = client.post(
+        reverse("accounts:register"),
+        registration_payload(),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).count() == 0
+
+
+def test_registration_password_mismatch_fails(client):
+    payload = registration_payload()
+    payload["password_confirm"] = "DifferentPassword!42"
+
+    response = client.post(
+        reverse("accounts:register"),
+        payload,
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert User.objects.filter(phone_number=PHONE_NUMBER).count() == 0
+    assert PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).count() == 0
 
 
 def test_verify_otp_activates_user_and_returns_tokens(client):

@@ -8,12 +8,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.serializers import (
     AuthResponseSerializer,
     LoginSerializer,
-    MessageSerializer,
     RegisterSerializer,
     UserSerializer,
     VerifyRegistrationSerializer,
 )
-from accounts.services import send_sms_otp
 
 
 def token_response(user):
@@ -30,17 +28,13 @@ class RegisterView(APIView):
 
     @extend_schema(
         request=RegisterSerializer,
-        responses={201: MessageSerializer},
+        responses={201: AuthResponseSerializer},
     )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        _, otp = serializer.save()
-        send_sms_otp(otp.phone_number, otp.code)
-        return Response(
-            {"message": "Verification code sent."},
-            status=status.HTTP_201_CREATED,
-        )
+        user = serializer.save()
+        return Response(token_response(user), status=status.HTTP_201_CREATED)
 
 
 class VerifyRegistrationView(APIView):

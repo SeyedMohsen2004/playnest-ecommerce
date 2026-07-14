@@ -5,7 +5,6 @@ from django.db import transaction
 from rest_framework import serializers
 
 from accounts.models import PhoneOTP, User
-from accounts.services import generate_otp_code
 
 IRANIAN_MOBILE_PATTERN = re.compile(r"^09\d{9}$")
 
@@ -65,38 +64,22 @@ class RegisterSerializer(serializers.Serializer):
     def save(self):
         data = self.validated_data
         phone_number = data["phone_number"]
-        user = (
-            User.objects.select_for_update().filter(phone_number=phone_number).first()
-        )
 
-        if user and user.is_phone_verified:
+        if User.objects.select_for_update().filter(phone_number=phone_number).exists():
             raise serializers.ValidationError(
-                {"phone_number": "A verified account already uses this phone number."}
+                {"phone_number": "An account already uses this phone number."}
             )
 
-        profile = {
-            "first_name": data["first_name"],
-            "last_name": data["last_name"],
-            "email": data.get("email", ""),
-            "is_active": False,
-            "is_phone_verified": False,
-        }
-        if user is None:
-            user = User(phone_number=phone_number, **profile)
-        else:
-            for field, value in profile.items():
-                setattr(user, field, value)
-
-        user.set_password(data["password"])
-        user.save()
-
-        otp = PhoneOTP.objects.create(
+        user = User.objects.create_user(
             phone_number=phone_number,
-            code=generate_otp_code(),
-            purpose=PhoneOTP.Purpose.REGISTER,
-            expires_at=PhoneOTP.expiration_time(),
+            password=data["password"],
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            email=data.get("email", ""),
+            is_active=True,
+            is_phone_verified=True,
         )
-        return user, otp
+        return user
 
 
 class VerifyRegistrationSerializer(serializers.Serializer):

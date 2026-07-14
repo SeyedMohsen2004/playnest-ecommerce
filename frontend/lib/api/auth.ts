@@ -5,19 +5,10 @@ import type {
   RegisterPayload,
   TokenRefreshResponse,
   User,
-  VerifyOtpPayload,
 } from "@/types/api";
 
-export type RegisterResponse = {
-  message: string;
-};
-
 export function registerUser(payload: RegisterPayload) {
-  return apiClient.post<RegisterResponse>("/accounts/register/", payload);
-}
-
-export function verifyRegisterOtp(payload: VerifyOtpPayload) {
-  return apiClient.post<AuthResponse>("/accounts/register/verify/", payload);
+  return apiClient.post<AuthResponse>("/accounts/register/", payload);
 }
 
 export function loginUser(payload: LoginPayload) {

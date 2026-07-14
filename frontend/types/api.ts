@@ -135,11 +135,6 @@ export type RegisterPayload = {
   password_confirm?: string;
 };
 
-export type VerifyOtpPayload = {
-  phone_number: string;
-  code: string;
-};
-
 export type LoginPayload = {
   phone_number: string;
   password: string;

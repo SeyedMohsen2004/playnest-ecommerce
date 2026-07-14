@@ -16,7 +16,6 @@ import {
   loginUser,
   refreshToken as requestTokenRefresh,
   registerUser,
-  verifyRegisterOtp,
 } from "@/lib/api/auth";
 import {
   clearTokens,
@@ -28,7 +27,6 @@ import type {
   LoginPayload,
   RegisterPayload,
   User,
-  VerifyOtpPayload,
 } from "@/types/api";
 
 type AuthContextValue = {
@@ -37,7 +35,6 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
-  verifyOtp: (payload: VerifyOtpPayload) => Promise<void>;
   logout: () => void;
 };
 
@@ -172,11 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(async (payload: RegisterPayload) => {
-    await registerUser(payload);
-  }, []);
-
-  const verifyOtp = useCallback(async (payload: VerifyOtpPayload) => {
-    const response = await verifyRegisterOtp(payload);
+    const response = await registerUser(payload);
     setTokens(response);
     setUser(response.user);
   }, []);
@@ -188,10 +181,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       login,
       register,
-      verifyOtp,
       logout,
     }),
-    [isLoading, login, logout, register, user, verifyOtp],
+    [isLoading, login, logout, register, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

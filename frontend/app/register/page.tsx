@@ -46,11 +46,7 @@ export default function RegisterPage() {
         password: formData.password,
         password_confirm: formData.password_confirm,
       });
-      router.push(
-        `/verify-otp?phone_number=${encodeURIComponent(
-          formData.phone_number.trim(),
-        )}`,
-      );
+      router.push("/");
     } catch (error) {
       setErrorMessage(
         getFriendlyAuthError(
@@ -65,7 +61,7 @@ export default function RegisterPage() {
 
   return (
     <AuthCard
-      description="کد تایید برای شماره موبایل شما ارسال می‌شود و پس از تایید، حساب فعال خواهد شد."
+      description="برای ایجاد حساب، اطلاعات زیر را وارد کنید."
       footerHref="/login"
       footerLink="وارد شوید"
       footerText="قبلا ثبت‌نام کرده‌اید؟"
@@ -114,11 +110,6 @@ export default function RegisterPage() {
           type="password"
           value={formData.password_confirm}
         />
-        <p className="rounded-2xl bg-skysoft px-4 py-3 text-xs leading-6 text-ink/60">
-          کد تایید برای شماره موبایل شما ارسال می‌شود. در محیط توسعه، کد OTP در
-          لاگ بک‌اند چاپ می‌شود.
-        </p>
-
         {errorMessage ? (
           <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold leading-7 text-rose-700">
             {errorMessage}
