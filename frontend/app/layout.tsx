@@ -4,41 +4,19 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import {
-  DEFAULT_DESCRIPTION,
-  DEFAULT_TITLE,
-  SEO_KEYWORDS,
-  SITE_NAME,
-  SITE_URL,
-} from "@/lib/seo";
+import { HOME_DESCRIPTION, HOME_TITLE, SEO_KEYWORDS, SITE_NAME, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: DEFAULT_TITLE,
+    default: HOME_TITLE,
     template: `%s | ${SITE_NAME}`,
   },
-  description: DEFAULT_DESCRIPTION,
+  description: HOME_DESCRIPTION,
   keywords: SEO_KEYWORDS,
-  alternates: {
-    canonical: "/",
-  },
   icons: {
     icon: "/icon.png",
-  },
-  openGraph: {
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-    locale: "fa_IR",
-    siteName: SITE_NAME,
-    type: "website",
-    url: "/",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
   },
   robots: {
     index: true,

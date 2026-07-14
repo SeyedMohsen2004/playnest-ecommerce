@@ -1,28 +1,29 @@
-export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || "https://ipaktoys.ir"
-).replace(/\/+$/, "");
+export const SITE_URL = "https://ipaktoys.ir";
 
 export const SITE_NAME = "ایپک تویز";
 
-export const DEFAULT_TITLE =
-  "ایپک تویز | فروشگاه اسباب‌بازی، بازی فکری و بردگیم";
+export const BRAND_NAME_EN = "IpakToys";
 
-export const DEFAULT_DESCRIPTION =
-  "خرید اسباب‌بازی، بازی فکری، بردگیم، پازل، لگو و سرگرمی‌های خانوادگی از فروشگاه ایپک تویز.";
+export const HOME_TITLE =
+  "ایپک تویز | IpakToys | فروشگاه اسباب‌بازی، بازی فکری و بردگیم";
+
+export const HOME_OG_TITLE = "ایپک تویز | IpakToys";
+
+export const HOME_DESCRIPTION =
+  "ایپک تویز فروشگاه اسباب‌بازی، بازی فکری، بردگیم، پازل، لگو و سرگرمی‌های خانوادگی است. خرید آنلاین محصولات سرگرمی و اسباب‌بازی از IpakToys.";
 
 export const SEO_KEYWORDS = [
   "ایپک تویز",
-  "ipak toys",
   "IpakToys",
+  "ipak toys",
   "فروشگاه ایپک تویز",
+  "اسباب بازی ایپک تویز",
   "خرید اسباب بازی",
   "فروشگاه اسباب بازی",
   "بازی فکری",
   "بردگیم",
   "پازل",
   "لگو",
-  "اسباب بازی تبریز",
-  "فروشگاه اسباب بازی در تبریز",
 ];
 
 export function absoluteUrl(path = "/") {

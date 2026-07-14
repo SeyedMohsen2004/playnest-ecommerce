@@ -6,7 +6,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { absoluteUrl, SITE_NAME } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "خرید اسباب‌بازی، بازی فکری و بردگیم",
+  title: {
+    absolute: "محصولات | ایپک تویز",
+  },
   description:
     "مشاهده و خرید بازی فکری، بردگیم، پازل، لگو و اسباب‌بازی از فروشگاه ایپک تویز در تبریز.",
   alternates: {

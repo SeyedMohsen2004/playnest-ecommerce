@@ -65,7 +65,7 @@ export function SiteHeader() {
               IpakToys
             </span>
             <span className="mt-1 text-[0.65rem] font-bold text-coral">
-              بازی فکری، بردگیم و پازل
+              ایپک تویز | بازی فکری، بردگیم و پازل
             </span>
           </span>
         </Link>

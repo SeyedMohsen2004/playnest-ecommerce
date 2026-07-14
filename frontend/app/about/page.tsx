@@ -1,8 +1,31 @@
+import type { Metadata } from "next";
+
 import {
   DraftNotice,
   InfoSection,
   LegalPageLayout,
 } from "@/components/shared/legal-page-layout";
+import { absoluteUrl, SITE_NAME } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "درباره ایپک تویز | IpakToys",
+  },
+  description:
+    "درباره فروشگاه ایپک تویز، عرضه‌کننده بازی فکری، بردگیم، پازل، لگو و محصولات سرگرمی خانوادگی.",
+  alternates: {
+    canonical: absoluteUrl("/about"),
+  },
+  openGraph: {
+    title: "درباره ایپک تویز | IpakToys",
+    description:
+      "معرفی فروشگاه ایپک تویز و تمرکز آن روی بازی فکری، بردگیم، پازل و سرگرمی‌های خانوادگی.",
+    url: absoluteUrl("/about"),
+    siteName: SITE_NAME,
+    locale: "fa_IR",
+    type: "website",
+  },
+};
 
 export default function AboutPage() {
   return (

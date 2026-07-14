@@ -5,7 +5,7 @@ import { getProductBySlug } from "@/lib/api/products";
 import { getProductImageUrl } from "@/lib/product-display";
 import {
   absoluteUrl,
-  DEFAULT_DESCRIPTION,
+  HOME_DESCRIPTION,
   SITE_NAME,
   truncateMetaDescription,
 } from "@/lib/seo";
@@ -70,7 +70,7 @@ export async function generateMetadata({
       title: {
         absolute: `محصول | ${SITE_NAME}`,
       },
-      description: DEFAULT_DESCRIPTION,
+      description: HOME_DESCRIPTION,
       alternates: {
         canonical: absoluteUrl(`/products/${slug}`),
       },

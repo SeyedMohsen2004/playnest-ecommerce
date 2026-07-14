@@ -1,8 +1,31 @@
+import type { Metadata } from "next";
+
 import {
   DraftNotice,
   InfoSection,
   LegalPageLayout,
 } from "@/components/shared/legal-page-layout";
+import { absoluteUrl, SITE_NAME } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "تماس با ایپک تویز | IpakToys",
+  },
+  description:
+    "راه‌های تماس با فروشگاه ایپک تویز برای خرید بازی فکری، بردگیم، پازل، لگو و محصولات سرگرمی.",
+  alternates: {
+    canonical: absoluteUrl("/contact"),
+  },
+  openGraph: {
+    title: "تماس با ایپک تویز | IpakToys",
+    description:
+      "اطلاعات تماس، آدرس و راه ارتباطی فروشگاه ایپک تویز در تبریز.",
+    url: absoluteUrl("/contact"),
+    siteName: SITE_NAME,
+    locale: "fa_IR",
+    type: "website",
+  },
+};
 
 export default function ContactPage() {
   return (
