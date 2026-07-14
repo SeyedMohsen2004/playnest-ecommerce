@@ -206,6 +206,7 @@ export type Order = {
   payment_status?: "pending" | "paid" | "failed" | "cancelled" | null;
   payment_status_label?: string | null;
   can_retry_payment?: boolean;
+  can_cancel?: boolean;
   stock_reduced: boolean;
   coupon: number | Coupon | null;
   subtotal_amount: number;

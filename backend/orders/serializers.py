@@ -174,6 +174,7 @@ class OrderSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
     payment_status_label = serializers.SerializerMethodField()
     can_retry_payment = serializers.SerializerMethodField()
+    can_cancel = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -184,6 +185,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "payment_status",
             "payment_status_label",
             "can_retry_payment",
+            "can_cancel",
             "stock_reduced",
             "coupon",
             "subtotal_amount",
@@ -229,6 +231,9 @@ class OrderSerializer(serializers.ModelSerializer):
         return labels.get(status, status)
 
     def get_can_retry_payment(self, obj):
+        return obj.status in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED)
+
+    def get_can_cancel(self, obj):
         return obj.status in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED)
 
 

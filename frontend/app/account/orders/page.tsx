@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { APIError } from "@/lib/api/client";
-import { getOrders } from "@/lib/api/orders";
+import { cancelOrder, getOrders } from "@/lib/api/orders";
 import { requestPayment } from "@/lib/api/payments";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import { formatToman, toPersianDigits } from "@/lib/format";
@@ -21,7 +21,9 @@ export default function AccountOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [retryingOrderId, setRetryingOrderId] = useState<number | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null);
 
   const handleUnauthorized = useCallback(() => {
     clearTokens();
@@ -50,6 +52,7 @@ export default function AccountOrdersPage() {
 
       setIsLoading(true);
       setErrorMessage("");
+      setSuccessMessage("");
 
       try {
         setOrders(await getOrders(accessToken));
@@ -76,6 +79,7 @@ export default function AccountOrdersPage() {
 
     setRetryingOrderId(orderId);
     setErrorMessage("");
+    setSuccessMessage("");
 
     try {
       const response = await requestPayment(accessToken, orderId);
@@ -95,6 +99,42 @@ export default function AccountOrdersPage() {
     }
   }
 
+  async function handleCancelOrder(orderId: number) {
+    if (!window.confirm("آیا از لغو این سفارش مطمئن هستید؟")) {
+      return;
+    }
+
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      handleUnauthorized();
+      return;
+    }
+
+    setCancellingOrderId(orderId);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const updatedOrder = await cancelOrder(accessToken, orderId);
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order.id === orderId ? updatedOrder : order,
+        ),
+      );
+      setSuccessMessage("سفارش با موفقیت لغو شد.");
+    } catch (error) {
+      if (error instanceof APIError && error.status === 401) {
+        handleUnauthorized();
+      } else {
+        setErrorMessage(
+          getOrderActionError(error, "امکان لغو این سفارش وجود ندارد."),
+        );
+      }
+    } finally {
+      setCancellingOrderId(null);
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -108,26 +148,36 @@ export default function AccountOrdersPage() {
           </div>
         ) : !isAuthenticated ? (
           <LoginRequiredState />
-        ) : errorMessage ? (
-          <p className="rounded-3xl bg-rose-50 px-5 py-4 text-sm font-bold leading-7 text-rose-700 dark:bg-rose-950/45 dark:text-rose-100">
-            {errorMessage}
-          </p>
-        ) : orders.length === 0 ? (
-          <EmptyState
-            description="هنوز سفارشی برای شما ثبت نشده است."
-            icon={PackageOpen}
-            title="سفارشی پیدا نشد"
-          />
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
-              <OrderCard
-                key={order.id}
-                onRetryPayment={handleRetryPayment}
-                order={order}
-                retryingOrderId={retryingOrderId}
+            {successMessage ? (
+              <p className="rounded-3xl bg-emerald-50 px-5 py-4 text-sm font-bold leading-7 text-emerald-700 dark:bg-emerald-950/45 dark:text-emerald-100">
+                {successMessage}
+              </p>
+            ) : null}
+            {errorMessage ? (
+              <p className="rounded-3xl bg-rose-50 px-5 py-4 text-sm font-bold leading-7 text-rose-700 dark:bg-rose-950/45 dark:text-rose-100">
+                {errorMessage}
+              </p>
+            ) : null}
+            {orders.length === 0 ? (
+              <EmptyState
+                description="هنوز سفارشی برای شما ثبت نشده است."
+                icon={PackageOpen}
+                title="سفارشی پیدا نشد"
               />
-            ))}
+            ) : (
+              orders.map((order) => (
+                <OrderCard
+                  cancellingOrderId={cancellingOrderId}
+                  key={order.id}
+                  onCancelOrder={handleCancelOrder}
+                  onRetryPayment={handleRetryPayment}
+                  order={order}
+                  retryingOrderId={retryingOrderId}
+                />
+              ))
+            )}
           </div>
         )}
       </section>
@@ -138,11 +188,15 @@ export default function AccountOrdersPage() {
 function OrderCard({
   order,
   retryingOrderId,
+  cancellingOrderId,
   onRetryPayment,
+  onCancelOrder,
 }: {
   order: Order;
   retryingOrderId: number | null;
+  cancellingOrderId: number | null;
   onRetryPayment: (orderId: number) => void;
+  onCancelOrder: (orderId: number) => void;
 }) {
   return (
     <article
@@ -182,12 +236,23 @@ function OrderCard({
       <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
         {order.can_retry_payment ? (
           <Button
-            disabled={retryingOrderId === order.id}
+            disabled={retryingOrderId === order.id || cancellingOrderId === order.id}
             onClick={() => onRetryPayment(order.id)}
             type="button"
             variant="coral"
           >
             {retryingOrderId === order.id ? "در حال آماده‌سازی..." : "پرداخت مجدد"}
+          </Button>
+        ) : null}
+        {order.can_cancel ? (
+          <Button
+            className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-400/25 dark:bg-rose-950/35 dark:text-rose-100 dark:hover:bg-rose-900/55 dark:hover:text-white"
+            disabled={retryingOrderId === order.id || cancellingOrderId === order.id}
+            onClick={() => onCancelOrder(order.id)}
+            type="button"
+            variant="outline"
+          >
+            {cancellingOrderId === order.id ? "در حال لغو..." : "لغو سفارش"}
           </Button>
         ) : null}
         <Button asChild variant="outline">
@@ -199,6 +264,13 @@ function OrderCard({
 }
 
 function getPaymentRetryError(error: unknown) {
+  return getOrderActionError(
+    error,
+    "امکان آماده‌سازی پرداخت وجود ندارد. لطفاً دوباره تلاش کنید.",
+  );
+}
+
+function getOrderActionError(error: unknown, fallbackMessage: string) {
   if (error instanceof APIError) {
     const data = error.data as
       | { detail?: unknown; items?: Array<{ product_name?: string }> }
@@ -216,7 +288,7 @@ function getPaymentRetryError(error: unknown) {
     }
   }
 
-  return "امکان آماده‌سازی پرداخت وجود ندارد. لطفاً دوباره تلاش کنید.";
+  return fallbackMessage;
 }
 
 function LoginRequiredState() {

@@ -1,6 +1,8 @@
 from django.db.models import Prefetch
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,6 +18,7 @@ from orders.serializers import (
     CheckoutSerializer,
     OrderSerializer,
 )
+from payments.models import Payment
 from products.models import ProductImage
 
 
@@ -125,3 +128,27 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         if self.request.user.is_staff:
             return queryset
         return queryset.filter(user=self.request.user)
+
+    @action(detail=True, methods=("post",), url_path="cancel")
+    def cancel(self, request, pk=None):
+        order = self.get_object()
+        if order.status == Order.Status.CANCELLED:
+            return Response(
+                {"detail": "این سفارش قبلاً لغو شده است."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if order.status not in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED):
+            return Response(
+                {"detail": "امکان لغو این سفارش وجود ندارد."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        now = timezone.now()
+        order.status = Order.Status.CANCELLED
+        order.save(update_fields=("status", "updated_at"))
+        order.payments.filter(status=Payment.Status.PENDING).update(
+            status=Payment.Status.CANCELLED,
+            updated_at=now,
+        )
+        order = self.get_queryset().get(pk=order.pk)
+        return Response(self.get_serializer(order).data)

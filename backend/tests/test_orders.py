@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
 from orders.models import Cart, CartItem, Order, OrderItem
+from payments.models import Payment
 from products.models import Brand, Category, Product, ProductImage
 
 pytestmark = pytest.mark.django_db
@@ -368,6 +369,7 @@ def test_user_retrieves_order_detail_with_items_and_product_image(
     assert data["id"] == order.id
     assert data["status_label"] == "در انتظار پرداخت"
     assert data["can_retry_payment"] is True
+    assert data["can_cancel"] is True
     assert data["items"][0]["product_name"] == product.name
     assert data["items"][0]["product_slug"] == product.slug
     assert data["items"][0]["unit_price"] == product.final_price
@@ -391,6 +393,117 @@ def test_paid_order_cannot_retry_payment(client, user, product):
     assert response.status_code == 200
     assert response.json()["status_label"] == "پرداخت موفق، در انتظار تایید"
     assert response.json()["can_retry_payment"] is False
+    assert response.json()["can_cancel"] is False
+
+
+def test_user_can_cancel_own_pending_order(client, user, product):
+    order = create_order(user, product)
+    payment = Payment.objects.create(user=user, order=order, amount=order.total_amount)
+
+    response = client.post(
+        reverse("orders:order-cancel", args=(order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 200
+    order.refresh_from_db()
+    payment.refresh_from_db()
+    product.refresh_from_db()
+    data = response.json()
+    assert order.status == Order.Status.CANCELLED
+    assert payment.status == Payment.Status.CANCELLED
+    assert data["status"] == Order.Status.CANCELLED
+    assert data["status_label"] == "لغو شده"
+    assert data["can_cancel"] is False
+    assert data["can_retry_payment"] is False
+    assert product.stock == 10
+
+
+def test_user_can_cancel_own_payment_failed_order(client, user, product):
+    order = create_order(user, product)
+    order.status = Order.Status.PAYMENT_FAILED
+    order.save(update_fields=("status",))
+
+    response = client.post(
+        reverse("orders:order-cancel", args=(order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 200
+    order.refresh_from_db()
+    assert order.status == Order.Status.CANCELLED
+    assert response.json()["can_cancel"] is False
+
+
+@pytest.mark.parametrize(
+    "order_status",
+    (
+        Order.Status.PAID,
+        Order.Status.PROCESSING,
+        Order.Status.SHIPPED,
+        Order.Status.DELIVERED,
+    ),
+)
+def test_user_cannot_cancel_paid_or_fulfillment_order(
+    client,
+    user,
+    product,
+    order_status,
+):
+    order = create_order(user, product)
+    order.status = order_status
+    order.save(update_fields=("status",))
+
+    response = client.post(
+        reverse("orders:order-cancel", args=(order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "امکان لغو این سفارش وجود ندارد."
+    order.refresh_from_db()
+    assert order.status == order_status
+
+
+def test_user_cannot_cancel_already_cancelled_order(client, user, product):
+    order = create_order(user, product)
+    order.status = Order.Status.CANCELLED
+    order.save(update_fields=("status",))
+
+    response = client.post(
+        reverse("orders:order-cancel", args=(order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "این سفارش قبلاً لغو شده است."
+
+
+def test_user_cannot_cancel_another_users_order(client, user, other_user, product):
+    other_order = create_order(other_user, product)
+
+    response = client.post(
+        reverse("orders:order-cancel", args=(other_order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 404
+    other_order.refresh_from_db()
+    assert other_order.status == Order.Status.PENDING
+
+
+def test_cancelled_order_remains_in_user_order_list(client, user, product):
+    order = create_order(user, product)
+    client.post(reverse("orders:order-cancel", args=(order.id,)), **auth(user))
+
+    response = client.get(reverse("orders:order-list"), **auth(user))
+
+    assert response.status_code == 200
+    data = response.json()
+    assert [item["id"] for item in data] == [order.id]
+    assert data[0]["status"] == Order.Status.CANCELLED
+    assert data[0]["can_cancel"] is False
+    assert data[0]["can_retry_payment"] is False
 
 
 def test_admin_sees_all_orders(client, user, other_user, admin, product):
