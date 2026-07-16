@@ -67,6 +67,63 @@ class MockGatewayView(APIView):
         )
 
 
+class ZarinPalCallbackView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get_payload(self, request):
+        return request.query_params if request.method == "GET" else request.data
+
+    def handle_callback(self, request):
+        payload = self.get_payload(request)
+        authority = payload.get("Authority") or payload.get("authority")
+        gateway_status = payload.get("Status") or payload.get("status")
+        if not authority:
+            return Response(
+                {"detail": "Authority is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        payment = Payment.objects.filter(authority=authority).first()
+        if payment is None:
+            return Response(
+                {
+                    "detail": "Payment was not found.",
+                    "authority": authority,
+                    "status": gateway_status,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        payment.status_from_gateway = gateway_status or ""
+        payment.gateway_response = {
+            **payment.gateway_response,
+            "callback": {
+                "authority": authority,
+                "status": gateway_status,
+            },
+        }
+        payment.save(
+            update_fields=(
+                "status_from_gateway",
+                "gateway_response",
+                "updated_at",
+            )
+        )
+        return Response(
+            {
+                "authority": authority,
+                "status": gateway_status,
+                "payment": PaymentSerializer(payment).data,
+            }
+        )
+
+    def get(self, request):
+        return self.handle_callback(request)
+
+    def post(self, request):
+        return self.handle_callback(request)
+
+
 class PaymentVerifyView(APIView):
     permission_classes = (AllowAny,)
 

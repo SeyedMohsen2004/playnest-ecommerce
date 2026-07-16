@@ -22,6 +22,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             "amount",
             "status",
             "authority",
+            "status_from_gateway",
             "ref_id",
             "card_pan",
             "gateway_response",

@@ -37,6 +37,7 @@ class Payment(models.Model):
         default=Status.PENDING,
     )
     authority = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    status_from_gateway = models.CharField(max_length=50, blank=True, default="")
     ref_id = models.CharField(max_length=100, blank=True, null=True)
     card_pan = models.CharField(max_length=30, blank=True, null=True)
     gateway_response = models.JSONField(default=dict, blank=True)

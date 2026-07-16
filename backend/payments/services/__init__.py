@@ -1,6 +1,5 @@
 import secrets
 
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -8,31 +7,32 @@ from django.utils import timezone
 from orders.models import Order
 from orders.services import mark_order_as_paid
 from payments.models import Payment
-
-MOCK_GATEWAY_URL = "http://127.0.0.1:8000/api/v1/payments/mock-gateway/"
+from payments.services.zarinpal import ZarinPalError, ZarinPalService
 
 
 @transaction.atomic
 def request_payment(payment):
-    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    payment = Payment.objects.select_for_update().select_related("order").get(
+        pk=payment.pk
+    )
     if payment.status != Payment.Status.PENDING:
         raise ValidationError("Only pending payments can be requested.")
     if payment.authority:
         return payment
-    if not settings.DEBUG:
-        raise ValidationError("ZarinPal integration is not configured.")
 
-    payment.authority = f"mock-{secrets.token_urlsafe(24)}"
-    payment.gateway_response = {
-        "mode": "mock",
-        "authority": payment.authority,
-    }
+    try:
+        result = ZarinPalService().create_payment(payment.order)
+    except ZarinPalError as exc:
+        raise ValidationError(str(exc)) from exc
+
+    payment.authority = result["authority"]
+    payment.gateway_response = result["gateway_response"]
     payment.save(update_fields=("authority", "gateway_response", "updated_at"))
     return payment
 
 
 def payment_url(payment):
-    return f"{MOCK_GATEWAY_URL}?authority={payment.authority}"
+    return ZarinPalService().payment_url(payment.authority)
 
 
 @transaction.atomic
@@ -47,11 +47,19 @@ def verify_payment(payment, status):
 
     if status != "OK":
         payment.status = Payment.Status.FAILED
+        payment.status_from_gateway = status
         payment.gateway_response = {
             **payment.gateway_response,
             "verification_status": status,
         }
-        payment.save(update_fields=("status", "gateway_response", "updated_at"))
+        payment.save(
+            update_fields=(
+                "status",
+                "status_from_gateway",
+                "gateway_response",
+                "updated_at",
+            )
+        )
         order = Order.objects.select_for_update().get(pk=payment.order_id)
         if order.status == Order.Status.PENDING:
             order.status = Order.Status.PAYMENT_FAILED
@@ -64,6 +72,7 @@ def verify_payment(payment, status):
     mark_order_as_paid(order)
 
     payment.status = Payment.Status.PAID
+    payment.status_from_gateway = status
     payment.ref_id = f"MOCK-{secrets.randbelow(1_000_000_000):09d}"
     payment.paid_at = timezone.now()
     payment.gateway_response = {
@@ -74,6 +83,7 @@ def verify_payment(payment, status):
     payment.save(
         update_fields=(
             "status",
+            "status_from_gateway",
             "ref_id",
             "paid_at",
             "gateway_response",

@@ -12,6 +12,7 @@ class PaymentAdmin(admin.ModelAdmin):
         "gateway",
         "amount",
         "status",
+        "status_from_gateway",
         "authority",
         "ref_id",
         "created_at",
@@ -19,6 +20,7 @@ class PaymentAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "authority",
+        "status_from_gateway",
         "ref_id",
         "user__phone_number",
         "user__email",
@@ -28,6 +30,7 @@ class PaymentAdmin(admin.ModelAdmin):
     list_select_related = ("order", "user")
     readonly_fields = (
         "authority",
+        "status_from_gateway",
         "ref_id",
         "gateway_response",
         "created_at",
@@ -50,7 +53,10 @@ class PaymentAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Gateway tracking", {"fields": ("authority", "ref_id", "card_pan")}),
+        (
+            "Gateway tracking",
+            {"fields": ("authority", "status_from_gateway", "ref_id", "card_pan")},
+        ),
         ("Gateway response", {"fields": ("gateway_response",)}),
         ("Timestamps", {"fields": ("created_at", "updated_at", "paid_at")}),
     )

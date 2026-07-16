@@ -107,6 +107,12 @@ SMS_PROVIDER = config("SMS_PROVIDER", default="console").lower()
 KAVENEGAR_API_KEY = config("KAVENEGAR_API_KEY", default="")
 KAVENEGAR_SENDER = config("KAVENEGAR_SENDER", default="")
 KAVENEGAR_VERIFY_TEMPLATE = config("KAVENEGAR_VERIFY_TEMPLATE", default="")
+ZARINPAL_MERCHANT_ID = config("ZARINPAL_MERCHANT_ID", default="")
+ZARINPAL_SANDBOX = config("ZARINPAL_SANDBOX", default=False, cast=bool)
+ZARINPAL_CALLBACK_URL = config(
+    "ZARINPAL_CALLBACK_URL",
+    default="http://127.0.0.1:8000/api/v1/payments/zarinpal/callback/",
+)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
