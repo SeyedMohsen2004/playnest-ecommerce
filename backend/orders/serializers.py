@@ -173,9 +173,11 @@ class OrderSerializer(serializers.ModelSerializer):
     status_label = serializers.SerializerMethodField()
     payment_status = serializers.SerializerMethodField()
     payment_status_label = serializers.SerializerMethodField()
+    payment_ref_id = serializers.SerializerMethodField()
     can_retry_payment = serializers.SerializerMethodField()
     can_cancel = serializers.SerializerMethodField()
     can_edit_shipping_info = serializers.SerializerMethodField()
+    manual_review_message = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -185,10 +187,13 @@ class OrderSerializer(serializers.ModelSerializer):
             "status_label",
             "payment_status",
             "payment_status_label",
+            "payment_ref_id",
             "can_retry_payment",
             "can_cancel",
             "can_edit_shipping_info",
             "stock_reduced",
+            "requires_manual_review",
+            "manual_review_message",
             "coupon",
             "subtotal_amount",
             "discount_amount",
@@ -217,8 +222,12 @@ class OrderSerializer(serializers.ModelSerializer):
         return labels.get(obj.status, obj.get_status_display())
 
     def get_payment_status(self, obj):
-        payment = obj.payments.order_by("-created_at").first()
+        payment = self._latest_payment(obj)
         return payment.status if payment else None
+
+    def get_payment_ref_id(self, obj):
+        payment = self._latest_payment(obj)
+        return payment.ref_id if payment and payment.status == "paid" else None
 
     def get_payment_status_label(self, obj):
         status = self.get_payment_status(obj)
@@ -232,6 +241,16 @@ class OrderSerializer(serializers.ModelSerializer):
         }
         return labels.get(status, status)
 
+    def _latest_payment(self, obj):
+        if not hasattr(obj, "_latest_payment_cache"):
+            prefetched = list(obj.payments.all())
+            obj._latest_payment_cache = max(
+                prefetched,
+                key=lambda payment: payment.created_at,
+                default=None,
+            )
+        return obj._latest_payment_cache
+
     def get_can_retry_payment(self, obj):
         return obj.status in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED)
 
@@ -243,6 +262,13 @@ class OrderSerializer(serializers.ModelSerializer):
             Order.Status.PENDING,
             Order.Status.PAYMENT_FAILED,
             Order.Status.PAID,
+        )
+
+    def get_manual_review_message(self, obj):
+        if not obj.requires_manual_review:
+            return None
+        return (
+            "پرداخت با موفقیت انجام شد و سفارش برای بررسی موجودی " "در حال پیگیری است."
         )
 
 

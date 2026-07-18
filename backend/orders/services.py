@@ -2,14 +2,13 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from orders.models import Coupon, Order
-from orders.pricing import validate_coupon
 from products.models import Product
 
 
 @transaction.atomic
 def mark_order_as_paid(order):
     locked_order = Order.objects.select_for_update().get(pk=order.pk)
-    if locked_order.stock_reduced or locked_order.status == Order.Status.PAID:
+    if locked_order.stock_reduced:
         return locked_order
 
     order_items = list(locked_order.items.select_related("product").all())
@@ -35,7 +34,6 @@ def mark_order_as_paid(order):
 
     if locked_order.coupon_id:
         coupon = Coupon.objects.select_for_update().get(pk=locked_order.coupon_id)
-        validate_coupon(coupon, locked_order.subtotal_amount)
         coupon.used_count += 1
         coupon.save(update_fields=("used_count", "updated_at"))
 

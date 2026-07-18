@@ -1,7 +1,6 @@
 from django.urls import path
 
 from payments.views import (
-    MockGatewayView,
     PaymentRequestView,
     PaymentVerifyView,
     ZarinPalCallbackView,
@@ -17,5 +16,4 @@ urlpatterns = [
         ZarinPalCallbackView.as_view(),
         name="zarinpal-callback",
     ),
-    path("mock-gateway/", MockGatewayView.as_view(), name="mock-gateway"),
 ]

@@ -13,10 +13,11 @@ class PaymentAdmin(admin.ModelAdmin):
         "amount",
         "status",
         "status_from_gateway",
+        "gateway_code",
         "authority",
         "ref_id",
         "created_at",
-        "paid_at",
+        "verified_at",
     )
     search_fields = (
         "authority",
@@ -26,16 +27,24 @@ class PaymentAdmin(admin.ModelAdmin):
         "user__email",
         "order__id",
     )
-    list_filter = ("gateway", "status", "created_at", "paid_at")
+    list_filter = ("gateway", "status", "gateway_code", "created_at", "verified_at")
     list_select_related = ("order", "user")
     readonly_fields = (
         "authority",
         "status_from_gateway",
+        "gateway_code",
+        "gateway_message",
         "ref_id",
+        "card_pan",
+        "card_hash",
+        "fee",
+        "fee_type",
         "gateway_response",
+        "cart_finalized",
         "created_at",
         "updated_at",
         "paid_at",
+        "verified_at",
     )
     ordering = ("-created_at",)
     date_hierarchy = "created_at"
@@ -55,11 +64,31 @@ class PaymentAdmin(admin.ModelAdmin):
         ),
         (
             "Gateway tracking",
-            {"fields": ("authority", "status_from_gateway", "ref_id", "card_pan")},
+            {
+                "fields": (
+                    "authority",
+                    "status_from_gateway",
+                    "gateway_code",
+                    "gateway_message",
+                    "ref_id",
+                    "card_pan",
+                    "card_hash",
+                    "fee",
+                    "fee_type",
+                    "cart_finalized",
+                )
+            },
         ),
         ("Gateway response", {"fields": ("gateway_response",)}),
-        ("Timestamps", {"fields": ("created_at", "updated_at", "paid_at")}),
+        (
+            "Timestamps",
+            {"fields": ("created_at", "updated_at", "paid_at", "verified_at")},
+        ),
     )
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = self.readonly_fields
+        return fields + (("amount",) if obj is not None else ())
 
     @admin.display(description="Customer phone", ordering="user__phone_number")
     def customer_phone(self, obj):

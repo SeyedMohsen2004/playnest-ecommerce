@@ -2,6 +2,19 @@ from datetime import timedelta
 from pathlib import Path
 
 from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
+
+
+def explicit_bool_config(name, *, default):
+    value = str(config(name, default="true" if default else "false")).strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ImproperlyConfigured(
+        f"{name} must be an explicit boolean: true/false, yes/no, on/off, or 1/0."
+    )
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -108,10 +121,14 @@ KAVENEGAR_API_KEY = config("KAVENEGAR_API_KEY", default="")
 KAVENEGAR_SENDER = config("KAVENEGAR_SENDER", default="")
 KAVENEGAR_VERIFY_TEMPLATE = config("KAVENEGAR_VERIFY_TEMPLATE", default="")
 ZARINPAL_MERCHANT_ID = config("ZARINPAL_MERCHANT_ID", default="")
-ZARINPAL_SANDBOX = config("ZARINPAL_SANDBOX", default=False, cast=bool)
-ZARINPAL_CALLBACK_URL = config(
-    "ZARINPAL_CALLBACK_URL",
-    default="http://127.0.0.1:8000/api/v1/payments/zarinpal/callback/",
+ZARINPAL_SANDBOX = explicit_bool_config("ZARINPAL_SANDBOX", default=True)
+ZARINPAL_CALLBACK_URL = config("ZARINPAL_CALLBACK_URL", default="").strip() or (
+    "http://127.0.0.1:8000/api/v1/payments/zarinpal/callback/"
+    if DEBUG
+    else "https://ipaktoys.ir/api/v1/payments/zarinpal/callback/"
+)
+FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="").strip() or (
+    "http://localhost:3000" if DEBUG else "https://ipaktoys.ir"
 )
 
 REST_FRAMEWORK = {

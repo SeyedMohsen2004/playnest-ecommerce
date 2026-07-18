@@ -205,10 +205,13 @@ export type Order = {
   status_label?: string;
   payment_status?: "pending" | "paid" | "failed" | "cancelled" | null;
   payment_status_label?: string | null;
+  payment_ref_id?: string | null;
   can_retry_payment?: boolean;
   can_cancel?: boolean;
   can_edit_shipping_info?: boolean;
   stock_reduced: boolean;
+  requires_manual_review: boolean;
+  manual_review_message?: string | null;
   coupon: number | Coupon | null;
   subtotal_amount: number;
   discount_amount: number;
@@ -254,31 +257,15 @@ export type CouponPreviewResponse = {
 
 export type Payment = {
   id: number;
-  user: number | User;
   order: number | Order;
   gateway: "zarinpal";
   amount: number;
   status: "pending" | "paid" | "failed" | "cancelled";
-  authority: string | null;
   ref_id: string | null;
   card_pan: string | null;
-  gateway_response: Record<string, unknown>;
+  payment_url?: string | null;
   created_at: string;
   updated_at: string;
   paid_at: string | null;
-};
-
-export type PaymentRequestResponse = {
-  payment_url?: string;
-  authority?: string | null;
-  amount?: number;
-  payment?: Payment;
-  order?: Order;
-};
-
-export type PaymentVerifyResponse = {
-  payment?: Payment;
-  order?: Order;
-  message?: string;
-  status?: string;
+  verified_at: string | null;
 };

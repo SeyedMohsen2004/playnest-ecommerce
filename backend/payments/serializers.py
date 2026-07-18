@@ -4,14 +4,15 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework import serializers
 
 from orders.models import Order
-from orders.serializers import OrderSerializer
 from payments.models import Payment
 from payments.services import payment_url, request_payment
+from payments.services.zarinpal import mask_card_pan
 from products.models import Product
 
 
 class PaymentSerializer(serializers.ModelSerializer):
     payment_url = serializers.SerializerMethodField()
+    card_pan = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
@@ -21,15 +22,13 @@ class PaymentSerializer(serializers.ModelSerializer):
             "gateway",
             "amount",
             "status",
-            "authority",
-            "status_from_gateway",
             "ref_id",
             "card_pan",
-            "gateway_response",
             "payment_url",
             "created_at",
             "updated_at",
             "paid_at",
+            "verified_at",
         )
         read_only_fields = fields
 
@@ -38,6 +37,9 @@ class PaymentSerializer(serializers.ModelSerializer):
         if obj.status == Payment.Status.PENDING and obj.authority:
             return payment_url(obj)
         return None
+
+    def get_card_pan(self, obj):
+        return mask_card_pan(obj.card_pan)
 
 
 class PaymentRequestSerializer(serializers.Serializer):
@@ -77,7 +79,11 @@ class PaymentRequestSerializer(serializers.Serializer):
         stock_errors = []
         for item in order_items:
             product = products_by_id.get(item.product_id)
-            if product is None or not product.is_active or product.stock < item.quantity:
+            if (
+                product is None
+                or not product.is_active
+                or product.stock < item.quantity
+            ):
                 stock_errors.append(
                     {
                         "product_name": item.product_name,
@@ -96,8 +102,12 @@ class PaymentRequestSerializer(serializers.Serializer):
                 }
             )
 
-    @transaction.atomic
     def create(self, validated_data):
+        payment = self._prepare_payment()
+        return request_payment(payment)
+
+    @transaction.atomic
+    def _prepare_payment(self):
         order = Order.objects.select_for_update().get(pk=self.order.pk)
         if order.status not in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED):
             raise serializers.ValidationError("این سفارش در وضعیت قابل پرداخت نیست.")
@@ -112,21 +122,4 @@ class PaymentRequestSerializer(serializers.Serializer):
                 order=order,
                 amount=order.total_amount,
             )
-        return request_payment(payment)
-
-
-class PaymentVerifySerializer(serializers.Serializer):
-    authority = serializers.CharField(max_length=100)
-    status = serializers.CharField(max_length=20)
-
-
-class PaymentVerifyResponseSerializer(serializers.Serializer):
-    payment = PaymentSerializer(read_only=True)
-    order = OrderSerializer(read_only=True)
-
-
-class MockGatewayResponseSerializer(serializers.Serializer):
-    authority = serializers.CharField(read_only=True)
-    instruction = serializers.CharField(read_only=True)
-    success_verify_url = serializers.URLField(read_only=True)
-    payment_url = serializers.URLField(read_only=True)
+        return payment

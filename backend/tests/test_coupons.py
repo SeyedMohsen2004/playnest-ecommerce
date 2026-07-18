@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -8,6 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import User
 from orders.models import Cart, CartItem, Coupon, Order
 from payments.models import Payment
+from payments.services.zarinpal import PaymentVerificationResult
 from products.models import Brand, Category, Product
 
 pytestmark = pytest.mark.django_db
@@ -77,6 +79,19 @@ def checkout(client, user, coupon_code=""):
         },
         content_type="application/json",
         **auth(user),
+    )
+
+
+def verified_result():
+    return PaymentVerificationResult(
+        code=100,
+        message="Verified",
+        ref_id="coupon-ref",
+        card_pan="603799******1234",
+        card_hash="coupon-hash",
+        fee=0,
+        fee_type="Merchant",
+        gateway_response={"data": {"code": 100, "ref_id": "coupon-ref"}},
     )
 
 
@@ -213,7 +228,7 @@ def test_coupon_used_count_increments_after_payment_success(
     user,
     product,
 ):
-    settings.DEBUG = True
+    settings.FRONTEND_BASE_URL = "https://ipaktoys.ir"
     add_to_cart(user, product)
     coupon = Coupon.objects.create(
         code="PAY10",
@@ -222,27 +237,29 @@ def test_coupon_used_count_increments_after_payment_success(
     )
     checkout(client, user, coupon.code)
     order = Order.objects.get(user=user)
-    client.post(
-        reverse("payments:request"),
-        {"order_id": order.id},
-        content_type="application/json",
-        **auth(user),
-    )
-    payment = Payment.objects.get(order=order)
-
-    response = client.post(
-        reverse("payments:verify"),
-        {"authority": payment.authority, "status": "OK"},
-        content_type="application/json",
+    payment = Payment.objects.create(
+        user=user,
+        order=order,
+        amount=order.total_amount,
+        authority="C" * 36,
     )
 
-    assert response.status_code == 200
+    with patch(
+        "payments.views.ZarinPalService.verify_payment",
+        return_value=verified_result(),
+    ):
+        response = client.get(
+            reverse("payments:zarinpal-callback"),
+            {"Authority": payment.authority, "Status": "OK"},
+        )
+
+    assert response.status_code == 302
     coupon.refresh_from_db()
     assert coupon.used_count == 1
 
 
 def test_coupon_used_count_does_not_increment_twice(client, settings, user, product):
-    settings.DEBUG = True
+    settings.FRONTEND_BASE_URL = "https://ipaktoys.ir"
     add_to_cart(user, product)
     coupon = Coupon.objects.create(
         code="ONCE",
@@ -251,17 +268,20 @@ def test_coupon_used_count_does_not_increment_twice(client, settings, user, prod
     )
     checkout(client, user, coupon.code)
     order = Order.objects.get(user=user)
-    client.post(
-        reverse("payments:request"),
-        {"order_id": order.id},
-        content_type="application/json",
-        **auth(user),
+    payment = Payment.objects.create(
+        user=user,
+        order=order,
+        amount=order.total_amount,
+        authority="D" * 36,
     )
-    payment = Payment.objects.get(order=order)
-    payload = {"authority": payment.authority, "status": "OK"}
 
-    client.post(reverse("payments:verify"), payload, content_type="application/json")
-    client.post(reverse("payments:verify"), payload, content_type="application/json")
+    with patch(
+        "payments.views.ZarinPalService.verify_payment",
+        return_value=verified_result(),
+    ):
+        payload = {"Authority": payment.authority, "Status": "OK"}
+        client.get(reverse("payments:zarinpal-callback"), payload)
+        client.get(reverse("payments:zarinpal-callback"), payload)
 
     coupon.refresh_from_db()
     assert coupon.used_count == 1

@@ -120,6 +120,7 @@ class OrderAdmin(admin.ModelAdmin):
         "customer_phone",
         "total_amount",
         "status",
+        "requires_manual_review",
         "payment_status",
         "created_at",
     )
@@ -132,7 +133,13 @@ class OrderAdmin(admin.ModelAdmin):
         "postal_code",
         "shipping_address",
     )
-    list_filter = ("status", PaymentStatusFilter, "stock_reduced", "created_at")
+    list_filter = (
+        "status",
+        PaymentStatusFilter,
+        "stock_reduced",
+        "requires_manual_review",
+        "created_at",
+    )
     list_select_related = ("user", "coupon")
     readonly_fields = (
         "payment_status",
@@ -142,6 +149,7 @@ class OrderAdmin(admin.ModelAdmin):
         "subtotal_amount",
         "discount_amount",
         "shipping_cost",
+        "manual_review_reason",
     )
     autocomplete_fields = ("user", "coupon")
     inlines = (OrderItemInline,)
@@ -156,7 +164,17 @@ class OrderAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Order status",
-            {"fields": ("user", "status", "payment_status", "stock_reduced", "coupon")},
+            {
+                "fields": (
+                    "user",
+                    "status",
+                    "payment_status",
+                    "stock_reduced",
+                    "requires_manual_review",
+                    "manual_review_reason",
+                    "coupon",
+                )
+            },
         ),
         (
             "Financial summary",

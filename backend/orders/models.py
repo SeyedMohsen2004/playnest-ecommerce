@@ -135,6 +135,8 @@ class Order(models.Model):
         default=Status.PENDING,
     )
     stock_reduced = models.BooleanField(default=False)
+    requires_manual_review = models.BooleanField(default=False)
+    manual_review_reason = models.TextField(blank=True, default="")
     coupon = models.ForeignKey(
         Coupon,
         on_delete=models.PROTECT,
