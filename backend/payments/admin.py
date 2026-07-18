@@ -30,6 +30,11 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ("gateway", "status", "gateway_code", "created_at", "verified_at")
     list_select_related = ("order", "user")
     readonly_fields = (
+        "user",
+        "order",
+        "gateway",
+        "amount",
+        "status",
         "authority",
         "status_from_gateway",
         "gateway_code",
@@ -72,23 +77,20 @@ class PaymentAdmin(admin.ModelAdmin):
                     "gateway_message",
                     "ref_id",
                     "card_pan",
-                    "card_hash",
                     "fee",
                     "fee_type",
                     "cart_finalized",
                 )
             },
         ),
-        ("Gateway response", {"fields": ("gateway_response",)}),
         (
             "Timestamps",
             {"fields": ("created_at", "updated_at", "paid_at", "verified_at")},
         ),
     )
 
-    def get_readonly_fields(self, request, obj=None):
-        fields = self.readonly_fields
-        return fields + (("amount",) if obj is not None else ())
+    def has_add_permission(self, request):
+        return False
 
     @admin.display(description="Customer phone", ordering="user__phone_number")
     def customer_phone(self, obj):
