@@ -161,6 +161,7 @@ function HeroSlide({
   const title = slot?.title_override || product.name;
   const subtitle = slot?.subtitle_override || getProductShortDescription(product);
   const shortDescription = subtitle ? truncateText(subtitle, 140) : "";
+  const useCompactTitle = isLikelyMultilineTitle(title);
 
   return (
     <div className="relative flex overflow-hidden rounded-[2rem] border border-white/70 bg-white/72 p-5 shadow-soft backdrop-blur dark:border-white/10 sm:rounded-[2.5rem] sm:p-8 lg:min-h-[calc(100svh-5.5rem)] lg:items-center lg:p-10">
@@ -177,7 +178,15 @@ function HeroSlide({
             <p className="mt-7 text-sm font-black text-grape">
               {getProductCategoryName(product)}
             </p>
-            <h1 className="mt-3 max-w-3xl text-[clamp(1.85rem,4.8vw,3.25rem)] font-black leading-[1.32] tracking-tight text-ink">
+            <h1
+              className={cn(
+                "mt-3 line-clamp-2 max-w-3xl text-balance font-black tracking-tight text-ink [overflow-wrap:anywhere]",
+                useCompactTitle
+                  ? "text-[clamp(1.55rem,3.7vw,2.65rem)] leading-[1.24] sm:leading-[1.27]"
+                  : "text-[clamp(1.85rem,4.8vw,3.25rem)] leading-[1.32]",
+              )}
+              title={title}
+            >
               {title}
             </h1>
             {shortDescription ? (
@@ -264,7 +273,7 @@ function HeroFallback() {
     <div className="flex rounded-[2rem] border border-white/70 bg-white/72 p-6 shadow-soft backdrop-blur dark:border-white/10 sm:rounded-[2.5rem] sm:p-8 lg:min-h-[calc(100svh-5.5rem)] lg:items-center">
       <div className="max-w-3xl">
         <p className="text-sm font-black text-coral">IpakToys</p>
-        <h1 className="mt-4 text-[clamp(1.85rem,4.8vw,3.25rem)] font-black leading-[1.32] text-ink">
+        <h1 className="mt-4 line-clamp-2 max-w-3xl text-balance text-[clamp(1.55rem,3.7vw,2.65rem)] font-black leading-[1.24] text-ink [overflow-wrap:anywhere] sm:leading-[1.27]">
           دنیای بازی‌های فکری، بردگیم و سرگرمی‌های ساختنی
         </h1>
         <p className="mt-5 text-base leading-9 text-ink/65 sm:text-lg">
@@ -285,4 +294,12 @@ function truncateText(value: string, maxLength: number) {
   }
 
   return `${value.slice(0, maxLength).trim()}...`;
+}
+
+function isLikelyMultilineTitle(value: string) {
+  const normalizedTitle = value.trim().replace(/\s+/g, " ");
+  const characterCount = Array.from(normalizedTitle).length;
+  const wordCount = normalizedTitle.split(" ").filter(Boolean).length;
+
+  return characterCount > 32 || wordCount > 5;
 }

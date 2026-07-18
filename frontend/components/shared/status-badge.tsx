@@ -20,11 +20,11 @@ const statusMap: Record<OrderStatus, { label: string; className: string }> = {
   },
   shipped: {
     label: "ارسال شده",
-    className: "bg-violet-100 text-violet-700",
+    className: "bg-violet-100 text-violet-950 dark:text-violet-950",
   },
   delivered: {
     label: "تحویل داده شده",
-    className: "bg-mint/30 text-emerald-800",
+    className: "bg-mint/30 text-emerald-950 dark:text-emerald-100",
   },
   cancelled: {
     label: "لغو شده",

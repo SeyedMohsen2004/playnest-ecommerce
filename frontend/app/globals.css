@@ -118,6 +118,29 @@ body {
   color: rgb(var(--color-ink) / 0.34);
 }
 
+.newsletter-email-input,
+.dark .newsletter-email-input {
+  background-color: transparent;
+  border-radius: 0.75rem;
+}
+
+.newsletter-email-input:-webkit-autofill,
+.newsletter-email-input:-webkit-autofill:hover,
+.newsletter-email-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgb(var(--color-ink));
+  caret-color: rgb(var(--color-ink));
+  box-shadow: 0 0 0 1000px rgb(var(--surface-soft) / 0.72) inset;
+  transition: background-color 9999s ease-out;
+}
+
+.dark .newsletter-email-input:-webkit-autofill,
+.dark .newsletter-email-input:-webkit-autofill:hover,
+.dark .newsletter-email-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgb(248 250 252);
+  caret-color: rgb(248 250 252);
+  box-shadow: 0 0 0 1000px rgb(15 23 42 / 0.72) inset;
+}
+
 button,
 input,
 select,
