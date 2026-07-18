@@ -186,7 +186,7 @@ textarea {
 }
 
 .animate-marquee-rtl {
-  animation: marquee-rtl 120s linear infinite;
+  animation: marquee-rtl var(--marquee-duration, 120s) linear infinite;
 }
 
 .animate-soft-float {

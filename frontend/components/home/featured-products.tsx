@@ -92,14 +92,14 @@ export function FeaturedProducts() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-coral">
+            <p className="text-[0.8125rem] font-bold uppercase tracking-wide text-coral">
               محصولات منتخب
             </p>
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-ink sm:text-3xl">
+            <h2 className="mt-3 text-[1.375rem] font-black tracking-tight text-ink sm:text-[1.75rem]">
               انتخاب‌های واقعی IpakToys برای بازی، فکر و دورهمی.
             </h2>
           </div>
-          <p className="max-w-xl text-sm leading-7 text-ink/60">
+          <p className="max-w-xl text-[0.8125rem] leading-7 text-ink/60">
             این بخش مستقیما از محصولات ثبت‌شده فروشگاه خوانده می‌شود تا فقط
             کالاهای واقعی واردشده نمایش داده شوند.
           </p>

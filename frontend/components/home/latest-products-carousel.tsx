@@ -240,13 +240,13 @@ export function LatestProductsCarousel() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-black uppercase tracking-wide text-coral">
+            <p className="text-[0.8125rem] font-black uppercase tracking-wide text-coral">
               تازه‌های فروشگاه
             </p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-ink sm:text-3xl">
+            <h2 className="mt-2 text-[1.375rem] font-black tracking-tight text-ink sm:text-[1.75rem]">
               تازه‌ترین محصولات فروشگاه
             </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-ink/60">
+            <p className="mt-3 max-w-2xl text-[0.8125rem] leading-7 text-ink/60">
               جدیدترین بازی‌های فکری، بردگیم‌ها، پازل‌ها و محصولات ساختنی
               IpakToys را در یک اسلایدر مرحله‌ای ببینید.
             </p>

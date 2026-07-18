@@ -5,7 +5,10 @@ import { FeaturedProducts } from "@/components/home/featured-products";
 import { HeroSection } from "@/components/home/hero-section";
 import { LatestProductsCarousel } from "@/components/home/latest-products-carousel";
 import { NewsletterSection } from "@/components/home/newsletter-section";
-import { ProductMarquee } from "@/components/home/product-marquee";
+import {
+  HomepageMarqueeSpeedProvider,
+  ProductMarquee,
+} from "@/components/home/product-marquee";
 import {
   absoluteUrl,
   HOME_DESCRIPTION,
@@ -46,7 +49,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <>
+    <HomepageMarqueeSpeedProvider>
       <HeroSection />
       <ProductMarquee />
       <LatestProductsCarousel />
@@ -68,6 +71,6 @@ export default function Home() {
       />
       <BenefitsSection />
       <NewsletterSection />
-    </>
+    </HomepageMarqueeSpeedProvider>
   );
 }

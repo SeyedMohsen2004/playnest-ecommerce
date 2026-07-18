@@ -168,22 +168,22 @@ function HeroSlide({
       <div className="pointer-events-none absolute -left-20 bottom-10 size-56 rounded-full bg-mint/20 blur-3xl" />
       <div className="grid w-full items-center gap-7 sm:gap-9 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="relative z-10 order-2 lg:order-1">
-          <div className="inline-flex items-center gap-2 rounded-full bg-cream/85 px-4 py-2 text-sm font-black text-coral shadow-sm ring-1 ring-white/70 dark:ring-white/10">
+          <div className="inline-flex items-center gap-2 rounded-full bg-cream/85 px-4 py-2 text-[0.8125rem] font-black text-coral shadow-sm ring-1 ring-white/70 dark:ring-white/10 sm:text-sm">
             <Sparkles className="size-4" />
             ایپک تویز | فروشگاه اسباب‌بازی، بازی فکری و بردگیم
           </div>
 
           <div className="animate-hero-slide-in" key={product.slug}>
-            <p className="mt-7 text-sm font-black text-grape">
+            <p className="mt-7 text-[0.8125rem] font-black text-grape sm:text-sm">
               {getProductCategoryName(product)}
             </p>
             <MeasuredHeroTitle title={title} />
             {shortDescription ? (
-              <p className="mt-5 max-w-2xl text-base leading-9 text-slate-700 dark:text-slate-300 sm:text-lg sm:leading-10">
+              <p className="mt-5 max-w-2xl text-[0.9375rem] leading-8 text-slate-700 dark:text-slate-300 sm:text-base sm:leading-9">
                 {shortDescription}
               </p>
             ) : null}
-            <p className="mt-6 text-3xl font-black text-coral">
+            <p className="mt-6 text-[1.75rem] font-black text-coral sm:text-[1.8125rem]">
               {formatToman(getProductPrice(product))}
             </p>
           </div>
@@ -261,11 +261,11 @@ function HeroFallback() {
   return (
     <div className="flex rounded-[2rem] border border-white/70 bg-white/72 p-6 shadow-soft backdrop-blur dark:border-white/10 sm:rounded-[2.5rem] sm:p-8 lg:min-h-[calc(100svh-5.5rem)] lg:items-center">
       <div className="max-w-3xl">
-        <p className="text-sm font-black text-coral">IpakToys</p>
-        <h1 className="mt-4 line-clamp-2 max-w-3xl text-balance text-[clamp(1.55rem,3.7vw,2.65rem)] font-black leading-[1.24] text-ink [overflow-wrap:anywhere] sm:leading-[1.27]">
+        <p className="text-[0.8125rem] font-black text-coral sm:text-sm">IpakToys</p>
+        <h1 className="mt-4 line-clamp-2 max-w-3xl text-balance text-[clamp(1.5rem,3.5vw,2.5rem)] font-black leading-[1.22] text-ink [overflow-wrap:anywhere] sm:leading-[1.25]">
           دنیای بازی‌های فکری، بردگیم و سرگرمی‌های ساختنی
         </h1>
-        <p className="mt-5 text-base leading-9 text-ink/65 sm:text-lg">
+        <p className="mt-5 text-[0.9375rem] leading-8 text-ink/65 sm:text-base sm:leading-9">
           محصولات فروشگاه در حال دریافت هستند. برای دیدن همه محصولات وارد صفحه
           محصولات شوید.
         </p>
@@ -353,7 +353,7 @@ function MeasuredHeroTitle({ title }: { title: string }) {
 
   return (
     <h1
-      className="mt-3 line-clamp-2 max-w-3xl text-balance text-[clamp(1.85rem,4.8vw,3.25rem)] font-black leading-[1.32] tracking-tight text-ink [overflow-wrap:anywhere] data-[wrapped=true]:text-[clamp(1.55rem,3.7vw,2.65rem)] data-[wrapped=true]:leading-[1.24] sm:data-[wrapped=true]:leading-[1.27]"
+      className="mt-3 line-clamp-2 max-w-3xl text-balance text-[clamp(1.75rem,4.5vw,3.1rem)] font-black leading-[1.3] tracking-tight text-ink [overflow-wrap:anywhere] data-[wrapped=true]:text-[clamp(1.5rem,3.5vw,2.5rem)] data-[wrapped=true]:leading-[1.22] sm:data-[wrapped=true]:leading-[1.25]"
       data-wrapped={isWrapped}
       dir="auto"
       ref={titleRef}

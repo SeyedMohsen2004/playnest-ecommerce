@@ -8,13 +8,13 @@ export function NewsletterSection() {
       <div className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-coral via-orange-400 to-sunshine p-8 text-white shadow-soft sm:p-10 lg:p-12">
         <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-white/75 sm:text-[0.8125rem]">
+            <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-white/75 sm:text-xs">
               پیشنهادهای IpakToys
             </p>
-            <h2 className="mt-2 text-xl font-black leading-8 tracking-tight sm:text-2xl sm:leading-9">
+            <h2 className="mt-2 text-lg font-black leading-7 tracking-tight sm:text-[1.375rem] sm:leading-8">
               پیشنهادهای ویژه و ایده‌های هدیه را زودتر ببینید.
             </h2>
-            <p className="mt-3 max-w-2xl text-[0.8125rem] leading-6 text-white/80 sm:text-sm sm:leading-7">
+            <p className="mt-3 max-w-2xl text-xs leading-6 text-white/80 sm:text-[0.8125rem]">
               با عضویت در خبرنامه، از بردگیم‌های جدید، تخفیف‌ها و پیشنهادهای
               مناسب خانواده و دورهمی باخبر شوید.
             </p>
