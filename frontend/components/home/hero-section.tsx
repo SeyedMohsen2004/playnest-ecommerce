@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -161,7 +161,6 @@ function HeroSlide({
   const title = slot?.title_override || product.name;
   const subtitle = slot?.subtitle_override || getProductShortDescription(product);
   const shortDescription = subtitle ? truncateText(subtitle, 140) : "";
-  const useCompactTitle = isLikelyMultilineTitle(title);
 
   return (
     <div className="relative flex overflow-hidden rounded-[2rem] border border-white/70 bg-white/72 p-5 shadow-soft backdrop-blur dark:border-white/10 sm:rounded-[2.5rem] sm:p-8 lg:min-h-[calc(100svh-5.5rem)] lg:items-center lg:p-10">
@@ -178,17 +177,7 @@ function HeroSlide({
             <p className="mt-7 text-sm font-black text-grape">
               {getProductCategoryName(product)}
             </p>
-            <h1
-              className={cn(
-                "mt-3 line-clamp-2 max-w-3xl text-balance font-black tracking-tight text-ink [overflow-wrap:anywhere]",
-                useCompactTitle
-                  ? "text-[clamp(1.55rem,3.7vw,2.65rem)] leading-[1.24] sm:leading-[1.27]"
-                  : "text-[clamp(1.85rem,4.8vw,3.25rem)] leading-[1.32]",
-              )}
-              title={title}
-            >
-              {title}
-            </h1>
+            <MeasuredHeroTitle title={title} />
             {shortDescription ? (
               <p className="mt-5 max-w-2xl text-base leading-9 text-slate-700 dark:text-slate-300 sm:text-lg sm:leading-10">
                 {shortDescription}
@@ -288,18 +277,97 @@ function HeroFallback() {
   );
 }
 
+function MeasuredHeroTitle({ title }: { title: string }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const [isWrapped, setIsWrapped] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = titleRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const titleElement = element;
+    let animationFrameId: number | null = null;
+    let isActive = true;
+
+    function measureRenderedLines() {
+      if (!isActive) {
+        return;
+      }
+
+      const previousWrappedValue = titleElement.dataset.wrapped;
+
+      // Always measure with the normal, prominent typography. Otherwise a
+      // compact title that becomes one line could repeatedly toggle sizes.
+      titleElement.dataset.wrapped = "false";
+
+      const styles = window.getComputedStyle(titleElement);
+      const lineHeight = Number.parseFloat(styles.lineHeight);
+      const renderedLines =
+        Number.isFinite(lineHeight) && lineHeight > 0
+          ? Math.round(titleElement.scrollHeight / lineHeight)
+          : 1;
+
+      if (previousWrappedValue === undefined) {
+        delete titleElement.dataset.wrapped;
+      } else {
+        titleElement.dataset.wrapped = previousWrappedValue;
+      }
+
+      setIsWrapped((current) => {
+        const next = renderedLines > 1;
+        return current === next ? current : next;
+      });
+    }
+
+    function scheduleMeasurement() {
+      if (!isActive) {
+        return;
+      }
+
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = window.requestAnimationFrame(measureRenderedLines);
+    }
+
+    measureRenderedLines();
+
+    const resizeObserver = new ResizeObserver(scheduleMeasurement);
+    resizeObserver.observe(titleElement);
+
+    void document.fonts?.ready.then(scheduleMeasurement);
+
+    return () => {
+      isActive = false;
+      resizeObserver.disconnect();
+
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [title]);
+
+  return (
+    <h1
+      className="mt-3 line-clamp-2 max-w-3xl text-balance text-[clamp(1.85rem,4.8vw,3.25rem)] font-black leading-[1.32] tracking-tight text-ink [overflow-wrap:anywhere] data-[wrapped=true]:text-[clamp(1.55rem,3.7vw,2.65rem)] data-[wrapped=true]:leading-[1.24] sm:data-[wrapped=true]:leading-[1.27]"
+      data-wrapped={isWrapped}
+      dir="auto"
+      ref={titleRef}
+      title={title}
+    >
+      {title}
+    </h1>
+  );
+}
+
 function truncateText(value: string, maxLength: number) {
   if (value.length <= maxLength) {
     return value;
   }
 
   return `${value.slice(0, maxLength).trim()}...`;
-}
-
-function isLikelyMultilineTitle(value: string) {
-  const normalizedTitle = value.trim().replace(/\s+/g, " ");
-  const characterCount = Array.from(normalizedTitle).length;
-  const wordCount = normalizedTitle.split(" ").filter(Boolean).length;
-
-  return characterCount > 32 || wordCount > 5;
 }
