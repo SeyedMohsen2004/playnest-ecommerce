@@ -139,7 +139,10 @@ class HomepageProductSlot(models.Model):
         HERO_SLIDER = "hero_slider", "بنر اصلی"
         POPULAR_MARQUEE = "popular_marquee", "محصولات پرطرفدار نواری"
         LATEST_CAROUSEL = "latest_carousel", "تازه‌های فروشگاه"
+        BOARD_GAMES = "board_games", "برد گیم‌ها"
+        CONSTRUCTION = "construction", "ساختنی‌ها"
         FEATURED_PRODUCTS = "featured_products", "محصولات منتخب"
+        EDUCATIONAL = "educational", "آموزشی"
 
     section = models.CharField(max_length=30, choices=Section.choices)
     product = models.ForeignKey(

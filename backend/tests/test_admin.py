@@ -169,14 +169,17 @@ def test_cancelled_product_option_models_are_not_registered_in_admin():
     assert "ProductOptionValue" not in product_inline_model_names
 
 
-def test_homepage_product_slot_admin_supports_popular_and_featured_sections():
+def test_homepage_product_slot_admin_supports_all_managed_sections():
     admin.autodiscover()
 
     slot_admin = admin.site._registry[HomepageProductSlot]
-    section_values = {value for value, _label in HomepageProductSlot.Section.choices}
+    section_labels = dict(HomepageProductSlot.Section.choices)
 
-    assert HomepageProductSlot.Section.POPULAR_MARQUEE in section_values
-    assert HomepageProductSlot.Section.FEATURED_PRODUCTS in section_values
+    assert section_labels[HomepageProductSlot.Section.POPULAR_MARQUEE]
+    assert section_labels[HomepageProductSlot.Section.FEATURED_PRODUCTS]
+    assert section_labels[HomepageProductSlot.Section.BOARD_GAMES] == "برد گیم‌ها"
+    assert section_labels[HomepageProductSlot.Section.CONSTRUCTION] == "ساختنی‌ها"
+    assert section_labels[HomepageProductSlot.Section.EDUCATIONAL] == "آموزشی"
     assert "section_label" in slot_admin.list_display
     assert "product" in slot_admin.list_display
     assert "sort_order" in slot_admin.list_display

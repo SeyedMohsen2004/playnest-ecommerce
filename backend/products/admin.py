@@ -160,7 +160,8 @@ class HomepageProductSlotAdmin(admin.ModelAdmin):
                 "description": (
                     "بنر اصلی: اسلایدر بالای صفحه. محصولات پرطرفدار نواری: "
                     "نوار متحرک محصولات پرطرفدار. تازه‌های فروشگاه: اسلایدر "
-                    "محصولات جدید. محصولات منتخب: بخش انتخاب‌های فروشگاه."
+                    "محصولات جدید. برد گیم‌ها، ساختنی‌ها و آموزشی: نوارهای متحرک "
+                    "مدیریت‌شده. محصولات منتخب: بخش انتخاب‌های فروشگاه."
                 ),
             },
         ),
@@ -171,7 +172,7 @@ class HomepageProductSlotAdmin(admin.ModelAdmin):
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 
-    @admin.display(description="Section", ordering="section")
+    @admin.display(description="بخش صفحه اصلی", ordering="section")
     def section_label(self, obj):
         return obj.get_section_display()
 

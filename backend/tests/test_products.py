@@ -312,6 +312,26 @@ def test_homepage_sections_endpoint_groups_active_slots(
         product=second_product,
         sort_order=1,
     )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.BOARD_GAMES,
+        product=second_product,
+        sort_order=2,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.BOARD_GAMES,
+        product=product,
+        sort_order=1,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.CONSTRUCTION,
+        product=product,
+        sort_order=1,
+    )
+    HomepageProductSlot.objects.create(
+        section=HomepageProductSlot.Section.EDUCATIONAL,
+        product=second_product,
+        sort_order=1,
+    )
 
     response = client.get(reverse("products:homepage-sections"))
 
@@ -321,7 +341,10 @@ def test_homepage_sections_endpoint_groups_active_slots(
         "hero_slider",
         "popular_marquee",
         "latest_carousel",
+        "board_games",
+        "construction",
         "featured_products",
+        "educational",
     }
     assert [item["product"]["slug"] for item in data["hero_slider"]] == [
         second_product.slug,
@@ -330,7 +353,13 @@ def test_homepage_sections_endpoint_groups_active_slots(
     assert data["hero_slider"][1]["title_override"] == "Hero title"
     assert data["popular_marquee"][0]["product"]["slug"] == product.slug
     assert data["latest_carousel"] == []
+    assert [item["product"]["slug"] for item in data["board_games"]] == [
+        product.slug,
+        second_product.slug,
+    ]
+    assert data["construction"][0]["product"]["slug"] == product.slug
     assert data["featured_products"][0]["product"]["slug"] == second_product.slug
+    assert data["educational"][0]["product"]["slug"] == second_product.slug
 
 
 def test_homepage_sections_endpoint_ignores_inactive_slots(client, product):
@@ -476,3 +505,6 @@ def test_homepage_sections_endpoint_fallbacks_are_limited(client, category, bran
     assert len(data["popular_marquee"]) == 12
     assert len(data["featured_products"]) == 8
     assert data["latest_carousel"] == []
+    assert data["board_games"] == []
+    assert data["construction"] == []
+    assert data["educational"] == []

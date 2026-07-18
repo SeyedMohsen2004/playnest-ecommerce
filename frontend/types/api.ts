@@ -91,7 +91,10 @@ export type HomepageSectionKey =
   | "hero_slider"
   | "popular_marquee"
   | "latest_carousel"
-  | "featured_products";
+  | "board_games"
+  | "construction"
+  | "featured_products"
+  | "educational";
 
 export type HomepageProductSlot = {
   id: number;

@@ -15,9 +15,19 @@ import {
   getProductPrice,
   type ProductSource,
 } from "@/lib/product-display";
-import type { Product } from "@/types/api";
+import type { HomepageSectionKey, Product } from "@/types/api";
 
-export function ProductMarquee() {
+type ProductMarqueeProps = {
+  section?: HomepageSectionKey;
+  title?: string;
+  fallbackToLatestProducts?: boolean;
+};
+
+export function ProductMarquee({
+  section = "popular_marquee",
+  title = "محصولات پرطرفدار",
+  fallbackToLatestProducts = true,
+}: ProductMarqueeProps) {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -28,12 +38,17 @@ export function ProductMarquee() {
         const sections = normalizeHomepageSections(await getHomepageSections());
         const homepageProducts = getHomepageSectionProducts(
           sections,
-          "popular_marquee",
+          section,
         );
 
         if (isMounted) {
           if (homepageProducts.length > 0) {
             setProducts(homepageProducts);
+            return;
+          }
+
+          if (!fallbackToLatestProducts) {
+            setProducts([]);
             return;
           }
 
@@ -46,7 +61,14 @@ export function ProductMarquee() {
         }
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
-          console.error("Product marquee API error:", error);
+          console.error(`${section} marquee API error:`, error);
+        }
+
+        if (!fallbackToLatestProducts) {
+          if (isMounted) {
+            setProducts([]);
+          }
+          return;
         }
 
         try {
@@ -61,7 +83,7 @@ export function ProductMarquee() {
           }
         } catch (fallbackError) {
           if (process.env.NODE_ENV !== "production") {
-            console.error("Product marquee fallback API error:", fallbackError);
+            console.error(`${section} marquee fallback API error:`, fallbackError);
           }
         }
       }
@@ -72,7 +94,7 @@ export function ProductMarquee() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [fallbackToLatestProducts, section]);
 
   const marqueeProducts = useMemo(() => {
     if (products.length === 0) {
@@ -87,12 +109,18 @@ export function ProductMarquee() {
   }
 
   return (
-    <section className="pb-12 pt-1 sm:pb-14 sm:pt-2" aria-label="محصولات پرطرفدار">
+    <section
+      className="pb-12 pt-1 sm:pb-14 sm:pt-2"
+      aria-labelledby={`${section}-title`}
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="overflow-hidden rounded-[2.5rem] border border-white/70 bg-white/78 p-4 shadow-card backdrop-blur dark:border-white/10 sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-4 px-2">
-            <p className="text-base font-black text-ink sm:text-lg">
-              محصولات پرطرفدار
+            <p
+              className="text-base font-black text-ink sm:text-lg"
+              id={`${section}-title`}
+            >
+              {title}
             </p>
             <Link className="text-sm font-bold text-coral" href="/products">
               مشاهده همه

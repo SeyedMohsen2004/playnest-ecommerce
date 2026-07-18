@@ -9,7 +9,10 @@ const emptySections: HomepageSectionsResponse = {
   hero_slider: [],
   popular_marquee: [],
   latest_carousel: [],
+  board_games: [],
+  construction: [],
   featured_products: [],
+  educational: [],
 };
 
 export function getHomepageSections() {

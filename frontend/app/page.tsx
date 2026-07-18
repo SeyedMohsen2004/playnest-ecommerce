@@ -50,7 +50,22 @@ export default function Home() {
       <HeroSection />
       <ProductMarquee />
       <LatestProductsCarousel />
+      <ProductMarquee
+        fallbackToLatestProducts={false}
+        section="board_games"
+        title="برد گیم‌ها"
+      />
+      <ProductMarquee
+        fallbackToLatestProducts={false}
+        section="construction"
+        title="ساختنی‌ها"
+      />
       <FeaturedProducts />
+      <ProductMarquee
+        fallbackToLatestProducts={false}
+        section="educational"
+        title="آموزشی"
+      />
       <BenefitsSection />
       <NewsletterSection />
     </>
