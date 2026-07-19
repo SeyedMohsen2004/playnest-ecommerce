@@ -51,8 +51,6 @@ export default function Home() {
   return (
     <HomepageMarqueeSpeedProvider>
       <HeroSection />
-      <ProductMarquee />
-      <LatestProductsCarousel />
       <ProductMarquee
         fallbackToLatestProducts={false}
         section="board_games"
@@ -63,12 +61,14 @@ export default function Home() {
         section="construction"
         title="ساختنی‌ها"
       />
-      <FeaturedProducts />
+      <LatestProductsCarousel />
+      <ProductMarquee />
       <ProductMarquee
         fallbackToLatestProducts={false}
         section="educational"
         title="آموزشی"
       />
+      <FeaturedProducts />
       <BenefitsSection />
       <NewsletterSection />
     </HomepageMarqueeSpeedProvider>
