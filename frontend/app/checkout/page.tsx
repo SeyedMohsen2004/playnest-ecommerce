@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { getCart } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
 import { applyCoupon, createCheckoutOrder } from "@/lib/api/checkout";
+import { getShippingRates } from "@/lib/api/shipping";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import { formatToman, toPersianDigits } from "@/lib/format";
 import { getProductPrice } from "@/lib/product-display";
@@ -27,6 +28,8 @@ import type {
   CartItem,
   CheckoutResponse,
   CouponPreviewResponse,
+  ShippingRatesResponse,
+  ShippingZone,
 } from "@/types/api";
 
 type CheckoutFormData = {
@@ -34,6 +37,7 @@ type CheckoutFormData = {
   recipient_phone: string;
   postal_code: string;
   shipping_address: string;
+  shipping_zone: ShippingZone | "";
   coupon_code: string;
 };
 
@@ -44,13 +48,18 @@ const initialFormData: CheckoutFormData = {
   recipient_phone: "",
   postal_code: "",
   shipping_address: "",
+  shipping_zone: "",
   coupon_code: "",
 };
+
+const shippingZoneOrder: ShippingZone[] = ["tabriz", "nationwide"];
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
   const [cart, setCart] = useState<Cart | null>(null);
+  const [shippingRates, setShippingRates] =
+    useState<ShippingRatesResponse | null>(null);
   const [formData, setFormData] = useState(initialFormData);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {},
@@ -90,7 +99,12 @@ export default function CheckoutPage() {
     setPageError("");
 
     try {
-      setCart(await getCart(accessToken));
+      const [loadedCart, loadedShippingRates] = await Promise.all([
+        getCart(accessToken),
+        getShippingRates(),
+      ]);
+      setCart(loadedCart);
+      setShippingRates(loadedShippingRates);
     } catch (error) {
       if (error instanceof APIError && error.status === 401) {
         handleUnauthorized();
@@ -111,12 +125,22 @@ export default function CheckoutPage() {
   }, [isAuthLoading, loadCart]);
 
   const summary = useMemo(
-    () => buildSummary(cart, couponPreview),
-    [cart, couponPreview],
+    () =>
+      buildSummary(
+        cart,
+        couponPreview,
+        formData.shipping_zone && shippingRates
+          ? shippingRates[formData.shipping_zone].fee
+          : 0,
+      ),
+    [cart, couponPreview, formData.shipping_zone, shippingRates],
   );
   const items = cart?.items || [];
 
-  function updateField(field: keyof CheckoutFormData, value: string) {
+  function updateField<Field extends keyof CheckoutFormData>(
+    field: Field,
+    value: CheckoutFormData[Field],
+  ) {
     setFormData((current) => ({ ...current, [field]: value }));
     setValidationErrors((current) => ({ ...current, [field]: undefined }));
   }
@@ -175,6 +199,10 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!formData.shipping_zone) {
+      return;
+    }
+
     const accessToken = getAccessToken();
 
     if (!accessToken) {
@@ -191,6 +219,7 @@ export default function CheckoutPage() {
         postal_code: normalizeDigits(formData.postal_code).trim(),
         recipient_name: formData.recipient_name.trim(),
         recipient_phone: normalizeDigits(formData.recipient_phone).trim(),
+        shipping_zone: formData.shipping_zone,
         ...(couponCode ? { coupon_code: couponCode } : {}),
       });
       const orderId = extractOrderId(response);
@@ -296,6 +325,66 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              <fieldset className="mt-6">
+                <legend className="text-base font-black text-ink dark:text-white">
+                  محدوده ارسال
+                </legend>
+                <p className="mt-2 text-sm leading-7 text-ink/55 dark:text-white/55">
+                  برای محاسبه هزینه ارسال، یکی از گزینه‌های زیر را انتخاب کنید.
+                </p>
+                {shippingRates ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {shippingZoneOrder.map((zone) => {
+                      const rate = shippingRates[zone];
+                      const isSelected = formData.shipping_zone === zone;
+
+                      return (
+                        <label
+                          className={
+                            isSelected
+                              ? "cursor-pointer rounded-2xl border-2 border-coral bg-coral/5 p-4 shadow-sm transition dark:bg-coral/10"
+                              : "cursor-pointer rounded-2xl border-2 border-ink/10 bg-cream/70 p-4 transition hover:border-coral/45 dark:border-white/10 dark:bg-slate-950/45 dark:hover:border-coral/60"
+                          }
+                          key={zone}
+                        >
+                          <span className="flex items-start gap-3">
+                            <input
+                              aria-describedby="shipping-zone-error"
+                              checked={isSelected}
+                              className="mt-1 size-4 shrink-0 accent-coral"
+                              name="shipping_zone"
+                              onChange={() => updateField("shipping_zone", zone)}
+                              required
+                              type="radio"
+                              value={zone}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block font-black text-ink dark:text-white">
+                                {rate.label}
+                              </span>
+                              <span className="mt-1 block text-sm font-bold text-coral">
+                                {formatToman(rate.fee)}
+                              </span>
+                              <span className="mt-2 block text-xs text-ink/50 dark:text-white/50">
+                                {isSelected ? "انتخاب شده" : "انتخاب این محدوده"}
+                              </span>
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                {validationErrors.shipping_zone ? (
+                  <span
+                    className="mt-2 block text-xs font-bold text-rose-600 dark:text-rose-300"
+                    id="shipping-zone-error"
+                  >
+                    {validationErrors.shipping_zone}
+                  </span>
+                ) : null}
+              </fieldset>
+
               {couponMessage ? (
                 <p
                   className={
@@ -335,7 +424,7 @@ export default function CheckoutPage() {
 
               <Button
                 className="mt-6 w-full"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !shippingRates}
                 type="submit"
                 variant="coral"
               >
@@ -517,6 +606,10 @@ function validateCheckoutForm(formData: CheckoutFormData) {
     errors.shipping_address = "آدرس کامل ارسال الزامی است.";
   }
 
+  if (!formData.shipping_zone) {
+    errors.shipping_zone = "انتخاب محدوده ارسال الزامی است.";
+  }
+
   return errors;
 }
 
@@ -560,7 +653,11 @@ function getNumberValue(...values: Array<number | undefined>) {
   return values.find((value) => typeof value === "number") || 0;
 }
 
-function buildSummary(cart: Cart | null, couponPreview: CouponPreviewResponse | null) {
+function buildSummary(
+  cart: Cart | null,
+  couponPreview: CouponPreviewResponse | null,
+  shipping: number,
+) {
   const subtotal = getNumberValue(
     couponPreview?.subtotal_amount,
     couponPreview?.subtotal,
@@ -570,15 +667,7 @@ function buildSummary(cart: Cart | null, couponPreview: CouponPreviewResponse | 
     couponPreview?.discount_amount,
     couponPreview?.discount,
   );
-  const shipping = getNumberValue(
-    couponPreview?.shipping_cost,
-    couponPreview?.shipping,
-  );
-  const total = getNumberValue(
-    couponPreview?.total_amount,
-    couponPreview?.total,
-    Math.max(0, subtotal - discount + shipping),
-  );
+  const total = Math.max(0, subtotal - discount + shipping);
 
   return {
     subtotal,

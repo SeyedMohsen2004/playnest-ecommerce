@@ -317,6 +317,14 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
                     <Detail label="نام گیرنده" value={order.recipient_name} />
                     <Detail label="شماره موبایل" value={order.recipient_phone} />
                     <Detail label="کد پستی" value={order.postal_code} />
+                    <Detail
+                      label="محدوده ارسال"
+                      value={order.shipping_zone_display || "ثبت نشده"}
+                    />
+                    <Detail
+                      label="هزینه ارسال"
+                      value={formatToman(order.shipping_cost)}
+                    />
                     <Detail label="آدرس ارسال" value={order.shipping_address} />
                   </div>
                 )}

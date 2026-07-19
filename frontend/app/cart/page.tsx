@@ -16,6 +16,7 @@ import {
   updateCartItem,
 } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
+import { getShippingRates } from "@/lib/api/shipping";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import { formatToman } from "@/lib/format";
 import {
@@ -25,14 +26,13 @@ import {
   getProductPrice,
 } from "@/lib/product-display";
 import { cn } from "@/lib/utils";
-import type { Cart, CartItem } from "@/types/api";
-
-const discount = 0;
-const shipping = 0;
+import type { Cart, CartItem, ShippingRatesResponse } from "@/types/api";
 
 export default function CartPage() {
   const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
   const [cart, setCart] = useState<Cart | null>(null);
+  const [shippingRates, setShippingRates] =
+    useState<ShippingRatesResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [mutatingItemId, setMutatingItemId] = useState<number | null>(null);
@@ -62,7 +62,12 @@ export default function CartPage() {
     setErrorMessage("");
 
     try {
-      setCart(await getCart(accessToken));
+      const [loadedCart, loadedShippingRates] = await Promise.all([
+        getCart(accessToken),
+        getShippingRates(),
+      ]);
+      setCart(loadedCart);
+      setShippingRates(loadedShippingRates);
     } catch (error) {
       if (error instanceof APIError && error.status === 401) {
         handleUnauthorized();
@@ -112,7 +117,7 @@ export default function CartPage() {
 
   const items = cart?.items || [];
   const subtotal = useMemo(() => getCartSubtotal(cart), [cart]);
-  const total = Math.max(0, subtotal - discount + shipping);
+  const total = subtotal;
 
   return (
     <>
@@ -174,14 +179,25 @@ export default function CartPage() {
               <h2 className="text-2xl font-black text-ink">خلاصه سفارش</h2>
               <div className="mt-6 space-y-4 text-sm">
                 <SummaryRow label="جمع محصولات" value={subtotal} />
-                <SummaryRow label="تخفیف" value={-discount} />
-                <SummaryRow label="هزینه ارسال" value={shipping} />
+                <SummaryRow label="تخفیف" value={0} />
               </div>
-              <p className="mt-3 text-xs leading-6 text-ink/45">
-                تخفیف و هزینه ارسال در مرحله تسویه حساب نهایی می‌شود.
-              </p>
+              {shippingRates ? (
+                <div className="mt-5 space-y-3 rounded-2xl border border-ink/10 bg-cream/70 p-4 dark:border-white/10 dark:bg-slate-950/45">
+                  <SummaryRow
+                    label="هزینه ارسال داخل تبریز"
+                    value={shippingRates.tabriz.fee}
+                  />
+                  <SummaryRow
+                    label="هزینه ارسال سایر نقاط کشور"
+                    value={shippingRates.nationwide.fee}
+                  />
+                  <p className="border-t border-ink/10 pt-3 text-xs leading-6 text-ink/55 dark:border-white/10 dark:text-white/55">
+                    هزینه نهایی ارسال در مرحله ثبت سفارش و بر اساس انتخاب شما محاسبه می‌شود.
+                  </p>
+                </div>
+              ) : null}
               <div className="mt-6 border-t border-ink/10 pt-5">
-                <SummaryRow large label="مبلغ قابل پرداخت" value={total} />
+                <SummaryRow large label="جمع فعلی سبد" value={total} />
               </div>
               <Button asChild className="mt-6 w-full" variant="coral">
                 <Link href="/checkout">ادامه خرید و تسویه حساب</Link>

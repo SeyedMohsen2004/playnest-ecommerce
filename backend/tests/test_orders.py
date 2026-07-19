@@ -73,6 +73,7 @@ def checkout_payload():
         "postal_code": "1234567890",
         "recipient_name": "Play User",
         "recipient_phone": "09123456789",
+        "shipping_zone": "tabriz",
     }
 
 
@@ -256,6 +257,7 @@ def test_checkout_creates_order_without_reducing_stock(client, user, product):
     order_item = order.items.get()
     assert order.subtotal_amount == 2400
     assert order.discount_amount == 0
+    assert order.shipping_zone == Order.ShippingZone.TABRIZ
     assert order.shipping_cost == 50000
     assert order.total_amount == 52400
     assert order_item.product_name == product.name
@@ -380,6 +382,8 @@ def test_user_retrieves_order_detail_with_items_and_product_image(
     assert data["can_retry_payment"] is True
     assert data["can_cancel"] is True
     assert data["can_edit_shipping_info"] is True
+    assert data["shipping_zone"] is None
+    assert data["shipping_zone_display"] == "ثبت نشده"
     assert data["items"][0]["product_name"] == product.name
     assert data["items"][0]["product_slug"] == product.slug
     assert data["items"][0]["unit_price"] == product.final_price

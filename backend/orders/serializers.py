@@ -3,7 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem
-from orders.pricing import calculate_order_totals
+from orders.pricing import calculate_order_totals, get_shipping_cost
 from products.models import Product
 from products.serializers import ProductImageSerializer
 
@@ -64,6 +64,16 @@ class CartSummarySerializer(serializers.Serializer):
     discount_amount = serializers.IntegerField(read_only=True)
     shipping_cost = serializers.IntegerField(read_only=True)
     total_amount = serializers.IntegerField(read_only=True)
+
+
+class ShippingRateSerializer(serializers.Serializer):
+    label = serializers.CharField(read_only=True)
+    fee = serializers.IntegerField(read_only=True)
+
+
+class ShippingRatesSerializer(serializers.Serializer):
+    tabriz = ShippingRateSerializer(read_only=True)
+    nationwide = ShippingRateSerializer(read_only=True)
 
 
 class ApplyCouponSerializer(serializers.Serializer):
@@ -178,6 +188,7 @@ class OrderSerializer(serializers.ModelSerializer):
     can_cancel = serializers.SerializerMethodField()
     can_edit_shipping_info = serializers.SerializerMethodField()
     manual_review_message = serializers.SerializerMethodField()
+    shipping_zone_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -197,6 +208,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "coupon",
             "subtotal_amount",
             "discount_amount",
+            "shipping_zone",
+            "shipping_zone_display",
             "shipping_cost",
             "total_amount",
             "shipping_address",
@@ -264,6 +277,11 @@ class OrderSerializer(serializers.ModelSerializer):
             Order.Status.PAID,
         )
 
+    def get_shipping_zone_display(self, obj):
+        if not obj.shipping_zone:
+            return "ثبت نشده"
+        return obj.get_shipping_zone_display()
+
     def get_manual_review_message(self, obj):
         if not obj.requires_manual_review:
             return None
@@ -294,12 +312,20 @@ class CheckoutSerializer(serializers.Serializer):
     postal_code = serializers.CharField(max_length=20)
     recipient_name = serializers.CharField(max_length=255)
     recipient_phone = serializers.CharField(max_length=20)
+    shipping_zone = serializers.ChoiceField(choices=Order.ShippingZone.choices)
     coupon_code = serializers.CharField(
         max_length=50,
         required=False,
         allow_blank=True,
         write_only=True,
     )
+
+    def validate(self, attrs):
+        if "shipping_cost" in self.initial_data:
+            raise serializers.ValidationError(
+                {"shipping_cost": "Shipping cost is calculated by the server."}
+            )
+        return attrs
 
     @transaction.atomic
     def create(self, validated_data):
@@ -347,6 +373,7 @@ class CheckoutSerializer(serializers.Serializer):
             )
 
         coupon_code = validated_data.pop("coupon_code", "").strip()
+        shipping_zone = validated_data.pop("shipping_zone")
         coupon = None
         if coupon_code:
             coupon = Coupon.objects.filter(code__iexact=coupon_code).first()
@@ -355,13 +382,19 @@ class CheckoutSerializer(serializers.Serializer):
                     {"coupon_code": "Coupon was not found."}
                 )
         try:
-            totals = calculate_order_totals(subtotal_amount, coupon)
+            shipping_cost = get_shipping_cost(shipping_zone, for_update=True)
+            totals = calculate_order_totals(
+                subtotal_amount,
+                coupon,
+                shipping_cost=shipping_cost,
+            )
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.message_dict) from exc
 
         order = Order.objects.create(
             user=user,
             coupon=coupon,
+            shipping_zone=shipping_zone,
             subtotal_amount=totals["subtotal"],
             discount_amount=totals["discount_amount"],
             shipping_cost=totals["shipping_cost"],

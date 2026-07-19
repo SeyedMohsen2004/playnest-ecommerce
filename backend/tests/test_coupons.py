@@ -75,6 +75,7 @@ def checkout(client, user, coupon_code=""):
             "postal_code": "1234567890",
             "recipient_name": "Coupon User",
             "recipient_phone": user.phone_number,
+            "shipping_zone": "tabriz",
             "coupon_code": coupon_code,
         },
         content_type="application/json",
@@ -109,8 +110,8 @@ def test_valid_percentage_coupon(client, user, product):
     assert response.json() == {
         "subtotal": 1_000_000,
         "discount_amount": 100_000,
-        "shipping_cost": 50_000,
-        "total_amount": 950_000,
+        "shipping_cost": 0,
+        "total_amount": 900_000,
     }
 
 
@@ -126,7 +127,7 @@ def test_valid_fixed_coupon(client, user, product):
 
     assert response.status_code == 200
     assert response.json()["discount_amount"] == 200_000
-    assert response.json()["total_amount"] == 850_000
+    assert response.json()["total_amount"] == 800_000
 
 
 def test_expired_coupon_is_rejected(client, user, product):
@@ -210,7 +211,9 @@ def test_checkout_stores_coupon_discount_and_shipping(client, user, product):
     assert coupon.used_count == 0
 
 
-def test_free_shipping_threshold(client, user, product):
+def test_shipping_rate_is_added_above_the_previous_free_shipping_threshold(
+    client, user, product
+):
     add_to_cart(user, product, quantity=2)
 
     response = checkout(client, user)
@@ -218,8 +221,8 @@ def test_free_shipping_threshold(client, user, product):
     assert response.status_code == 201
     order = Order.objects.get(user=user)
     assert order.subtotal_amount == 2_000_000
-    assert order.shipping_cost == 0
-    assert order.total_amount == 2_000_000
+    assert order.shipping_cost == 50_000
+    assert order.total_amount == 2_050_000
 
 
 def test_coupon_used_count_increments_after_payment_success(

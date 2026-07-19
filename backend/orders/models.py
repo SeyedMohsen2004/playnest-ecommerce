@@ -6,6 +6,51 @@ from django.db import models
 from products.models import Product
 
 
+class ShippingSettings(models.Model):
+    SINGLETON_PK = 1
+    DEFAULT_TABRIZ_SHIPPING_FEE = 50_000
+    DEFAULT_NATIONWIDE_SHIPPING_FEE = 50_000
+
+    tabriz_shipping_fee = models.PositiveBigIntegerField(
+        default=DEFAULT_TABRIZ_SHIPPING_FEE,
+        verbose_name="هزینه ارسال داخل تبریز",
+    )
+    nationwide_shipping_fee = models.PositiveBigIntegerField(
+        default=DEFAULT_NATIONWIDE_SHIPPING_FEE,
+        verbose_name="هزینه ارسال سایر نقاط کشور",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="آخرین بروزرسانی",
+    )
+
+    class Meta:
+        verbose_name = "تنظیمات هزینه ارسال"
+        verbose_name_plural = "تنظیمات هزینه ارسال"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(pk=1),
+                name="shipping_settings_singleton_pk",
+            )
+        ]
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+    def save(self, *args, **kwargs):
+        self.pk = self.SINGLETON_PK
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls, *, for_update=False):
+        queryset = cls.objects
+        if for_update:
+            queryset = queryset.select_for_update()
+        settings_obj, _created = queryset.get_or_create(pk=cls.SINGLETON_PK)
+        return settings_obj
+
+
 class Coupon(models.Model):
     class DiscountType(models.TextChoices):
         PERCENTAGE = "percentage", "Percentage"
@@ -115,6 +160,10 @@ class CartItem(models.Model):
 
 
 class Order(models.Model):
+    class ShippingZone(models.TextChoices):
+        TABRIZ = "tabriz", "داخل تبریز"
+        NATIONWIDE = "nationwide", "سایر نقاط کشور"
+
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         PAYMENT_FAILED = "payment_failed", "Payment failed"
@@ -146,6 +195,12 @@ class Order(models.Model):
     )
     subtotal_amount = models.PositiveBigIntegerField(default=0)
     discount_amount = models.PositiveBigIntegerField(default=0)
+    shipping_zone = models.CharField(
+        max_length=20,
+        choices=ShippingZone.choices,
+        blank=True,
+        null=True,
+    )
     shipping_cost = models.PositiveBigIntegerField(default=0)
     total_amount = models.PositiveBigIntegerField(default=0)
     shipping_address = models.TextField()

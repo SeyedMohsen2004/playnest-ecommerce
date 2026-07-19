@@ -3,11 +3,11 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from orders.models import Cart, CartItem, Order
+from orders.models import Cart, CartItem, Order, ShippingSettings
 from orders.serializers import (
     ApplyCouponSerializer,
     CartItemCreateSerializer,
@@ -18,6 +18,7 @@ from orders.serializers import (
     CheckoutSerializer,
     OrderSerializer,
     OrderShippingSerializer,
+    ShippingRatesSerializer,
 )
 from payments.models import Payment
 from products.models import ProductImage
@@ -31,6 +32,25 @@ def get_user_cart(user):
             queryset=ProductImage.objects.order_by("-is_main", "created_at"),
         ),
     ).get_or_create(user=user)[0]
+
+
+class ShippingRatesView(APIView):
+    permission_classes = (AllowAny,)
+
+    @extend_schema(responses={200: ShippingRatesSerializer})
+    def get(self, request):
+        shipping_settings = ShippingSettings.load()
+        data = {
+            Order.ShippingZone.TABRIZ: {
+                "label": Order.ShippingZone.TABRIZ.label,
+                "fee": shipping_settings.tabriz_shipping_fee,
+            },
+            Order.ShippingZone.NATIONWIDE: {
+                "label": Order.ShippingZone.NATIONWIDE.label,
+                "fee": shipping_settings.nationwide_shipping_fee,
+            },
+        }
+        return Response(ShippingRatesSerializer(data).data)
 
 
 class CartView(APIView):

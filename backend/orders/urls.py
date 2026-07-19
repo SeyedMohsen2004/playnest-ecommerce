@@ -8,6 +8,7 @@ from orders.views import (
     CartView,
     CheckoutView,
     OrderViewSet,
+    ShippingRatesView,
 )
 
 app_name = "orders"
@@ -16,6 +17,7 @@ router = DefaultRouter()
 router.register("orders", OrderViewSet, basename="order")
 
 urlpatterns = [
+    path("shipping-rates/", ShippingRatesView.as_view(), name="shipping-rates"),
     path("cart/", CartView.as_view(), name="cart"),
     path("cart/apply-coupon/", ApplyCouponView.as_view(), name="apply-coupon"),
     path("cart/items/", CartItemCreateView.as_view(), name="cart-item-list"),

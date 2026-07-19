@@ -1,10 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from orders.models import Coupon
-
-FIXED_SHIPPING_COST = 50_000
-FREE_SHIPPING_THRESHOLD = 1_500_000
+from orders.models import Coupon, Order, ShippingSettings
 
 
 def validate_coupon(coupon, subtotal):
@@ -47,12 +44,18 @@ def calculate_discount(coupon, subtotal):
     return discount
 
 
-def calculate_order_totals(subtotal, coupon=None):
+def get_shipping_cost(shipping_zone, *, for_update=False):
+    settings_obj = ShippingSettings.load(for_update=for_update)
+    if shipping_zone == Order.ShippingZone.TABRIZ:
+        return settings_obj.tabriz_shipping_fee
+    if shipping_zone == Order.ShippingZone.NATIONWIDE:
+        return settings_obj.nationwide_shipping_fee
+    raise ValidationError({"shipping_zone": "Select a valid shipping zone."})
+
+
+def calculate_order_totals(subtotal, coupon=None, *, shipping_cost=0):
     discount_amount = calculate_discount(coupon, subtotal)
     discounted_subtotal = subtotal - discount_amount
-    shipping_cost = (
-        0 if discounted_subtotal >= FREE_SHIPPING_THRESHOLD else FIXED_SHIPPING_COST
-    )
     return {
         "subtotal": subtotal,
         "discount_amount": discount_amount,

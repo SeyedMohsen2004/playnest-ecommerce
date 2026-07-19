@@ -1,10 +1,12 @@
 from django.contrib import admin, messages
 from django.db import transaction
 from django.db.models import Prefetch
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
-from orders.models import Cart, CartItem, Coupon, Order, OrderItem
+from orders.models import Cart, CartItem, Coupon, Order, OrderItem, ShippingSettings
 from payments.models import Payment
 from payments.services.zarinpal import mask_card_pan
 
@@ -46,6 +48,38 @@ class PaymentStatusFilter(admin.SimpleListFilter):
         if self.value():
             return queryset.filter(payments__status=self.value()).distinct()
         return queryset
+
+
+@admin.register(ShippingSettings)
+class ShippingSettingsAdmin(admin.ModelAdmin):
+    fields = (
+        "tabriz_shipping_fee",
+        "nationwide_shipping_fee",
+        "updated_at",
+    )
+    readonly_fields = ("updated_at",)
+    list_display = (
+        "tabriz_shipping_fee",
+        "nationwide_shipping_fee",
+        "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        return not ShippingSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        if not self.has_view_or_change_permission(request):
+            return super().changelist_view(request, extra_context=extra_context)
+        shipping_settings = ShippingSettings.load()
+        return HttpResponseRedirect(
+            reverse(
+                "admin:orders_shippingsettings_change",
+                args=(shipping_settings.pk,),
+            )
+        )
 
 
 @admin.register(Coupon)
@@ -228,6 +262,8 @@ class OrderAdmin(admin.ModelAdmin):
         "customer_phone",
         "recipient_name",
         "recipient_phone",
+        "shipping_zone_label",
+        "formatted_shipping_cost",
         "formatted_total_amount",
         "status_badge",
         "payment_status_badge",
@@ -249,6 +285,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = (
         OrderStatusFilter,
         PaymentStatusFilter,
+        "shipping_zone",
         "stock_reduced",
         "requires_manual_review",
         "created_at",
@@ -266,6 +303,7 @@ class OrderAdmin(admin.ModelAdmin):
         "total_amount",
         "subtotal_amount",
         "discount_amount",
+        "shipping_zone",
         "shipping_cost",
         "coupon",
         "coupon_usage",
@@ -310,6 +348,7 @@ class OrderAdmin(admin.ModelAdmin):
                 "fields": (
                     "recipient_name",
                     "recipient_phone",
+                    "shipping_zone",
                     "shipping_address",
                     "postal_code",
                 )
@@ -386,6 +425,14 @@ class OrderAdmin(admin.ModelAdmin):
     @admin.display(description="مبلغ کل", ordering="total_amount")
     def formatted_total_amount(self, obj):
         return f"{obj.total_amount:,} تومان"
+
+    @admin.display(description="محدوده ارسال", ordering="shipping_zone")
+    def shipping_zone_label(self, obj):
+        return obj.get_shipping_zone_display() if obj.shipping_zone else "ثبت نشده"
+
+    @admin.display(description="هزینه ارسال", ordering="shipping_cost")
+    def formatted_shipping_cost(self, obj):
+        return f"{obj.shipping_cost:,} تومان"
 
     @admin.display(description="وضعیت سفارش", ordering="status")
     def status_badge(self, obj):

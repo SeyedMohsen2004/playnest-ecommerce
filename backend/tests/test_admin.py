@@ -12,7 +12,7 @@ from orders.admin import (
     PaymentInline,
     PaymentStatusFilter,
 )
-from orders.models import Cart, CartItem, Coupon, Order, OrderItem
+from orders.models import Cart, CartItem, Coupon, Order, OrderItem, ShippingSettings
 from payments.models import Payment
 from products.models import (
     Brand,
@@ -125,6 +125,7 @@ def run_order_action(order_admin, action_name, admin_user, queryset):
         Order,
         OrderItem,
         Coupon,
+        ShippingSettings,
         Payment,
     ),
 )
@@ -411,6 +412,8 @@ def test_order_admin_list_search_filters_and_direct_status_safety():
         "customer_phone",
         "recipient_name",
         "recipient_phone",
+        "shipping_zone_label",
+        "formatted_shipping_cost",
         "formatted_total_amount",
         "status_badge",
         "payment_status_badge",
@@ -438,6 +441,8 @@ def test_order_admin_list_search_filters_and_direct_status_safety():
     assert PaymentStatusFilter in order_admin.list_filter
     assert "status" in order_admin.readonly_fields
     assert "stock_reduced" in order_admin.readonly_fields
+    assert "shipping_zone" in order_admin.readonly_fields
+    assert "shipping_cost" in order_admin.readonly_fields
 
 
 def test_order_admin_filtered_list_and_detail_render_safely(

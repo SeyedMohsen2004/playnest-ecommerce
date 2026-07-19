@@ -165,6 +165,15 @@ export type Cart = {
   subtotal_amount?: number;
 };
 
+export type ShippingZone = "tabriz" | "nationwide";
+
+export type ShippingRate = {
+  label: string;
+  fee: number;
+};
+
+export type ShippingRatesResponse = Record<ShippingZone, ShippingRate>;
+
 export type Coupon = {
   id: number;
   code: string;
@@ -218,6 +227,8 @@ export type Order = {
   coupon: number | Coupon | null;
   subtotal_amount: number;
   discount_amount: number;
+  shipping_zone: ShippingZone | null;
+  shipping_zone_display: string;
   shipping_cost: number;
   total_amount: number;
   shipping_address: string;
@@ -234,6 +245,7 @@ export type CheckoutPayload = {
   postal_code: string;
   recipient_name: string;
   recipient_phone: string;
+  shipping_zone: ShippingZone;
   coupon_code?: string;
 };
 
