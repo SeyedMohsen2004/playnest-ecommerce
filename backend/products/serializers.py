@@ -142,7 +142,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         if price is not None and discount_price is not None and discount_price >= price:
             raise serializers.ValidationError(
                 {"discount_price": "Discount price must be less than price."}
-        )
+            )
         return attrs
 
 
