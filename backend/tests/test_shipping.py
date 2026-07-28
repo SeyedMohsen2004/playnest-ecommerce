@@ -164,7 +164,10 @@ def test_shipping_settings_admin_is_singleton_and_not_deletable(admin_user):
     ShippingSettings.load()
     settings_admin = admin.site._registry[ShippingSettings]
 
-    assert settings_admin.has_add_permission(type("Request", (), {"user": admin_user})()) is False
+    assert (
+        settings_admin.has_add_permission(type("Request", (), {"user": admin_user})())
+        is False
+    )
     assert settings_admin.has_delete_permission(None) is False
 
 

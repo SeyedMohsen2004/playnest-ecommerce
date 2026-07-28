@@ -87,6 +87,16 @@ docker compose ps
 | Backend health | `http://127.0.0.1:8000/api/v1/health/` |
 | Swagger docs | `http://127.0.0.1:8000/api/v1/docs/` |
 
+If port 3000 is already in use, override the frontend host port without editing
+the Compose file:
+
+```bash
+FRONTEND_PORT=3001 docker compose up --build -d
+```
+
+The frontend is then available at `http://localhost:3001`. Port 3000 remains the
+default when `FRONTEND_PORT` is not set.
+
 The frontend container uses:
 
 ```env

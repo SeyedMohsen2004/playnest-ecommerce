@@ -116,9 +116,8 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     http_method_names = ("patch", "delete", "head", "options")
 
     def get_queryset(self):
-        return (
-            CartItem.objects.select_related("product")
-            .filter(cart__user=self.request.user)
+        return CartItem.objects.select_related("product").filter(
+            cart__user=self.request.user
         )
 
 

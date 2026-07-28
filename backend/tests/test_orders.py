@@ -139,9 +139,7 @@ def test_cart_includes_product_main_image(client, user, product):
 
     assert response.status_code == 200
     product_data = response.json()["items"][0]["product"]
-    assert product_data["main_image"]["image"].endswith(
-        "/media/products/cart-main.png"
-    )
+    assert product_data["main_image"]["image"].endswith("/media/products/cart-main.png")
     assert product_data["main_image"]["alt_text"] == "Cart main image"
     assert product_data["main_image"]["is_main"] is True
 
