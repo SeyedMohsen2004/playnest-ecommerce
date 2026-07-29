@@ -1,31 +1,30 @@
-# IpakToys Product Import Data
+# PlayNest Product Import Data
 
-Place real client import files here before running the product import command.
+This directory is a local staging area for the guarded product import command.
+The public repository retains only this guide and `.gitkeep`; imported
+workbooks, archives, images, and generated media are gitignored.
 
 Expected local structure:
 
 ```text
 backend/import_data/
   products.xlsx
-  raw/
-    محصولات.rar
   product_images/
-    هوش چین/
-    لگو بتمن/
-    ...
+    example-product/
 ```
 
-The repository ignores the actual Excel workbook, archive, and extracted images
-because they are client data. Keep this README so developers know where to place
-the files.
+Customer datasets and commercial product media are not included in the public
+repository.
 
-Default import command:
+## Import
+
+From the backend directory:
 
 ```bash
 python manage.py import_real_products
 ```
 
-Explicit paths:
+Or provide explicit paths:
 
 ```bash
 python manage.py import_real_products \
@@ -33,16 +32,23 @@ python manage.py import_real_products \
   --images-dir import_data/product_images
 ```
 
-Clear existing products before import:
+The importer validates expected workbook columns, imports rows in individual
+transactions, and reports skipped records and image warnings for operator
+review.
+
+## Destructive Options
+
+Remove existing products before import:
 
 ```bash
 python manage.py import_real_products --clear-existing
 ```
 
-`--clear-existing` deletes products only. If products are referenced by order
-items, the command stops safely and explains that dependent data still exists.
+`--clear-existing` deletes products only. If order items still reference
+products, the command stops rather than deleting orders or payments.
 
-For a disposable local/demo reset, explicitly allow dependent data cleanup:
+For disposable local development data only, dependent ecommerce data can be
+removed explicitly:
 
 ```bash
 python manage.py import_real_products \
@@ -50,6 +56,14 @@ python manage.py import_real_products \
   --clear-dependent-demo-data
 ```
 
-This destructive option deletes payments, orders, carts, wishlist items,
-reviews, product images, and products before importing. Use it only for
-development/demo data and take a database backup before any production import.
+This mode deletes payments, orders, carts, wishlist items, reviews, product
+images, and products before importing. Do not use it against production or
+valuable data without explicit approval.
+
+Production imports require:
+
+1. A verified database and media backup created before the import.
+2. Operator review of the workbook, image set, and command options.
+3. A rollback plan and an approved maintenance window.
+4. Confirmation that destructive modes are not selected unless deletion is
+   explicitly intended and approved.
