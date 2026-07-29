@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem
@@ -25,6 +26,7 @@ class CartProductSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
+    @extend_schema_field(ProductImageSerializer(allow_null=True))
     def get_main_image(self, obj):
         image = next(iter(obj.images.all()), None)
         if image is None:
@@ -171,6 +173,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
+    @extend_schema_field(ProductImageSerializer(allow_null=True))
     def get_product_image(self, obj):
         image = next(iter(obj.product.images.all()), None)
         if image is None:
@@ -222,7 +225,7 @@ class OrderSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def get_status_label(self, obj):
+    def get_status_label(self, obj) -> str:
         labels = {
             Order.Status.PENDING: "در انتظار پرداخت",
             Order.Status.PAYMENT_FAILED: "پرداخت ناموفق",
@@ -234,15 +237,15 @@ class OrderSerializer(serializers.ModelSerializer):
         }
         return labels.get(obj.status, obj.get_status_display())
 
-    def get_payment_status(self, obj):
+    def get_payment_status(self, obj) -> str | None:
         payment = self._latest_payment(obj)
         return payment.status if payment else None
 
-    def get_payment_ref_id(self, obj):
+    def get_payment_ref_id(self, obj) -> str | None:
         payment = self._latest_payment(obj)
         return payment.ref_id if payment and payment.status == "paid" else None
 
-    def get_payment_status_label(self, obj):
+    def get_payment_status_label(self, obj) -> str | None:
         status = self.get_payment_status(obj)
         if status is None:
             return None
@@ -264,25 +267,25 @@ class OrderSerializer(serializers.ModelSerializer):
             )
         return obj._latest_payment_cache
 
-    def get_can_retry_payment(self, obj):
+    def get_can_retry_payment(self, obj) -> bool:
         return obj.status in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED)
 
-    def get_can_cancel(self, obj):
+    def get_can_cancel(self, obj) -> bool:
         return obj.status in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED)
 
-    def get_can_edit_shipping_info(self, obj):
+    def get_can_edit_shipping_info(self, obj) -> bool:
         return obj.status in (
             Order.Status.PENDING,
             Order.Status.PAYMENT_FAILED,
             Order.Status.PAID,
         )
 
-    def get_shipping_zone_display(self, obj):
+    def get_shipping_zone_display(self, obj) -> str:
         if not obj.shipping_zone:
             return "ثبت نشده"
         return obj.get_shipping_zone_display()
 
-    def get_manual_review_message(self, obj):
+    def get_manual_review_message(self, obj) -> str | None:
         if not obj.requires_manual_review:
             return None
         return (
