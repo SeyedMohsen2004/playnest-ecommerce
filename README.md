@@ -121,6 +121,14 @@ docker compose exec api python manage.py seed_data
 docker compose exec api pytest
 ```
 
+## Production Deployment
+
+Production deployment is an explicit, manual process using separate production
+images and `docker-compose.prod.yml`; it does not change the development stack
+or deploy automatically. See [docs/deployment.md](docs/deployment.md) for the
+required environment, backup, build, migration, static/media, reverse-proxy,
+health-check, and rollback procedures.
+
 ## Development Seed Data
 
 Populate an idempotent development catalog:

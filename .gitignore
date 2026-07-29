@@ -4,6 +4,9 @@ __pycache__/
 venv/
 backend/venv/
 .env
+.env.*
+!.env.example
+!.env.production.example
 
 # Django
 *.sqlite3

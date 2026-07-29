@@ -2,4 +2,8 @@ node_modules
 .next
 .git
 npm-debug.log
-.env.local
+.env
+.env.*
+!.env.example
+!.env.production.example
+coverage

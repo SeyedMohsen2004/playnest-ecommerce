@@ -1,0 +1,123 @@
+name: ${PRODUCTION_COMPOSE_PROJECT_NAME:-playnest-production}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    image: ${API_IMAGE:-playnest-api:production}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    init: true
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?Set DJANGO_ALLOWED_HOSTS},127.0.0.1,api
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?Set CSRF_TRUSTED_ORIGINS}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Set CORS_ALLOWED_ORIGINS}
+      DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:?Set DJANGO_SECURE_SSL_REDIRECT}
+      DJANGO_SECURE_HSTS_SECONDS: ${DJANGO_SECURE_HSTS_SECONDS:?Set DJANGO_SECURE_HSTS_SECONDS}
+      DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: ${DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS:?Set DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS}
+      DJANGO_SECURE_HSTS_PRELOAD: ${DJANGO_SECURE_HSTS_PRELOAD:?Set DJANGO_SECURE_HSTS_PRELOAD}
+      DJANGO_SECURE_CONTENT_TYPE_NOSNIFF: ${DJANGO_SECURE_CONTENT_TYPE_NOSNIFF:-True}
+      DJANGO_SECURE_REFERRER_POLICY: ${DJANGO_SECURE_REFERRER_POLICY:-same-origin}
+      DJANGO_SESSION_COOKIE_SECURE: ${DJANGO_SESSION_COOKIE_SECURE:?Set DJANGO_SESSION_COOKIE_SECURE}
+      DJANGO_CSRF_COOKIE_SECURE: ${DJANGO_CSRF_COOKIE_SECURE:?Set DJANGO_CSRF_COOKIE_SECURE}
+      DJANGO_TRUST_X_FORWARDED_PROTO: ${DJANGO_TRUST_X_FORWARDED_PROTO:?Set DJANGO_TRUST_X_FORWARDED_PROTO}
+      SMS_PROVIDER: ${SMS_PROVIDER:?Set SMS_PROVIDER}
+      KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:?Set KAVENEGAR_API_KEY}
+      KAVENEGAR_SENDER: ${KAVENEGAR_SENDER:-}
+      KAVENEGAR_VERIFY_TEMPLATE: ${KAVENEGAR_VERIFY_TEMPLATE:-}
+      ZARINPAL_MERCHANT_ID: ${ZARINPAL_MERCHANT_ID:?Set ZARINPAL_MERCHANT_ID}
+      ZARINPAL_SANDBOX: ${ZARINPAL_SANDBOX:?Set ZARINPAL_SANDBOX}
+      ZARINPAL_CALLBACK_URL: ${ZARINPAL_CALLBACK_URL:?Set ZARINPAL_CALLBACK_URL}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:?Set FRONTEND_BASE_URL}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      GUNICORN_BIND: ${GUNICORN_BIND:-0.0.0.0:8000}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-60}
+      GUNICORN_GRACEFUL_TIMEOUT: ${GUNICORN_GRACEFUL_TIMEOUT:-30}
+      GUNICORN_ACCESS_LOGFILE: ${GUNICORN_ACCESS_LOGFILE:--}
+      GUNICORN_ERROR_LOGFILE: ${GUNICORN_ERROR_LOGFILE:--}
+    ports:
+      - "${PRODUCTION_BIND_ADDRESS:-127.0.0.1}:${PRODUCTION_API_PORT:-8000}:8000"
+    volumes:
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; request = urllib.request.Request('http://127.0.0.1:8000/api/v1/health/', headers={'X-Forwarded-Proto': 'https'}); urllib.request.urlopen(request, timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    stop_grace_period: 40s
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-playnest-frontend:production}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?Set NEXT_PUBLIC_API_BASE_URL}
+    init: true
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?Set NEXT_PUBLIC_API_BASE_URL}
+      NEXT_TELEMETRY_DISABLED: "1"
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "${PRODUCTION_BIND_ADDRESS:-127.0.0.1}:${PRODUCTION_FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then((response) => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+volumes:
+  postgres_data:
+  static_data:
+  media_data:

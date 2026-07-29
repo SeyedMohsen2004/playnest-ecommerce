@@ -96,3 +96,60 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+  production-assets:
+    runs-on: ubuntu-latest
+
+    env:
+      PRODUCTION_COMPOSE_PROJECT_NAME: playnest-production-ci
+      DJANGO_SECRET_KEY: ci-only-production-secret-key-not-for-real-use-0123456789
+      DJANGO_ALLOWED_HOSTS: api.example.invalid
+      CSRF_TRUSTED_ORIGINS: https://shop.example.invalid,https://api.example.invalid
+      CORS_ALLOWED_ORIGINS: https://shop.example.invalid
+      DJANGO_SECURE_SSL_REDIRECT: "True"
+      DJANGO_SECURE_HSTS_SECONDS: "0"
+      DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: "False"
+      DJANGO_SECURE_HSTS_PRELOAD: "False"
+      DJANGO_SESSION_COOKIE_SECURE: "True"
+      DJANGO_CSRF_COOKIE_SECURE: "True"
+      DJANGO_TRUST_X_FORWARDED_PROTO: "True"
+      POSTGRES_DB: playnest_ci
+      POSTGRES_USER: playnest_ci
+      POSTGRES_PASSWORD: ci-only-database-password
+      SMS_PROVIDER: kavenegar
+      KAVENEGAR_API_KEY: ci-only-kavenegar-key
+      ZARINPAL_MERCHANT_ID: ci-only-zarinpal-merchant
+      ZARINPAL_SANDBOX: "True"
+      ZARINPAL_CALLBACK_URL: https://api.example.invalid/api/v1/payments/zarinpal/callback/
+      FRONTEND_BASE_URL: https://shop.example.invalid
+      NEXT_PUBLIC_API_BASE_URL: https://api.example.invalid/api/v1
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate production Compose configuration
+        run: docker compose -f docker-compose.prod.yml config --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile.prod
+          push: false
+          cache-from: type=gha,scope=production-backend
+          cache-to: type=gha,mode=max,scope=production-backend
+
+      - name: Build production frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile.prod
+          push: false
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ env.NEXT_PUBLIC_API_BASE_URL }}
+          cache-from: type=gha,scope=production-frontend
+          cache-to: type=gha,mode=max,scope=production-frontend

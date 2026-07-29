@@ -5,5 +5,13 @@ __pycache__
 *.py[cod]
 *.sqlite3
 .env
+.env.*
+!.env.example
+!.env.production.example
 .venv
 venv
+media
+staticfiles
+tests
+import_data
+*.xlsx
