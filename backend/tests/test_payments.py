@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 import requests
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -9,9 +10,11 @@ from accounts.models import User
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem
 from payments.models import Payment
 from payments.serializers import PaymentSerializer
+from payments.services import finalize_verified_payment
 from payments.services.zarinpal import (
     PaymentCreationResult,
     PaymentVerificationResult,
+    ZarinPalError,
     ZarinPalService,
     ZarinPalTransportError,
     ZarinPalVerificationError,
@@ -23,11 +26,11 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture(autouse=True)
 def payment_settings(settings):
-    settings.FRONTEND_BASE_URL = "https://ipaktoys.ir"
+    settings.FRONTEND_BASE_URL = "https://shop.example.invalid"
     settings.ZARINPAL_MERCHANT_ID = "test-merchant"
     settings.ZARINPAL_SANDBOX = True
     settings.ZARINPAL_CALLBACK_URL = (
-        "https://ipaktoys.ir/api/v1/payments/zarinpal/callback/"
+        "https://api.example.invalid/api/v1/payments/zarinpal/callback/"
     )
 
 
@@ -185,6 +188,19 @@ def test_missing_authority_redirects_without_verify(client):
     verify.assert_not_called()
 
 
+def test_invalid_authority_format_redirects_without_gateway_lookup(client, payment):
+    with patch("payments.views.ZarinPalService.verify_payment") as verify:
+        response = callback(client, authority="invalid authority!", status="OK")
+
+    payment.refresh_from_db()
+    payment.order.refresh_from_db()
+    assert response.status_code == 302
+    assert "reason=payment_not_found" in response.url
+    verify.assert_not_called()
+    assert payment.status == Payment.Status.PENDING
+    assert payment.order.status == Order.Status.PENDING
+
+
 @pytest.mark.parametrize("gateway_status", (None, "", "UNKNOWN"))
 def test_invalid_callback_status_redirects_without_verify(
     client, payment, gateway_status
@@ -278,7 +294,7 @@ def test_code_100_finalizes_payment_order_stock_and_safe_gateway_fields(
     payment.order.refresh_from_db()
     product.refresh_from_db()
     assert response.status_code == 302
-    assert response.url.startswith("https://ipaktoys.ir/payment/success")
+    assert response.url.startswith("https://shop.example.invalid/payment/success")
     assert payment.status == Payment.Status.PAID
     assert payment.gateway_code == 100
     assert payment.ref_id == "123456789"
@@ -488,6 +504,32 @@ def test_cancelled_order_cannot_become_paid(client, payment, product):
     assert product.stock == 10
 
 
+def test_fulfillment_order_without_reduced_stock_requires_manual_review(
+    client, payment, product
+):
+    payment.order.status = Order.Status.PROCESSING
+    payment.order.stock_reduced = False
+    payment.order.save(update_fields=("status", "stock_reduced"))
+    original_stock = product.stock
+
+    with patch(
+        "payments.views.ZarinPalService.verify_payment",
+        return_value=verify_result(),
+    ):
+        response = callback(client, authority=payment.authority, status="OK")
+
+    payment.refresh_from_db()
+    payment.order.refresh_from_db()
+    product.refresh_from_db()
+    assert response.status_code == 302
+    assert "/payment/success" in response.url
+    assert payment.status == Payment.Status.PAID
+    assert payment.order.status == Order.Status.PROCESSING
+    assert payment.order.requires_manual_review is True
+    assert payment.order.stock_reduced is False
+    assert product.stock == original_stock
+
+
 def test_paid_but_insufficient_stock_flags_manual_review_and_keeps_cart(
     client, payment, product, user
 ):
@@ -561,6 +603,50 @@ def test_payment_request_uses_order_id_and_stores_new_authority(client, user, or
     payment = Payment.objects.get(order=order)
     assert payment.authority == "B" * 36
     assert response.json()["payment_url"].endswith("B" * 36)
+
+
+def test_payment_request_gateway_failure_is_safe_and_retryable(client, user, order):
+    with patch(
+        "payments.services.ZarinPalService.create_payment",
+        side_effect=ZarinPalError("Gateway request was rejected."),
+    ):
+        response = client.post(
+            reverse("payments:request"),
+            {"order_id": order.id},
+            content_type="application/json",
+            **auth(user),
+        )
+
+    payment = Payment.objects.get(order=order)
+    assert response.status_code == 400
+    assert response.json() == {"detail": ["Gateway request was rejected."]}
+    assert payment.status == Payment.Status.PENDING
+    assert payment.authority is None
+    order.refresh_from_db()
+    assert order.status == Order.Status.PENDING
+
+
+@pytest.mark.parametrize(
+    "order_status",
+    (Order.Status.PAID, Order.Status.CANCELLED, Order.Status.PROCESSING),
+)
+def test_payment_request_rejects_non_payable_order_status(
+    client, user, order, order_status
+):
+    order.status = order_status
+    order.save(update_fields=("status",))
+
+    with patch("payments.services.ZarinPalService.create_payment") as create:
+        response = client.post(
+            reverse("payments:request"),
+            {"order_id": order.id},
+            content_type="application/json",
+            **auth(user),
+        )
+
+    assert response.status_code == 400
+    assert Payment.objects.filter(order=order).exists() is False
+    create.assert_not_called()
 
 
 def test_payment_request_rejects_wrong_payload_without_gateway_call(
@@ -638,6 +724,89 @@ def test_zarinpal_verify_sends_json_headers_and_normalizes_fields(settings):
         headers={"Accept": "application/json", "Content-Type": "application/json"},
         timeout=15,
     )
+
+
+def test_zarinpal_create_payment_uses_order_snapshot_and_sanitizes_response(order):
+    response = Mock(status_code=200)
+    response.json.return_value = {
+        "data": {
+            "code": 100,
+            "message": "Created",
+            "authority": "C" * 36,
+            "private_debug_value": "must-not-be-retained",
+        }
+    }
+
+    with patch(
+        "payments.services.zarinpal.requests.post",
+        return_value=response,
+    ) as post:
+        result = ZarinPalService().create_payment(order)
+
+    assert result.authority == "C" * 36
+    assert result.payment_url.endswith("C" * 36)
+    assert "private_debug_value" not in result.gateway_response["data"]
+    post.assert_called_once_with(
+        ZarinPalService.SANDBOX_ENDPOINTS.request_url,
+        json={
+            "merchant_id": "test-merchant",
+            "amount": order.total_amount,
+            "currency": "IRT",
+            "description": f"Order #{order.id}",
+            "callback_url": (
+                "https://api.example.invalid/api/v1/payments/zarinpal/callback/"
+            ),
+            "metadata": {
+                "mobile": order.recipient_phone,
+                "email": "",
+                "order_id": str(order.id),
+            },
+        },
+        headers={"Accept": "application/json", "Content-Type": "application/json"},
+        timeout=15,
+    )
+
+
+def test_zarinpal_http_error_retains_only_safe_diagnostics():
+    response = Mock(status_code=503)
+    response.json.return_value = {
+        "errors": {
+            "code": -1,
+            "message": "Temporarily unavailable",
+            "private_debug_value": "must-not-be-retained",
+        },
+        "private_gateway_trace": "must-not-be-retained",
+    }
+
+    with patch("payments.services.zarinpal.requests.post", return_value=response):
+        with pytest.raises(ZarinPalTransportError) as exc_info:
+            ZarinPalService().verify_payment("A" * 36, 2000)
+
+    assert exc_info.value.code == -1
+    assert exc_info.value.gateway_response == {
+        "errors": {"code": -1, "message": "Temporarily unavailable"}
+    }
+
+
+def test_verified_payment_rejects_mismatched_authority_without_state_change(
+    payment, product
+):
+    original_stock = product.stock
+
+    with pytest.raises(DjangoValidationError, match="authority does not match"):
+        finalize_verified_payment(
+            payment.id,
+            authority="different-authority",
+            verification=verify_result(),
+        )
+
+    payment.refresh_from_db()
+    payment.order.refresh_from_db()
+    product.refresh_from_db()
+    assert payment.status == Payment.Status.PENDING
+    assert payment.order.status == Order.Status.PENDING
+    assert payment.order.stock_reduced is False
+    assert product.stock == original_stock
 
 
 def test_zarinpal_verify_accepts_code_101():

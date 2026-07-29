@@ -5,7 +5,8 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import HttpResponseRedirect
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -13,6 +14,7 @@ from rest_framework.views import APIView
 
 from payments.models import Payment
 from payments.serializers import (
+    LegacyPaymentVerificationResponseSerializer,
     PaymentRequestSerializer,
     PaymentSerializer,
 )
@@ -35,7 +37,25 @@ AUTHORITY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
 class PaymentRequestView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=PaymentRequestSerializer, responses={201: PaymentSerializer})
+    @extend_schema(
+        request=PaymentRequestSerializer,
+        responses={
+            status.HTTP_201_CREATED: PaymentSerializer,
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description=(
+                    "Malformed input, a non-payable order, insufficient stock, or "
+                    "a safe gateway request failure. Validation responses use DRF "
+                    "field-keyed errors; gateway failures use a detail list."
+                )
+            ),
+            status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
+                description="JWT authentication is missing or invalid."
+            ),
+            status.HTTP_403_FORBIDDEN: OpenApiResponse(
+                description=("The authenticated non-staff user does not own the order.")
+            ),
+        },
+    )
     def post(self, request):
         serializer = PaymentRequestSerializer(
             data=request.data,
@@ -55,6 +75,50 @@ class PaymentRequestView(APIView):
 class ZarinPalCallbackView(APIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="Authority",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Opaque ZarinPal payment authority. Missing or invalid values "
+                    "redirect to the storefront failure page."
+                ),
+            ),
+            OpenApiParameter(
+                name="Status",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                enum=("OK", "NOK"),
+                description=(
+                    "Gateway callback status. NOK and invalid or missing values "
+                    "redirect to the storefront failure page."
+                ),
+            ),
+            OpenApiParameter(
+                name="Location",
+                type=OpenApiTypes.URI,
+                location=OpenApiParameter.HEADER,
+                response=[status.HTTP_302_FOUND],
+                description=(
+                    "Storefront success or failure URL. Success redirects include "
+                    "the order id and public payment reference; failures include a "
+                    "safe reason code and, when known, the order id."
+                ),
+            ),
+        ],
+        responses={
+            status.HTTP_302_FOUND: OpenApiResponse(
+                description=(
+                    "Redirects the browser to the configured storefront payment "
+                    "success or failure page. The response has no body."
+                )
+            )
+        },
+    )
     def get(self, request):
         authority = str(request.query_params.get("Authority") or "").strip()
         if not authority:
@@ -186,6 +250,12 @@ class ZarinPalCallbackView(APIView):
 class PaymentVerifyView(APIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(
+        request=None,
+        responses={
+            status.HTTP_410_GONE: LegacyPaymentVerificationResponseSerializer,
+        },
+    )
     def post(self, request):
         return Response(
             {"detail": "This legacy verification endpoint is no longer available."},

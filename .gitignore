@@ -13,6 +13,9 @@ backend/venv/
 backend/media/
 media/
 staticfiles/
+.coverage
+coverage.xml
+htmlcov/
 /import_data/
 !backend/import_data/
 backend/import_data/*

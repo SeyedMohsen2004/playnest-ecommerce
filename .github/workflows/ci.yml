@@ -57,8 +57,13 @@ jobs:
       - name: Run Django system check
         run: python manage.py check
 
-      - name: Run tests
-        run: pytest
+      - name: Run tests with branch coverage
+        run: >-
+          pytest
+          --cov
+          --cov-branch
+          --cov-report=term-missing
+          --cov-fail-under=76
 
       - name: Check formatting
         run: black --check .

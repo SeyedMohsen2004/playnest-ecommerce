@@ -115,6 +115,22 @@ def test_valid_percentage_coupon(client, user, product):
     }
 
 
+def test_percentage_coupon_respects_maximum_discount(client, user, product):
+    add_to_cart(user, product)
+    Coupon.objects.create(
+        code="CAPPED",
+        discount_type=Coupon.DiscountType.PERCENTAGE,
+        discount_value=50,
+        max_discount_amount=100_000,
+    )
+
+    response = apply_coupon(client, user, "CAPPED")
+
+    assert response.status_code == 200
+    assert response.json()["discount_amount"] == 100_000
+    assert response.json()["total_amount"] == 900_000
+
+
 def test_valid_fixed_coupon(client, user, product):
     add_to_cart(user, product)
     Coupon.objects.create(
@@ -130,6 +146,20 @@ def test_valid_fixed_coupon(client, user, product):
     assert response.json()["total_amount"] == 800_000
 
 
+def test_fixed_coupon_cannot_exceed_order_subtotal(client, user, product):
+    add_to_cart(user, product)
+    Coupon.objects.create(
+        code="TOO-LARGE",
+        discount_type=Coupon.DiscountType.FIXED,
+        discount_value=1_000_001,
+    )
+
+    response = apply_coupon(client, user, "TOO-LARGE")
+
+    assert response.status_code == 400
+    assert "exceed order total" in str(response.json()).lower()
+
+
 def test_expired_coupon_is_rejected(client, user, product):
     add_to_cart(user, product)
     Coupon.objects.create(
@@ -143,6 +173,21 @@ def test_expired_coupon_is_rejected(client, user, product):
 
     assert response.status_code == 400
     assert "expired" in str(response.json()).lower()
+
+
+def test_future_coupon_is_rejected(client, user, product):
+    add_to_cart(user, product)
+    Coupon.objects.create(
+        code="FUTURE",
+        discount_type=Coupon.DiscountType.PERCENTAGE,
+        discount_value=10,
+        starts_at=timezone.now() + timedelta(minutes=1),
+    )
+
+    response = apply_coupon(client, user, "FUTURE")
+
+    assert response.status_code == 400
+    assert "not active yet" in str(response.json()).lower()
 
 
 def test_inactive_coupon_is_rejected(client, user, product):
@@ -231,7 +276,7 @@ def test_coupon_used_count_increments_after_payment_success(
     user,
     product,
 ):
-    settings.FRONTEND_BASE_URL = "https://ipaktoys.ir"
+    settings.FRONTEND_BASE_URL = "https://shop.example.invalid"
     add_to_cart(user, product)
     coupon = Coupon.objects.create(
         code="PAY10",
@@ -262,7 +307,7 @@ def test_coupon_used_count_increments_after_payment_success(
 
 
 def test_coupon_used_count_does_not_increment_twice(client, settings, user, product):
-    settings.FRONTEND_BASE_URL = "https://ipaktoys.ir"
+    settings.FRONTEND_BASE_URL = "https://shop.example.invalid"
     add_to_cart(user, product)
     coupon = Coupon.objects.create(
         code="ONCE",

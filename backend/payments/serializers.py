@@ -38,6 +38,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             return payment_url(obj)
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_card_pan(self, obj):
         return mask_card_pan(obj.card_pan)
 
@@ -123,3 +124,7 @@ class PaymentRequestSerializer(serializers.Serializer):
                 amount=order.total_amount,
             )
         return payment
+
+
+class LegacyPaymentVerificationResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField(read_only=True)

@@ -1,0 +1,23 @@
+[run]
+branch = True
+source =
+    accounts
+    core
+    orders
+    payments
+    products
+omit =
+    */migrations/*
+    */tests/*
+    manage.py
+    config/*
+
+[report]
+fail_under = 76
+precision = 2
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
