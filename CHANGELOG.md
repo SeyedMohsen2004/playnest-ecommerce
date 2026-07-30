@@ -15,6 +15,8 @@ yet claim a published `v1.0.0` tag or GitHub release.
 
 ### Changed
 
+- Clarified that public repository visibility is for portfolio review and does
+  not grant an open-source license or redistribution rights.
 - Reworked the main README around verified architecture, behavior, tests,
   coverage, CI, and opt-in production readiness.
 - Generalized local product-import examples and removed client-specific dataset

@@ -337,9 +337,12 @@ release notes, but no GitHub `v1.0.0` tag or release is claimed. Production
 deployment remains a manual operator process; the public GitHub branch is not
 automatically promoted to the live website.
 
-A public licensing decision is still required before a formal release. Until a
-license is added, no permission to copy, modify, or redistribute the code should
-be inferred.
+## License
+
+This repository is publicly visible for portfolio review and technical
+evaluation. No open-source license is granted. All rights are reserved; no
+permission to copy, modify, redistribute, sublicense, or use the code
+commercially should be inferred from its public availability.
 
 ## Author
 
