@@ -58,24 +58,19 @@ engineering work covers catalog management, JWT authentication, cart and
 checkout, order and payment state, inventory safeguards, shipping and coupon
 pricing, OpenAPI contracts, automated testing, continuous integration, and
 opt-in production containers.
-## Live Production Project
 
-A production deployment of this project powers the
-[IpakToys online store](https://ipaktoys.ir).
+## At a Glance
 
-The linked website is a real production deployment, while this repository
-demonstrates the engineering implementation under the PlayNest project name.
-The live deployment may include private, environment-specific configuration and
-is not claimed to be byte-for-byte identical to the current public branch.
-GitHub changes are not automatically deployed to the live server.
-
-The public repository excludes production credentials, customer data,
-infrastructure-specific configuration, private operational details, and
-commercial datasets. Linking the website provides portfolio context only; it
-does not expose or grant access to production systems.
-
-PlayNest's author does not claim ownership of the store, client branding,
-product catalog, customer data, or commercial operations.
+| Area | Details |
+| --- | --- |
+| Engineering role | Independent backend and full-stack development |
+| Backend | Django REST Framework |
+| Frontend | Next.js, React, TypeScript |
+| Database | PostgreSQL |
+| Payments | ZarinPal |
+| Testing | 177 backend tests and 76.94% branch-aware coverage |
+| Delivery | Docker, Gunicorn, Next.js standalone, GitHub Actions |
+| Live deployment | [IpakToys online store](https://ipaktoys.ir) |
 
 ## Engineering Ownership
 
@@ -99,6 +94,18 @@ deployment infrastructure, automated testing, CI, and frontend integration.
 - 177 backend tests with branch-aware coverage and a 76% CI regression gate.
 - Separate development and opt-in production Compose workflows, including
   Gunicorn and Next.js standalone images running as non-root users.
+
+## Live Production Project
+
+A production deployment of PlayNest powers the
+[IpakToys online store](https://ipaktoys.ir). This public repository demonstrates
+the engineering implementation and is not claimed to be byte-for-byte identical
+to the live environment. GitHub changes are not automatically deployed.
+
+Production credentials, customer data, commercial datasets, private operational
+details, and infrastructure-specific configuration are excluded. Engineering
+attribution applies only to the software implementation, not to store ownership,
+client branding, product data, customer data, or commercial operations.
 
 ## Main Features
 
@@ -128,6 +135,16 @@ The browser-facing Next.js application consumes versioned Django REST
 endpoints. Django owns authentication, validation, pricing, transactional
 checkout, order state, payment verification, and PostgreSQL persistence.
 External payment and SMS providers are accessed only through backend services.
+
+```mermaid
+flowchart LR
+    Browser["User Browser"] --> Proxy["Reverse Proxy"]
+    Proxy --> Frontend["Next.js Storefront"]
+    Frontend --> API["Django REST API"]
+    API --> Database["PostgreSQL"]
+    API --> Payment["ZarinPal"]
+    API --> SMS["SMS Provider"]
+```
 
 Development uses `docker-compose.yml` with PostgreSQL, Django `runserver`, and
 the Next.js development server. Production assets are opt-in:
@@ -199,59 +216,40 @@ The frontend still listens on port 3000 inside its container. Browser requests
 use the public development API URL configured through
 `NEXT_PUBLIC_API_BASE_URL`, not the internal Compose service name.
 
-### Development seed data
+### Development utilities
 
-Seed data is strictly for local development:
+Create repeatable local demonstration data:
 
 ```bash
 docker compose exec api python manage.py seed_data
 ```
 
-The command is idempotent and creates local catalog, coupon, and demonstration
-account data. Seeded credentials must never be reused in production. Operators
-should inspect the seed command and its tests or configure alternative local
-demo credentials through development tooling; credentials are intentionally
-not published in this README. Production images and startup commands never run
-seed data automatically.
+Seed data is intended only for local development and is never loaded
+automatically by the production images.
 
-### Product import
-
-The guarded import command accepts a local workbook and product-image folders:
-
-```text
-backend/import_data/
-  products.xlsx
-  product_images/
-    example-product/
-```
+A guarded command is also available for importing local product workbooks and
+images:
 
 ```bash
 docker compose exec api python manage.py import_real_products
 ```
 
-Imported workbooks, images, archives, and generated media are gitignored.
-Customer datasets are not included in the public repository. A production
-import requires a verified backup, explicit operator review, and a dry
-inspection of the source data. Destructive import modes are for disposable
-development data unless separately approved. See
-[Product Import Data](backend/import_data/README.md).
+Imported datasets and generated media are gitignored. See
+[Product Import Data](backend/import_data/README.md) for the expected structure,
+safety requirements, and import workflow.
 
 ## Environment Configuration
 
-Copy the tracked templates; never commit the resulting local environment files:
+Use the tracked templates for local and production configuration:
 
-- `.env.example` configures local Django, PostgreSQL, provider sandbox, and host
-  ports.
-- `frontend/.env.example` configures the browser-visible development API base
-  URL.
-- `.env.production.example` documents required production values using
-  placeholders and reserved example domains.
+- `.env.example` for the local Django, PostgreSQL, and provider settings.
+- `frontend/.env.example` for the browser-visible API base URL.
+- `.env.production.example` for placeholder-only production values.
 
-`NEXT_PUBLIC_API_BASE_URL` is public and is embedded into the frontend bundle at
-build time. Django signing keys, database passwords, SMS credentials, and
-payment merchant identifiers are private runtime values and must be provided
-out of band. Technical examples use localhost or reserved `.example.invalid`
-domains.
+Never commit generated `.env` files or runtime secrets.
+`NEXT_PUBLIC_API_BASE_URL` is embedded into the frontend bundle, while Django
+keys, database credentials, SMS credentials, and payment merchant identifiers
+must remain private.
 
 ## API Documentation
 
