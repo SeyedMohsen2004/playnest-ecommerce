@@ -1,6 +1,56 @@
-# PlayNest
+<p align="center">
+  <img
+    src="docs/images/playnest-social-preview.png"
+    alt="PlayNest production-oriented ecommerce platform"
+    width="100%"
+  />
+</p>
 
-[![CI](https://github.com/SeyedMohsen2004/playnest-ecommerce/actions/workflows/ci.yml/badge.svg)](https://github.com/SeyedMohsen2004/playnest-ecommerce/actions/workflows/ci.yml)
+<h1 align="center">PlayNest</h1>
+
+<p align="center">
+  A production-oriented ecommerce platform powered by Django REST Framework
+  and a Persian-first Next.js storefront.
+</p>
+
+<p align="center">
+  <a href="https://github.com/SeyedMohsen2004/playnest-ecommerce/actions/workflows/ci.yml">
+    <img
+      src="https://github.com/SeyedMohsen2004/playnest-ecommerce/actions/workflows/ci.yml/badge.svg"
+      alt="CI"
+    />
+  </a>
+  <img
+    src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white"
+    alt="Python 3.12"
+  />
+  <img
+    src="https://img.shields.io/badge/Django-5.2-092E20?logo=django&logoColor=white"
+    alt="Django 5.2"
+  />
+  <img
+    src="https://img.shields.io/badge/Next.js-15-000000?logo=next.js&logoColor=white"
+    alt="Next.js 15"
+  />
+  <img
+    src="https://img.shields.io/badge/Tests-177-success"
+    alt="177 backend tests"
+  />
+  <img
+    src="https://img.shields.io/badge/Coverage-76.94%25-success"
+    alt="76.94 percent branch-aware coverage"
+  />
+</p>
+
+<p align="center">
+  <a href="https://ipaktoys.ir"><strong>Live production deployment</strong></a>
+  ·
+  <a href="docs/architecture.md">Architecture</a>
+  ·
+  <a href="docs/deployment.md">Deployment guide</a>
+  ·
+  <a href="#api-documentation">API documentation</a>
+</p>
 
 PlayNest is a production-oriented ecommerce platform built as a Django REST
 Framework API and a Persian-first, right-to-left Next.js storefront. The
@@ -8,7 +58,6 @@ engineering work covers catalog management, JWT authentication, cart and
 checkout, order and payment state, inventory safeguards, shipping and coupon
 pricing, OpenAPI contracts, automated testing, continuous integration, and
 opt-in production containers.
-
 ## Live Production Project
 
 A production deployment of this project powers the
