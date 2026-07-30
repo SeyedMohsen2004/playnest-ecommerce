@@ -1,35 +1,20 @@
 # Changelog
 
 This changelog follows the principles of
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The project does not
-yet claim a published `v1.0.0` tag or GitHub release.
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## [Unreleased]
+
+No unreleased changes.
+
+## [1.0.0] - 2026-07-30
 
 ### Added
 
 - Public portfolio context, engineering attribution, and explicit separation
   between the PlayNest implementation and client commercial ownership.
-- Architecture, security, contribution, and release-preparation documentation.
+- Architecture, security, contribution, and release documentation.
 - Responsible-disclosure guidance and public-repository privacy expectations.
-
-### Changed
-
-- Clarified that public repository visibility is for portfolio review and does
-  not grant an open-source license or redistribution rights.
-- Reworked the main README around verified architecture, behavior, tests,
-  coverage, CI, and opt-in production readiness.
-- Generalized local product-import examples and removed client-specific dataset
-  details and published demo credentials from documentation.
-- Corrected stale OTP, mock-payment, deployment, and project-roadmap claims.
-
-## 1.0.0 - Prepared, Not Released
-
-These are proposed release notes for a future 1.0.0 release. No tag or GitHub
-release is implied.
-
-### Added
-
 - Django REST Framework ecommerce backend and Persian RTL Next.js/React
   storefront.
 - Phone-number/password authentication with JWT access and refresh tokens.
@@ -53,6 +38,16 @@ release is implied.
 - Production-oriented Django security settings for explicit hosts, origins,
   cookies, proxy trust, HTTPS redirects, referrer policy, nosniff, and
   deliberately staged HSTS.
+
+### Changed
+
+- Clarified that public repository visibility is for portfolio review and does
+  not grant an open-source license or redistribution rights.
+- Reworked the main README around verified architecture, behavior, tests,
+  coverage, CI, and opt-in production readiness.
+- Generalized local product-import examples and removed client-specific dataset
+  details and published demo credentials from documentation.
+- Corrected stale OTP, mock-payment, deployment, and project-roadmap claims.
 
 ### Security
 

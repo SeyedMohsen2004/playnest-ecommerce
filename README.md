@@ -332,10 +332,10 @@ security-test it. See [Security Policy](SECURITY.md) for responsible disclosure.
 
 ## Project Status
 
-The repository contains a tested ecommerce implementation and prepared 1.0.0
-release notes, but no GitHub `v1.0.0` tag or release is claimed. Production
-deployment remains a manual operator process; the public GitHub branch is not
-automatically promoted to the live website.
+The repository contains a tested ecommerce implementation with a documented
+`v1.0.0` portfolio release baseline. Production deployment remains a manual
+operator process; the public GitHub branch is not automatically promoted to the
+live website.
 
 ## License
 
