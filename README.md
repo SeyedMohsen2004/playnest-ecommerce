@@ -247,20 +247,16 @@ safety requirements, and import workflow.
 
 ## Environment Configuration
 
-Copy the tracked templates; never commit the resulting local environment files:
+Use the tracked templates for local and production configuration:
 
-- `.env.example` configures local Django, PostgreSQL, provider sandbox, and host
-  ports.
-- `frontend/.env.example` configures the browser-visible development API base
-  URL.
-- `.env.production.example` documents required production values using
-  placeholders and reserved example domains.
+- `.env.example` for the local Django, PostgreSQL, and provider settings.
+- `frontend/.env.example` for the browser-visible API base URL.
+- `.env.production.example` for placeholder-only production values.
 
-`NEXT_PUBLIC_API_BASE_URL` is public and is embedded into the frontend bundle at
-build time. Django signing keys, database passwords, SMS credentials, and
-payment merchant identifiers are private runtime values and must be provided
-out of band. Technical examples use localhost or reserved `.example.invalid`
-domains.
+Never commit generated `.env` files or runtime secrets.
+`NEXT_PUBLIC_API_BASE_URL` is embedded into the frontend bundle, while Django
+keys, database credentials, SMS credentials, and payment merchant identifiers
+must remain private.
 
 ## API Documentation
 
