@@ -58,6 +58,20 @@ engineering work covers catalog management, JWT authentication, cart and
 checkout, order and payment state, inventory safeguards, shipping and coupon
 pricing, OpenAPI contracts, automated testing, continuous integration, and
 opt-in production containers.
+
+## At a Glance
+
+| Area | Details |
+| --- | --- |
+| Engineering role | Independent backend and full-stack development |
+| Backend | Django REST Framework |
+| Frontend | Next.js, React, TypeScript |
+| Database | PostgreSQL |
+| Payments | ZarinPal |
+| Testing | 177 backend tests and 76.94% branch-aware coverage |
+| Delivery | Docker, Gunicorn, Next.js standalone, GitHub Actions |
+| Live deployment | [IpakToys online store](https://ipaktoys.ir) |
+
 ## Live Production Project
 
 A production deployment of this project powers the
@@ -128,6 +142,16 @@ The browser-facing Next.js application consumes versioned Django REST
 endpoints. Django owns authentication, validation, pricing, transactional
 checkout, order state, payment verification, and PostgreSQL persistence.
 External payment and SMS providers are accessed only through backend services.
+
+```mermaid
+flowchart LR
+    Browser["User Browser"] --> Proxy["Reverse Proxy"]
+    Proxy --> Frontend["Next.js Storefront"]
+    Frontend --> API["Django REST API"]
+    API --> Database["PostgreSQL"]
+    API --> Payment["ZarinPal"]
+    API --> SMS["SMS Provider"]
+```
 
 Development uses `docker-compose.yml` with PostgreSQL, Django `runserver`, and
 the Next.js development server. Production assets are opt-in:
