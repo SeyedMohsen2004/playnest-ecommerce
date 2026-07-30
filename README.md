@@ -223,42 +223,27 @@ The frontend still listens on port 3000 inside its container. Browser requests
 use the public development API URL configured through
 `NEXT_PUBLIC_API_BASE_URL`, not the internal Compose service name.
 
-### Development seed data
+### Development utilities
 
-Seed data is strictly for local development:
+Create repeatable local demonstration data:
 
 ```bash
 docker compose exec api python manage.py seed_data
 ```
 
-The command is idempotent and creates local catalog, coupon, and demonstration
-account data. Seeded credentials must never be reused in production. Operators
-should inspect the seed command and its tests or configure alternative local
-demo credentials through development tooling; credentials are intentionally
-not published in this README. Production images and startup commands never run
-seed data automatically.
+Seed data is intended only for local development and is never loaded
+automatically by the production images.
 
-### Product import
-
-The guarded import command accepts a local workbook and product-image folders:
-
-```text
-backend/import_data/
-  products.xlsx
-  product_images/
-    example-product/
-```
+A guarded command is also available for importing local product workbooks and
+images:
 
 ```bash
 docker compose exec api python manage.py import_real_products
 ```
 
-Imported workbooks, images, archives, and generated media are gitignored.
-Customer datasets are not included in the public repository. A production
-import requires a verified backup, explicit operator review, and a dry
-inspection of the source data. Destructive import modes are for disposable
-development data unless separately approved. See
-[Product Import Data](backend/import_data/README.md).
+Imported datasets and generated media are gitignored. See
+[Product Import Data](backend/import_data/README.md) for the expected structure,
+safety requirements, and import workflow.
 
 ## Environment Configuration
 
