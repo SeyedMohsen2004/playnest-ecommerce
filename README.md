@@ -72,25 +72,6 @@ opt-in production containers.
 | Delivery | Docker, Gunicorn, Next.js standalone, GitHub Actions |
 | Live deployment | [IpakToys online store](https://ipaktoys.ir) |
 
-## Live Production Project
-
-A production deployment of this project powers the
-[IpakToys online store](https://ipaktoys.ir).
-
-The linked website is a real production deployment, while this repository
-demonstrates the engineering implementation under the PlayNest project name.
-The live deployment may include private, environment-specific configuration and
-is not claimed to be byte-for-byte identical to the current public branch.
-GitHub changes are not automatically deployed to the live server.
-
-The public repository excludes production credentials, customer data,
-infrastructure-specific configuration, private operational details, and
-commercial datasets. Linking the website provides portfolio context only; it
-does not expose or grant access to production systems.
-
-PlayNest's author does not claim ownership of the store, client branding,
-product catalog, customer data, or commercial operations.
-
 ## Engineering Ownership
 
 Designed and implemented independently by Seyed Mohsen Moosavi, covering
@@ -113,6 +94,25 @@ deployment infrastructure, automated testing, CI, and frontend integration.
 - 177 backend tests with branch-aware coverage and a 76% CI regression gate.
 - Separate development and opt-in production Compose workflows, including
   Gunicorn and Next.js standalone images running as non-root users.
+
+## Live Production Project
+
+A production deployment of this project powers the
+[IpakToys online store](https://ipaktoys.ir).
+
+The linked website is a real production deployment, while this repository
+demonstrates the engineering implementation under the PlayNest project name.
+The live deployment may include private, environment-specific configuration and
+is not claimed to be byte-for-byte identical to the current public branch.
+GitHub changes are not automatically deployed to the live server.
+
+The public repository excludes production credentials, customer data,
+infrastructure-specific configuration, private operational details, and
+commercial datasets. Linking the website provides portfolio context only; it
+does not expose or grant access to production systems.
+
+PlayNest's author does not claim ownership of the store, client branding,
+product catalog, customer data, or commercial operations.
 
 ## Main Features
 
