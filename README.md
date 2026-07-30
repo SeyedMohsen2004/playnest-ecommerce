@@ -97,22 +97,15 @@ deployment infrastructure, automated testing, CI, and frontend integration.
 
 ## Live Production Project
 
-A production deployment of this project powers the
-[IpakToys online store](https://ipaktoys.ir).
+A production deployment of PlayNest powers the
+[IpakToys online store](https://ipaktoys.ir). This public repository demonstrates
+the engineering implementation and is not claimed to be byte-for-byte identical
+to the live environment. GitHub changes are not automatically deployed.
 
-The linked website is a real production deployment, while this repository
-demonstrates the engineering implementation under the PlayNest project name.
-The live deployment may include private, environment-specific configuration and
-is not claimed to be byte-for-byte identical to the current public branch.
-GitHub changes are not automatically deployed to the live server.
-
-The public repository excludes production credentials, customer data,
-infrastructure-specific configuration, private operational details, and
-commercial datasets. Linking the website provides portfolio context only; it
-does not expose or grant access to production systems.
-
-PlayNest's author does not claim ownership of the store, client branding,
-product catalog, customer data, or commercial operations.
+Production credentials, customer data, commercial datasets, private operational
+details, and infrastructure-specific configuration are excluded. Engineering
+attribution applies only to the software implementation, not to store ownership,
+client branding, product data, customer data, or commercial operations.
 
 ## Main Features
 
