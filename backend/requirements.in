@@ -1,5 +1,5 @@
 # Direct runtime dependencies shared by development and production.
-Django>=5.2,<5.3
+Django>=6.0.7,<6.1
 djangorestframework>=3.16,<3.17
 psycopg[binary]>=3.2,<3.3
 python-decouple>=3.8,<4.0
