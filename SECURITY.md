@@ -2,14 +2,15 @@
 
 ## Supported Versions
 
-Until a public release and long-term support policy are established, security
-updates target the latest default-branch code only.
+Security fixes target the latest `v1.0.x` release line and the current default
+branch on a best-effort basis. This policy does not establish long-term support
+or a guaranteed remediation schedule.
 
 | Version | Supported |
 | --- | --- |
-| Latest default branch | Yes, best effort |
-| Older commits or untagged snapshots | No guarantee |
-| Prepared but unreleased 1.0.0 notes | Not a released version |
+| Latest `v1.0.x` release | Yes, best effort |
+| Current default branch | Yes, active development |
+| Pre-1.0 releases, older commits, or untagged snapshots | No guarantee |
 
 ## Reporting a Vulnerability
 

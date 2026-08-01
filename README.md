@@ -20,6 +20,12 @@
       alt="CI"
     />
   </a>
+  <a href="https://github.com/SeyedMohsen2004/playnest-ecommerce/releases/latest">
+    <img
+      src="https://img.shields.io/github/v/release/SeyedMohsen2004/playnest-ecommerce?display_name=tag&amp;sort=semver"
+      alt="Latest release"
+    />
+  </a>
   <img
     src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white"
     alt="Python 3.12"
@@ -185,7 +191,7 @@ details.
 | `.env.production.example` | Placeholder-only production environment template. |
 | `SECURITY.md` | Responsible disclosure and security policy. |
 | `CONTRIBUTING.md` | Contribution checks and review expectations. |
-| `CHANGELOG.md` | Unreleased changes and prepared 1.0.0 notes. |
+| `CHANGELOG.md` | Release history and unreleased changes. |
 
 ## Local Development
 
@@ -333,7 +339,8 @@ security-test it. See [Security Policy](SECURITY.md) for responsible disclosure.
 ## Project Status
 
 The repository contains a tested ecommerce implementation with a documented
-`v1.0.0` portfolio release baseline. Production deployment remains a manual
+[`v1.0.0` portfolio release baseline](https://github.com/SeyedMohsen2004/playnest-ecommerce/releases/tag/v1.0.0).
+Production deployment remains a manual
 operator process; the public GitHub branch is not automatically promoted to the
 live website.
 

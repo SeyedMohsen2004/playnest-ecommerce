@@ -5,7 +5,10 @@ This changelog follows the principles of
 
 ## [Unreleased]
 
-No unreleased changes.
+### Changed
+
+- Updated post-release support, documentation, and repository participation
+  wording after the `v1.0.0` publication.
 
 ## [1.0.0] - 2026-07-30
 
@@ -56,3 +59,6 @@ No unreleased changes.
 - Production secrets and database credentials have no weak Compose fallbacks.
 - Migrations and seed data never run automatically in production.
 - Uploaded media is persistent and documented as untrusted content.
+
+[Unreleased]: https://github.com/SeyedMohsen2004/playnest-ecommerce/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/SeyedMohsen2004/playnest-ecommerce/releases/tag/v1.0.0
