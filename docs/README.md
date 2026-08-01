@@ -13,7 +13,7 @@ an opt-in production deployment workflow.
 - [Security Policy](../SECURITY.md) explains responsible disclosure and
   sensitive-data expectations.
 - [Contributing](../CONTRIBUTING.md) lists required checks and review policy.
-- [Changelog](../CHANGELOG.md) records unreleased and prepared release notes.
+- [Changelog](../CHANGELOG.md) records release history and unreleased changes.
 
 Public documentation deliberately omits credentials, customer data, commercial
 datasets, private infrastructure, privileged routes, operational logs, backup

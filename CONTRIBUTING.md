@@ -1,7 +1,10 @@
 # Contributing to PlayNest
 
-Thank you for helping improve PlayNest. Contributions should be focused,
-reviewable, tested, and free of private production or customer information.
+This public repository is maintained primarily for portfolio review and
+technical evaluation. External contributions are not currently accepted unless
+coordinated in advance with the maintainer. This file documents the development
+and review standards used for repository changes; it does not grant permission
+to use, redistribute, or commercially exploit the code.
 
 ## Prerequisites
 
