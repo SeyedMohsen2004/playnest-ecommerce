@@ -17,7 +17,6 @@ from products.models import (
     WishlistItem,
 )
 
-
 COLUMN_ALIASES = {
     "name": ("نام محصول",),
     "category": ("دسته بندی", "دسته‌بندی"),

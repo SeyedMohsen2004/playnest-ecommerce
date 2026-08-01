@@ -1,5 +1,9 @@
+import base64
+
 import pytest
+from django import forms
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -9,6 +13,7 @@ from products.models import (
     Category,
     HomepageProductSlot,
     Product,
+    ProductImage,
 )
 
 pytestmark = pytest.mark.django_db
@@ -177,6 +182,34 @@ def test_product_is_in_stock(category, brand):
     assert product.is_in_stock is True
     product.stock = 0
     assert product.is_in_stock is False
+
+
+def test_product_image_form_accepts_valid_png(settings, tmp_path, product):
+    settings.MEDIA_ROOT = tmp_path
+    image_form = forms.modelform_factory(
+        ProductImage,
+        fields=("image", "alt_text", "is_main"),
+    )
+    png = SimpleUploadedFile(
+        "product.png",
+        base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8A"
+            "AQUBAScY42YAAAAASUVORK5CYII="
+        ),
+        content_type="image/png",
+    )
+
+    form = image_form(
+        data={"alt_text": "Synthetic product image", "is_main": True},
+        files={"image": png},
+    )
+
+    assert form.is_valid(), form.errors
+    product_image = form.save(commit=False)
+    product_image.product = product
+    product_image.save()
+    assert product_image.image.width == 1
+    assert product_image.image.height == 1
 
 
 def test_product_list_filtering_search_and_ordering(client, product, category, brand):

@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
@@ -7,12 +7,17 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
 
 WORKDIR /build
-COPY requirements.prod.txt .
-RUN python -m pip install --upgrade pip \
-    && python -m pip install -r requirements.prod.txt
+COPY requirements-build.txt requirements.prod.txt ./
+RUN python -m pip install --require-hashes -r requirements-build.txt \
+    && python -m pip install \
+        --require-hashes \
+        --no-build-isolation \
+        -r requirements.prod.txt \
+    && python -m pip check \
+    && python -m pip uninstall --yes pip setuptools wheel
 
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -24,7 +29,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     GUNICORN_ACCESS_LOGFILE="-" \
     GUNICORN_ERROR_LOGFILE="-"
 
-RUN groupadd --gid 10001 app \
+RUN python -m pip uninstall --yes pip setuptools wheel \
+    && groupadd --gid 10001 app \
     && useradd \
         --uid 10001 \
         --gid app \

@@ -5,10 +5,53 @@ This changelog follows the principles of
 
 ## [Unreleased]
 
+### Added
+
+- Full-history Gitleaks scanning for pull requests, default-branch pushes, and
+  manual runs.
+- CodeQL analysis for Python and JavaScript/TypeScript on pull requests,
+  default-branch pushes, a weekly schedule, and manual runs.
+- Weekly Dependabot configuration for Python, npm, GitHub Actions, backend and
+  frontend Dockerfiles, and root Docker Compose manifests, with non-major
+  grouping and no automatic merge.
+- Pull request and portfolio-appropriate issue-template configuration.
+- Human-maintained Python dependency inputs and separate generated,
+  hash-verified build/bootstrap, development, and production locks.
+- Dependency locking and advisory review documentation.
+
 ### Changed
 
 - Updated post-release support, documentation, and repository participation
   wording after the `v1.0.0` publication.
+- Hardened CI with least-privilege permissions, per-ref concurrency,
+  job timeouts, migration-drift and OpenAPI checks, exact dependency installs,
+  and Python environment validation.
+- Updated maintained GitHub Action release lines, pinned every action to a
+  verified full commit SHA, and aligned frontend package metadata with the
+  published `v1.0.0` release.
+- Made the development frontend image use the committed lockfile through
+  `npm ci`.
+- Migrated CI and frontend containers from Node.js 20 to Node.js 24 LTS, with
+  matching local version and package-engine metadata.
+- Pinned Python 3.12, Node.js 24, and PostgreSQL 16 container bases to verified
+  multi-architecture manifest digests while retaining readable tags.
+- Installed Kavenegar's source distribution with build isolation disabled after
+  installing a dedicated hash-pinned bootstrap toolchain; production removes
+  those build tools before the runtime stage.
+- Upgraded Pillow 11.3.0 to 12.3.0, Black 25.12.0 to 26.5.1, and pytest 8.4.2
+  to 9.1.1 after full backend compatibility validation.
+- Updated the development-only transitive `brace-expansion` lock from 1.1.16
+  to 1.1.18 to resolve its high-severity denial-of-service advisory.
+
+### Security
+
+- Resolved the previously reported Python advisories through tested dependency
+  upgrades.
+- Overrode Next.js 15.5.22's fixed PostCSS 8.4.31 and Sharp 0.34.x transitive
+  selections with PostCSS 8.5.25 and Sharp 0.35.3 after clean install, audit,
+  lint, build, standalone-server, and image-optimization validation.
+- Recorded point-in-time development and production audit results without
+  presenting automated scans as proof of complete security.
 
 ## [1.0.0] - 2026-07-30
 

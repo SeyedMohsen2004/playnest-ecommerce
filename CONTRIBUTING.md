@@ -11,7 +11,8 @@ to use, redistribute, or commercially exploit the code.
 - Git.
 - Docker Engine and Docker Compose v2 for the supported full-stack workflow.
 - Python 3.12 and PostgreSQL 16 for native backend development.
-- Node.js 20 and npm for native frontend development.
+- Node.js 24 LTS and npm for native frontend development. The supported local
+  version is also recorded in `frontend/.nvmrc` and `package.json`.
 
 Start with [the main README](README.md) and
 [architecture documentation](docs/architecture.md).
@@ -59,7 +60,7 @@ docker compose exec api pytest \
   --cov --cov-branch --cov-report=term-missing --cov-fail-under=76
 docker compose exec api black --check .
 docker compose exec api flake8 .
-docker compose exec api pip check
+docker compose exec api python -m pip check
 ```
 
 The coverage configuration measures the five application packages with branch
@@ -83,6 +84,34 @@ npm run build
 
 Use the committed lockfile and do not apply forced audit upgrades without
 reviewing compatibility and the affected dependency chain.
+
+## Dependency Updates
+
+Python direct constraints live in `backend/requirements.in`,
+`requirements-dev.in`, `requirements-prod.in`, and
+`requirements-build.in`; the corresponding `.txt` files are generated,
+exactly pinned, and hash-verified. Follow
+[Dependency Management](docs/dependencies.md) to install the bootstrap lock and
+regenerate all three locks with build isolation disabled. Never hand-edit a
+generated pin or hash, and always review the build, development, and production
+graphs separately. CI regenerates every lock and fails if committed output
+drifts from the inputs.
+
+Run `python -m pip check` and `python -m pip_audit` after Python updates. Run
+`npm audit` and `npm audit --omit=dev` after frontend updates. Record unresolved
+findings and their production relevance; do not hide advisories, force npm
+fixes, or cross major versions only to make an audit report green.
+
+Dependabot proposes weekly updates for pip, npm, GitHub Actions, the backend and
+frontend Dockerfiles, and root Docker Compose manifests. Patch/minor proposals
+may be grouped, but major updates remain separate and no update is automatically
+merged.
+
+GitHub Actions must use a verified full commit SHA with the release tag retained
+as an adjacent comment. External Dockerfile and Compose base images must retain
+a readable tag plus a verified multi-architecture manifest digest. Follow the
+verification and update procedure in the dependency documentation; never guess
+a SHA or use a local architecture-specific image ID.
 
 ## Compose and Production Assets
 
@@ -137,3 +166,7 @@ Payment, authentication, authorization, deployment, stock, coupon, pricing,
 shipping, order-state, and migration changes require focused review from a
 maintainer familiar with the relevant invariants. Do not merge those changes
 based only on a green generic test suite.
+
+Gitleaks and CodeQL run as additional repository checks. Do not add broad secret
+scan allowlists, suppress analysis findings without a documented false-positive
+review, or describe automated analysis as proof that a change is secure.

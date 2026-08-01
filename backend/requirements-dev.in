@@ -1,0 +1,10 @@
+# Development, test, quality, and dependency-audit tools.
+-r requirements.in
+
+pytest>=9.1,<10.0
+pytest-django>=4.11,<5.0
+pytest-cov>=7.0,<8.0
+black>=26.5,<27.0
+flake8>=7.2,<8.0
+pip-tools==7.6.0
+pip-audit==2.10.1

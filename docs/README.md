@@ -8,6 +8,10 @@ an opt-in production deployment workflow.
 - [Production Deployment](deployment.md) documents prerequisites, backups,
   explicit migrations, static collection, health checks, reverse-proxy trust,
   and rollback.
+- [Dependency Management](dependencies.md) documents direct inputs, the
+  controlled sdist bootstrap, generated hash-pinned locks, Node.js policy,
+  immutable Actions and image pins, audits, Dependabot, and current advisory
+  decisions.
 - [Product Import Data](../backend/import_data/README.md) documents the guarded
   local workbook/image import workflow.
 - [Security Policy](../SECURITY.md) explains responsible disclosure and

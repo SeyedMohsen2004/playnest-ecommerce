@@ -170,7 +170,7 @@ details.
 | Authentication | SimpleJWT |
 | Database | PostgreSQL 16, psycopg 3 |
 | API contracts | drf-spectacular / OpenAPI 3 |
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS |
+| Frontend | Node.js 24 LTS, Next.js 15, React 19, TypeScript, Tailwind CSS |
 | Payments | ZarinPal |
 | SMS integration | Kavenegar adapter and console development adapter |
 | Containers | Docker, Docker Compose, Gunicorn, Next.js standalone output |
@@ -185,6 +185,7 @@ details.
 | `frontend/` | Next.js App Router storefront and typed API client. |
 | `docs/architecture.md` | System boundaries, data flows, and deployment architecture. |
 | `docs/deployment.md` | Opt-in manual production deployment and rollback runbook. |
+| `docs/dependencies.md` | Reproducible Python/npm dependency and advisory workflow. |
 | `docker-compose.yml` | Local development stack. |
 | `docker-compose.prod.yml` | Separate production-oriented stack. |
 | `.env.example` | Safe local-development environment template. |
@@ -221,6 +222,9 @@ FRONTEND_PORT=3001 docker compose up --build -d
 The frontend still listens on port 3000 inside its container. Browser requests
 use the public development API URL configured through
 `NEXT_PUBLIC_API_BASE_URL`, not the internal Compose service name.
+
+Native frontend work uses Node.js 24 LTS; `frontend/.nvmrc` and the package
+engine declaration keep local tooling aligned with CI and both frontend images.
 
 ### Development utilities
 
@@ -296,18 +300,42 @@ docker compose run --rm --no-deps frontend sh -c \
 
 GitHub Actions keeps three independent concerns visible:
 
-- `backend`: PostgreSQL-backed Django checks, branch-aware tests and coverage,
-  Black, and Flake8.
+- `backend`: PostgreSQL-backed Django system and migration-drift checks,
+  validated OpenAPI generation, controlled hash-pinned Python bootstrap and
+  application installation, three-lock freshness and `pip check`, branch-aware
+  tests with the 76% gate, Black, and Flake8.
 - `frontend`: reproducible npm installation, ESLint, and production build.
 - `production-assets`: production Compose interpolation plus backend and
   frontend production-image builds with safe CI placeholders.
 
+Repository security automation is deliberately separate from deployment:
+
+- Gitleaks scans full Git history on pull requests, `main` pushes, and manual
+  runs; findings are not broadly allowlisted or uploaded to a custom service.
+- CodeQL analyzes Python and JavaScript/TypeScript on pull requests, `main`
+  pushes, a weekly schedule, and manual runs.
+- Dependabot checks Python, npm, GitHub Actions, both Dockerfile directories,
+  and root Docker Compose manifests weekly. Patch/minor updates may be grouped;
+  major updates remain separate and are never auto-merged.
+
+All workflow actions use verified full commit SHAs with readable release
+comments. External Python, Node.js, and PostgreSQL base images retain readable
+tags and verified multi-architecture manifest digests. These pins make supply
+chain changes reviewable; they still require timely, tested updates.
+
+Least-privilege permissions, per-ref concurrency cancellation, and job timeouts
+bound the workflows. These checks identify classes of risk; they do not prove
+the application secure and do not deploy or contact a production host. See
+[Dependency Management](docs/dependencies.md) for lock regeneration and the
+current advisory review.
+
 ## Production Readiness
 
 Production support is additive and manual. It uses separate multi-stage
-Dockerfiles, non-root runtime users, named PostgreSQL/static/media volumes,
-health checks, loopback-bound application ports, explicit migration and
-`collectstatic` steps, and no automatic demo-data loading.
+Dockerfiles, digest-pinned external bases, non-root runtime users, named
+PostgreSQL/static/media volumes, health checks, loopback-bound application
+ports, explicit migration and `collectstatic` steps, and no automatic demo-data
+loading.
 
 The workflow has not been confirmed as the topology used by the linked live
 deployment. An operator must verify the real server, reverse proxy, storage,
@@ -329,6 +357,7 @@ security-test it. See [Security Policy](SECURITY.md) for responsible disclosure.
 
 - [Architecture](docs/architecture.md)
 - [Production deployment](docs/deployment.md)
+- [Dependency management](docs/dependencies.md)
 - [Documentation index](docs/README.md)
 - [Product import data](backend/import_data/README.md)
 - [Frontend notes](frontend/README.md)

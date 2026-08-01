@@ -6,7 +6,6 @@ from accounts.models import User
 from orders.models import Coupon
 from products.models import Brand, Category, Product, ProductImage
 
-
 CATEGORIES = (
     ("بردگیم", "board-games"),
     ("بازی فکری", "mind-games"),
