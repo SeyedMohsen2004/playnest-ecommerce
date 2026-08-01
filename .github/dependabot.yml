@@ -1,0 +1,61 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      python-non-major:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: tuesday
+    open-pull-requests-limit: 5
+    groups:
+      frontend-non-major:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: wednesday
+    open-pull-requests-limit: 5
+    groups:
+      actions-non-major:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: thursday
+    open-pull-requests-limit: 3
+    groups:
+      backend-container-non-major:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: thursday
+    open-pull-requests-limit: 3
+    groups:
+      frontend-container-non-major:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: thursday
+    open-pull-requests-limit: 3
+    groups:
+      compose-container-non-major:
+        update-types: [minor, patch]

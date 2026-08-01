@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the security reporting policy
+    url: https://github.com/SeyedMohsen2004/playnest-ecommerce/security/policy
+    about: Do not publish vulnerabilities, exploit details, credentials, customer data, or production information in an issue.
+  - name: Portfolio repository and maintainer contact
+    url: https://github.com/SeyedMohsen2004
+    about: Unsolicited contributions are not automatically accepted; contact the maintainer before proposing substantial work.

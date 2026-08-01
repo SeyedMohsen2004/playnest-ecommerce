@@ -69,9 +69,30 @@ reserved data only.
 
 Dependency advisories are reviewed for affected version, direct or transitive
 reachability, production versus development scope, and availability of a
-compatible fix. Prefer reproducible patch or minor upgrades. Major upgrades and
-forced audit fixes require compatibility review, full tests, and production
-build validation.
+compatible fix. Prefer reproducible compatible upgrades. Major upgrades,
+transitive overrides, and forced audit fixes require focused compatibility
+review, full tests, and production build validation. Point-in-time audit results
+are recorded in the dependency documentation and are not a claim of complete
+security.
 
 This policy does not promise a particular response or remediation deadline, but
 good-faith private reports will be assessed as promptly as practical.
+
+## Repository Security Automation
+
+Pull requests and default-branch changes are checked by a full-history Gitleaks
+workflow using Gitleaks Action 3.0.0 and Gitleaks CLI 8.30.1, both explicitly
+pinned. CodeQL analyzes the Python and JavaScript/TypeScript code on pull
+requests, default-branch pushes, a weekly schedule, and manual runs. Dependabot
+opens reviewable dependency, GitHub Action SHA, Dockerfile digest, and Compose
+digest update proposals; it does not merge them. Workflow actions and external
+container bases are pinned immutably so updates remain explicit review events.
+
+Do not treat a passing scanner as proof of security. Gitleaks detects patterns,
+CodeQL detects supported query classes, and dependency databases can be delayed
+or incomplete. Findings require human review, and suppressions or allowlists
+must be narrow, evidence-based, and must never conceal real credentials.
+
+Current dependency-audit scope and unresolved compatibility decisions are
+documented in [Dependency Management](docs/dependencies.md). Repository checks
+do not connect to or deploy the production website.

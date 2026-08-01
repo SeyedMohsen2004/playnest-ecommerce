@@ -1,0 +1,13 @@
+# Direct runtime dependencies shared by development and production.
+Django>=5.2,<5.3
+djangorestframework>=3.16,<3.17
+psycopg[binary]>=3.2,<3.3
+python-decouple>=3.8,<4.0
+django-filter>=25.1,<26.0
+drf-spectacular>=0.28,<0.29
+djangorestframework-simplejwt>=5.5,<5.6
+django-cors-headers>=4.7,<5.0
+kavenegar>=1.1,<2.0
+Pillow>=12.3,<13.0
+openpyxl>=3.1,<4.0
+requests>=2.32,<3.0
