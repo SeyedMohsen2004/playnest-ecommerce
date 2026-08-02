@@ -331,7 +331,8 @@ def test_repeated_callback_is_idempotent_for_stock_and_cart(
     client, payment, product, user
 ):
     cart = Cart.objects.create(user=user)
-    CartItem.objects.create(cart=cart, product=product, quantity=5)
+    cart_item = CartItem.objects.create(cart=cart, product=product, quantity=5)
+    payment.order.items.update(cart_item_id_snapshot=cart_item.pk)
     gateway_verify = Mock(return_value=verify_result(100))
 
     with patch(
@@ -357,6 +358,7 @@ def test_success_removes_only_purchased_quantities_and_preserves_unrelated_items
 ):
     cart = Cart.objects.create(user=user)
     purchased = CartItem.objects.create(cart=cart, product=product, quantity=5)
+    payment.order.items.update(cart_item_id_snapshot=purchased.pk)
     unrelated = CartItem.objects.create(
         cart=cart,
         product=extra_product,
@@ -380,6 +382,7 @@ def test_success_deletes_cart_line_when_quantity_equals_purchase(
 ):
     cart = Cart.objects.create(user=user)
     item = CartItem.objects.create(cart=cart, product=product, quantity=2)
+    payment.order.items.update(cart_item_id_snapshot=item.pk)
 
     with patch(
         "payments.views.ZarinPalService.verify_payment",

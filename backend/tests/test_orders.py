@@ -380,6 +380,7 @@ def test_user_retrieves_order_detail_with_items_and_product_image(
     assert data["can_retry_payment"] is True
     assert data["can_cancel"] is True
     assert data["can_edit_shipping_info"] is True
+    assert data["manual_review_message"] is None
     assert data["shipping_zone"] is None
     assert data["shipping_zone_display"] == "ثبت نشده"
     assert data["items"][0]["product_name"] == product.name
@@ -407,6 +408,29 @@ def test_paid_order_cannot_retry_payment(client, user, product):
     assert response.json()["can_retry_payment"] is False
     assert response.json()["can_cancel"] is False
     assert response.json()["can_edit_shipping_info"] is True
+
+
+def test_manual_review_message_is_generic_and_hides_internal_reason(
+    client, user, product
+):
+    order = create_order(user, product)
+    order.requires_manual_review = True
+    order.manual_review_reason = "Sensitive internal reconciliation detail."
+    order.save(update_fields=("requires_manual_review", "manual_review_reason"))
+
+    response = client.get(
+        reverse("orders:order-detail", args=(order.id,)),
+        **auth(user),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert (
+        data["manual_review_message"]
+        == "پرداخت ثبت شده و سفارش برای بررسی دستی در حال پیگیری است."
+    )
+    assert "manual_review_reason" not in data
+    assert "Sensitive internal" not in str(data)
 
 
 def test_user_can_cancel_own_pending_order(client, user, product):

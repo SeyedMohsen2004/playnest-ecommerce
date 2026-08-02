@@ -7,6 +7,13 @@ This changelog follows the principles of
 
 ### Added
 
+- PostgreSQL concurrency regression coverage for checkout, cancellation,
+  payment callbacks, coupon capacity, stock finalization, cart cleanup, and
+  shipping updates.
+- Per-order coupon reservation records with explicit reserve, consume, and
+  release transitions for finite-capacity concurrency safety.
+- Focused commerce transaction documentation covering invariants, canonical
+  lock ordering, idempotency, and manual-review outcomes.
 - Full-history Gitleaks scanning for pull requests, default-branch pushes, and
   manual runs.
 - CodeQL analysis for Python and JavaScript/TypeScript on pull requests,
@@ -21,6 +28,16 @@ This changelog follows the principles of
 
 ### Changed
 
+- Moved checkout, cancellation, payment preparation/finalization, and shipping
+  mutation orchestration into atomic domain services with deterministic row
+  locks and unchanged public endpoint contracts.
+- Preserved cart additions made after checkout by snapshotting the original
+  cart-line identity and making cleanup idempotent across payment retries.
+- Made manual-review reasons sticky, isolated local finalization side effects in
+  a savepoint after paid evidence is stored, and classified inventory, coupon,
+  reservation, validation, and constraint failures separately.
+- Applied a safe no-cart-mutation policy to historical order items without a
+  reliable cart-row snapshot and consolidated the unpublished order migrations.
 - Updated post-release support, documentation, and repository participation
   wording after the `v1.0.0` publication.
 - Hardened CI with least-privilege permissions, per-ref concurrency,
@@ -45,6 +62,12 @@ This changelog follows the principles of
 
 ### Security
 
+- Prevented Order/Payment lock inversion, coupon-capacity overcommit, repeated
+  commerce side effects, paid-payment downgrades, negative stock, and shipping
+  mutation races through PostgreSQL-backed transaction invariants.
+- Prevented benign duplicate callbacks from clearing non-recoverable manual
+  review and prevented handled local constraint failures from erasing verified
+  payment evidence or partially committing commerce side effects.
 - Resolved the previously reported Python advisories through tested dependency
   upgrades.
 - Overrode Next.js 15.5.22's fixed PostCSS 8.4.31 and Sharp 0.34.x transitive

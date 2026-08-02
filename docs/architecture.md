@@ -127,6 +127,10 @@ manual review; inventory and cart data are not falsely finalized. Cancelled or
 already-fulfilling orders are protected from unsafe downgrades or repeated stock
 changes.
 
+The precise transaction boundaries, canonical database lock order, coupon
+reservation lifecycle, and late-callback behavior are documented in
+[Commerce Transaction Boundaries](commerce-domain.md).
+
 ## Coupons and Shipping
 
 Coupons support percentage and fixed discounts, optional minimum order values,

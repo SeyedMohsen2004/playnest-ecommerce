@@ -1,11 +1,16 @@
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
 from drf_spectacular.utils import extend_schema_field
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import serializers
 
 from orders.models import Order
 from payments.models import Payment
-from payments.services import payment_url, request_payment
+from payments.services import (
+    PaymentStockUnavailable,
+    payment_url,
+    prepare_payment_attempt,
+    request_payment,
+)
 from payments.services.zarinpal import mask_card_pan
 from products.models import Product
 
@@ -70,12 +75,10 @@ class PaymentRequestSerializer(serializers.Serializer):
         self.validate_order_stock(order)
         return attrs
 
-    def validate_order_stock(self, order, lock_products=False):
+    def validate_order_stock(self, order):
         order_items = list(order.items.all())
         product_ids = [item.product_id for item in order_items]
         products = Product.objects.filter(id__in=product_ids)
-        if lock_products:
-            products = products.select_for_update()
         products_by_id = {product.id: product for product in products}
         stock_errors = []
         for item in order_items:
@@ -104,26 +107,19 @@ class PaymentRequestSerializer(serializers.Serializer):
             )
 
     def create(self, validated_data):
-        payment = self._prepare_payment()
+        try:
+            payment = prepare_payment_attempt(self.order.pk)
+        except PaymentStockUnavailable as exc:
+            raise serializers.ValidationError(
+                {
+                    "detail": "موجودی برخی از محصولات این سفارش کافی نیست.",
+                    "items": exc.items,
+                }
+            ) from exc
+        except DjangoValidationError as exc:
+            detail = exc.message_dict if hasattr(exc, "message_dict") else exc.messages
+            raise serializers.ValidationError(detail) from exc
         return request_payment(payment)
-
-    @transaction.atomic
-    def _prepare_payment(self):
-        order = Order.objects.select_for_update().get(pk=self.order.pk)
-        if order.status not in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED):
-            raise serializers.ValidationError("این سفارش در وضعیت قابل پرداخت نیست.")
-        self.validate_order_stock(order, lock_products=True)
-        payment = Payment.objects.filter(
-            order=order,
-            status=Payment.Status.PENDING,
-        ).first()
-        if payment is None:
-            payment = Payment.objects.create(
-                user=order.user,
-                order=order,
-                amount=order.total_amount,
-            )
-        return payment
 
 
 class LegacyPaymentVerificationResponseSerializer(serializers.Serializer):

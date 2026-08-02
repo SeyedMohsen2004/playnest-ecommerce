@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem, ShippingSettings
+from orders.services import OrderCancellationNotAllowed, cancel_order
 from payments.models import Payment
 from payments.services.zarinpal import mask_card_pan
 
@@ -560,13 +561,39 @@ class OrderAdmin(admin.ModelAdmin):
 
     @admin.action(description="لغو سفارش‌های انتخاب‌شده")
     def mark_as_cancelled(self, request, queryset):
-        self._transition_orders(
-            request,
-            queryset,
-            from_statuses=(Order.Status.PENDING, Order.Status.PAYMENT_FAILED),
-            to_status=Order.Status.CANCELLED,
-            success_message="{} سفارش لغو شد.",
-        )
+        selected_ids = sorted(queryset.values_list("pk", flat=True))
+        changed_orders = []
+        for order_id in selected_ids:
+            try:
+                result = cancel_order(order_id)
+            except OrderCancellationNotAllowed:
+                continue
+            if not result.cancelled:
+                continue
+            changed_orders.append(result.order)
+            self.log_change(
+                request,
+                result.order,
+                "تغییر وضعیت سفارش به لغو شده",
+            )
+
+        changed_count = len(changed_orders)
+        skipped_count = len(selected_ids) - changed_count
+        if changed_count:
+            self.message_user(
+                request,
+                f"{self._persian_number(changed_count)} سفارش لغو شد.",
+                level=messages.SUCCESS,
+            )
+        if skipped_count:
+            self.message_user(
+                request,
+                (
+                    f"{self._persian_number(skipped_count)} سفارش به دلیل وضعیت "
+                    "نامعتبر یا نیاز به بررسی دستی تغییر نکرد."
+                ),
+                level=messages.WARNING,
+            )
 
     def _transition_orders(
         self,
@@ -582,7 +609,9 @@ class OrderAdmin(admin.ModelAdmin):
         now = timezone.now()
         with transaction.atomic():
             locked_orders = list(
-                Order.objects.select_for_update().filter(pk__in=selected_ids)
+                Order.objects.select_for_update()
+                .filter(pk__in=selected_ids)
+                .order_by("pk")
             )
             for order in locked_orders:
                 if order.status not in from_statuses or order.requires_manual_review:

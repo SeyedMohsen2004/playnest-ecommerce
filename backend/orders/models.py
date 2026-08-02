@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import F, Q
 
 from products.models import Product
 
@@ -76,7 +77,12 @@ class Coupon(models.Model):
                 condition=models.Q(discount_type="fixed")
                 | models.Q(discount_value__lte=100),
                 name="coupon_percentage_maximum_100",
-            )
+            ),
+            models.CheckConstraint(
+                condition=Q(usage_limit__isnull=True)
+                | Q(used_count__lte=F("usage_limit")),
+                name="coupon_used_count_within_limit",
+            ),
         ]
 
     def __str__(self):
@@ -233,9 +239,47 @@ class OrderItem(models.Model):
     product_price = models.PositiveBigIntegerField()
     quantity = models.PositiveIntegerField(validators=(MinValueValidator(1),))
     line_total = models.PositiveBigIntegerField()
+    cart_item_id_snapshot = models.PositiveBigIntegerField(blank=True, null=True)
 
     class Meta:
         ordering = ("id",)
 
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"
+
+
+class CouponRedemption(models.Model):
+    class State(models.TextChoices):
+        RESERVED = "reserved", "Reserved"
+        CONSUMED = "consumed", "Consumed"
+        RELEASED = "released", "Released"
+
+    coupon = models.ForeignKey(
+        Coupon,
+        on_delete=models.PROTECT,
+        related_name="redemptions",
+    )
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="coupon_redemption",
+    )
+    state = models.CharField(
+        max_length=20,
+        choices=State.choices,
+        default=State.RESERVED,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("id",)
+        indexes = [
+            models.Index(
+                fields=("coupon", "state"),
+                name="coupon_redemption_state_idx",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.coupon.code} for order #{self.order_id}: {self.state}"

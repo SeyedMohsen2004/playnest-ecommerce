@@ -1,5 +1,4 @@
 from django.db.models import Prefetch
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
@@ -20,7 +19,12 @@ from orders.serializers import (
     OrderShippingSerializer,
     ShippingRatesSerializer,
 )
-from payments.models import Payment
+from orders.services import (
+    OrderCancellationNotAllowed,
+    ShippingUpdateNotAllowed,
+    cancel_order,
+    update_order_shipping,
+)
 from products.models import ProductImage
 
 
@@ -152,24 +156,18 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=("post",), url_path="cancel")
     def cancel(self, request, pk=None):
         order = self.get_object()
-        if order.status == Order.Status.CANCELLED:
-            return Response(
-                {"detail": "این سفارش قبلاً لغو شده است."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if order.status not in (Order.Status.PENDING, Order.Status.PAYMENT_FAILED):
+        try:
+            result = cancel_order(order.pk)
+        except OrderCancellationNotAllowed:
             return Response(
                 {"detail": "امکان لغو این سفارش وجود ندارد."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        now = timezone.now()
-        order.status = Order.Status.CANCELLED
-        order.save(update_fields=("status", "updated_at"))
-        order.payments.filter(status=Payment.Status.PENDING).update(
-            status=Payment.Status.CANCELLED,
-            updated_at=now,
-        )
+        if result.already_cancelled:
+            return Response(
+                {"detail": "این سفارش قبلاً لغو شده است."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         order = self.get_queryset().get(pk=order.pk)
         return Response(self.get_serializer(order).data)
 
@@ -177,22 +175,18 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=("patch",), url_path="shipping")
     def shipping(self, request, pk=None):
         order = self.get_object()
-        if order.status not in (
-            Order.Status.PENDING,
-            Order.Status.PAYMENT_FAILED,
-            Order.Status.PAID,
-        ):
-            return Response(
-                {"detail": "امکان ویرایش اطلاعات ارسال این سفارش وجود ندارد."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         serializer = OrderShippingSerializer(
             order,
             data=request.data,
             partial=True,
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        try:
+            update_order_shipping(order.pk, serializer.validated_data)
+        except ShippingUpdateNotAllowed:
+            return Response(
+                {"detail": "امکان ویرایش اطلاعات ارسال این سفارش وجود ندارد."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         order = self.get_queryset().get(pk=order.pk)
         return Response(self.get_serializer(order).data)
