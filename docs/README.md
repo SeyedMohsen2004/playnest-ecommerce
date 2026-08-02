@@ -5,6 +5,9 @@ an opt-in production deployment workflow.
 
 - [Architecture](architecture.md) describes application boundaries, data flows,
   payment and stock safeguards, and development/production topology.
+- [Commerce Transaction Boundaries](commerce-domain.md) documents order and
+  payment invariants, canonical row-lock ordering, coupon reservations,
+  idempotency, and manual-review behavior.
 - [Production Deployment](deployment.md) documents prerequisites, backups,
   explicit migrations, static collection, health checks, reverse-proxy trust,
   and rollback.

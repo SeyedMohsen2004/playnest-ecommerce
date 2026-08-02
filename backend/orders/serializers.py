@@ -4,7 +4,8 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem
-from orders.pricing import calculate_order_totals, get_shipping_cost
+from orders.pricing import calculate_order_totals
+from orders.services import checkout_cart
 from products.models import Product
 from products.serializers import ProductImageSerializer
 
@@ -288,9 +289,7 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_manual_review_message(self, obj) -> str | None:
         if not obj.requires_manual_review:
             return None
-        return (
-            "پرداخت با موفقیت انجام شد و سفارش برای بررسی موجودی " "در حال پیگیری است."
-        )
+        return "پرداخت ثبت شده و سفارش برای بررسی دستی در حال پیگیری است."
 
 
 class OrderShippingSerializer(serializers.ModelSerializer):
@@ -330,81 +329,12 @@ class CheckoutSerializer(serializers.Serializer):
             )
         return attrs
 
-    @transaction.atomic
     def create(self, validated_data):
-        user = self.context["request"].user
-        cart = (
-            Cart.objects.select_for_update()
-            .filter(user=user)
-            .prefetch_related("items__product")
-            .first()
-        )
-        if cart is None or not cart.items.exists():
-            raise serializers.ValidationError("Cart is empty.")
-
-        cart_items = list(cart.items.all())
-        products = {
-            product.id: product
-            for product in Product.objects.select_for_update().filter(
-                id__in=[item.product_id for item in cart_items]
-            )
-        }
-        subtotal_amount = 0
-        order_lines = []
-        for item in cart_items:
-            product = products[item.product_id]
-            if not product.is_active:
-                raise serializers.ValidationError(
-                    {"cart": f"{product.name} is inactive."}
-                )
-            if item.quantity > product.stock:
-                raise serializers.ValidationError(
-                    {"cart": f"Insufficient stock for {product.name}."}
-                )
-            price = product.final_price
-
-            line_total = price * item.quantity
-            subtotal_amount += line_total
-            order_lines.append(
-                {
-                    "product": product,
-                    "product_name": product.name,
-                    "product_price": price,
-                    "quantity": item.quantity,
-                    "line_total": line_total,
-                }
-            )
-
-        coupon_code = validated_data.pop("coupon_code", "").strip()
-        shipping_zone = validated_data.pop("shipping_zone")
-        coupon = None
-        if coupon_code:
-            coupon = Coupon.objects.filter(code__iexact=coupon_code).first()
-            if coupon is None:
-                raise serializers.ValidationError(
-                    {"coupon_code": "Coupon was not found."}
-                )
         try:
-            shipping_cost = get_shipping_cost(shipping_zone, for_update=True)
-            totals = calculate_order_totals(
-                subtotal_amount,
-                coupon,
-                shipping_cost=shipping_cost,
+            return checkout_cart(
+                user=self.context["request"].user,
+                **validated_data,
             )
         except DjangoValidationError as exc:
-            raise serializers.ValidationError(exc.message_dict) from exc
-
-        order = Order.objects.create(
-            user=user,
-            coupon=coupon,
-            shipping_zone=shipping_zone,
-            subtotal_amount=totals["subtotal"],
-            discount_amount=totals["discount_amount"],
-            shipping_cost=totals["shipping_cost"],
-            total_amount=totals["total_amount"],
-            **validated_data,
-        )
-        OrderItem.objects.bulk_create(
-            [OrderItem(order=order, **line) for line in order_lines]
-        )
-        return order
+            detail = exc.message_dict if hasattr(exc, "message_dict") else exc.messages
+            raise serializers.ValidationError(detail) from exc
