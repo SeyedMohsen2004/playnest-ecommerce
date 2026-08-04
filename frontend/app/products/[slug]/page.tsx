@@ -29,12 +29,23 @@ export async function generateMetadata({
     );
     const productUrl = absoluteUrl(`/products/${product.slug}`);
     const imageUrl = getProductImageUrl(product);
+    const currentPrice = String(product.final_price);
+    const oldPrice = String(product.price);
+    const availability =
+      product.is_active && product.is_in_stock ? "instock" : "outofstock";
 
     return {
       title: {
         absolute: title,
       },
       description,
+      other: {
+        product_id: String(product.id),
+        product_name: product.name,
+        product_price: currentPrice,
+        product_old_price: oldPrice,
+        availability,
+      },
       alternates: {
         canonical: productUrl,
       },
