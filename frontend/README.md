@@ -17,12 +17,25 @@ The development server uses `http://localhost:3000` by default. Configure the
 browser-visible API base URL through:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 This variable is public and is embedded at build time. Never place server-side
 secrets, merchant identifiers, credentials, or private API values in a
 `NEXT_PUBLIC_*` variable.
+
+Authentication keeps the access token only in runtime memory. The refresh token
+is an HttpOnly API cookie and is never readable by frontend code. Page reloads
+bootstrap CSRF and refresh once; registration completes through the OTP step and
+the resend control follows the server-provided cooldown. The initial client
+hydration and logout actively remove the historical `playnest_access_token` and
+`playnest_refresh_token` keys from both `localStorage` and `sessionStorage`
+without reading their values. Do not add JWTs, passwords, or OTP values to
+browser storage.
+
+Open the frontend as `http://localhost:3000` and keep the API on
+`http://localhost:8000`. Mixing `localhost` and `127.0.0.1` breaks the intended
+same-site cookie model.
 
 Some visual category and benefit content is static presentation data. Customer
 transactions and account state use the Django API; no mock payment gateway is

@@ -26,8 +26,8 @@ export function SiteHeader() {
   const displayName =
     user?.first_name?.trim() || user?.phone_number || "حساب کاربری";
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     setIsOpen(false);
     router.push("/");
   }

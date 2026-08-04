@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.test import RequestFactory
 from django.urls import reverse
 
-from accounts.models import PhoneOTP, User
+from accounts.models import LoginThrottle, PhoneOTP, User
 from orders.admin import (
     OrderItemInline,
     OrderStatusFilter,
@@ -113,6 +113,7 @@ def run_order_action(order_admin, action_name, admin_user, queryset):
     (
         User,
         PhoneOTP,
+        LoginThrottle,
         Category,
         Brand,
         Product,

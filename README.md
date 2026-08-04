@@ -118,18 +118,16 @@ client branding, product data, customer data, or commercial operations.
 - Persian-first, responsive RTL storefront built with the Next.js App Router.
 - Product catalog with categories, brands, images, search, filtering, sorting,
   homepage merchandising, wishlist, ratings, and reviews.
-- Phone-number and password registration and login with JWT access and refresh
-  tokens.
+- Phone-number registration with mandatory OTP verification, database-backed
+  login controls, runtime-only access tokens, and HttpOnly refresh sessions.
 - Authenticated cart, coupon preview, shipping-rate calculation, checkout, and
   customer-owned order history.
 - Order lifecycle management for pending, failed-payment, paid, processing,
   shipped, delivered, and cancelled states.
 - Real ZarinPal request, browser callback, server-side verification, and
   storefront redirect flow; sandbox mode is available for development.
-- Configurable Kavenegar and console SMS adapters. The current registration
-  endpoint activates the account immediately and does not send an OTP; the OTP
-  model, delivery service, and legacy verification endpoint are retained but
-  are not the active registration flow.
+- Configurable Kavenegar and development-only console SMS adapters with hashed,
+  single-use OTP lifecycle controls and cooldown-aware resend behavior.
 - Administrative workflows for users, products, orders, payments, shipping,
   coupons, homepage slots, reviews, and inventory.
 - Local development seed data and a guarded Excel/image product-import command.

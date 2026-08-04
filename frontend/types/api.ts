@@ -121,13 +121,14 @@ export type User = {
   date_joined?: string;
 };
 
-export type AuthTokens = {
+export type AuthResponse = {
   access: string;
-  refresh: string;
+  user: User;
 };
 
-export type AuthResponse = AuthTokens & {
-  user: User;
+export type PendingRegistrationResponse = {
+  message: string;
+  retry_after: number;
 };
 
 export type RegisterPayload = {
@@ -135,7 +136,7 @@ export type RegisterPayload = {
   first_name: string;
   last_name: string;
   password: string;
-  password_confirm?: string;
+  password_confirm: string;
 };
 
 export type LoginPayload = {
@@ -143,8 +144,13 @@ export type LoginPayload = {
   password: string;
 };
 
-export type TokenRefreshResponse = {
-  access: string;
+export type VerifyRegistrationPayload = {
+  phone_number: string;
+  code: string;
+};
+
+export type ResendRegistrationPayload = {
+  phone_number: string;
 };
 
 export type CartItem = {

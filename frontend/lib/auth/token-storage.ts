@@ -1,42 +1,62 @@
-import type { AuthTokens } from "@/types/api";
+const LEGACY_TOKEN_KEYS = ["playnest_access_token", "playnest_refresh_token"];
 
-const ACCESS_TOKEN_KEY = "playnest_access_token";
-const REFRESH_TOKEN_KEY = "playnest_refresh_token";
+type SessionInvalidationListener = () => void;
 
-function canUseStorage() {
-  return typeof window !== "undefined" && Boolean(window.localStorage);
+let accessToken: string | null = null;
+let sessionGeneration = 0;
+const invalidationListeners = new Set<SessionInvalidationListener>();
+
+function notifySessionInvalidated() {
+  invalidationListeners.forEach((listener) => listener());
+}
+
+export function purgeLegacyBrowserTokens() {
+  if (typeof window === "undefined") return;
+
+  for (const storageName of ["localStorage", "sessionStorage"] as const) {
+    try {
+      const storage = window[storageName];
+      for (const key of LEGACY_TOKEN_KEYS) storage.removeItem(key);
+    } catch {
+      // Storage can be unavailable in hardened/private browser contexts.
+    }
+  }
 }
 
 export function getAccessToken() {
-  if (!canUseStorage()) {
-    return null;
-  }
-
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  return accessToken;
 }
 
-export function getRefreshToken() {
-  if (!canUseStorage()) {
-    return null;
-  }
-
-  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+export function getSessionGeneration() {
+  return sessionGeneration;
 }
 
-export function setTokens(tokens: AuthTokens) {
-  if (!canUseStorage()) {
-    return;
-  }
+export function setAccessTokenIfCurrent(token: string, generation: number) {
+  if (generation !== sessionGeneration) return false;
+  accessToken = token;
+  return true;
+}
 
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access);
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh);
+export function replaceSessionAccessToken(token: string) {
+  sessionGeneration += 1;
+  accessToken = token;
+  return sessionGeneration;
+}
+
+export function invalidateSession() {
+  sessionGeneration += 1;
+  accessToken = null;
+  purgeLegacyBrowserTokens();
+  notifySessionInvalidated();
 }
 
 export function clearTokens() {
-  if (!canUseStorage()) {
-    return;
-  }
+  invalidateSession();
+}
 
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+export function subscribeToSessionInvalidation(
+  listener: SessionInvalidationListener,
+) {
+  invalidationListeners.add(listener);
+  return () => invalidationListeners.delete(listener);
 }
