@@ -308,3 +308,4 @@ if not DEBUG and not CSRF_COOKIE_SECURE:
     raise ImproperlyConfigured(
         "DJANGO_CSRF_COOKIE_SECURE must be true when DJANGO_DEBUG is false."
     )
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
