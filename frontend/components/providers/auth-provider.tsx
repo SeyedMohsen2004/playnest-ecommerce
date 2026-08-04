@@ -14,19 +14,26 @@ import { APIError } from "@/lib/api/client";
 import {
   getCurrentUser,
   loginUser,
-  refreshToken as requestTokenRefresh,
+  logoutUser,
+  refreshSession,
   registerUser,
+  resendRegistration,
+  verifyRegistration,
 } from "@/lib/api/auth";
 import {
-  clearTokens,
-  getAccessToken,
-  getRefreshToken,
-  setTokens,
+  getSessionGeneration,
+  invalidateSession,
+  purgeLegacyBrowserTokens,
+  replaceSessionAccessToken,
+  subscribeToSessionInvalidation,
 } from "@/lib/auth/token-storage";
 import type {
   LoginPayload,
+  PendingRegistrationResponse,
   RegisterPayload,
+  ResendRegistrationPayload,
   User,
+  VerifyRegistrationPayload,
 } from "@/types/api";
 
 type AuthContextValue = {
@@ -34,8 +41,12 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<void>;
-  logout: () => void;
+  register: (payload: RegisterPayload) => Promise<PendingRegistrationResponse>;
+  verifyRegistration: (payload: VerifyRegistrationPayload) => Promise<void>;
+  resendRegistration: (
+    payload: ResendRegistrationPayload,
+  ) => Promise<PendingRegistrationResponse>;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -46,30 +57,19 @@ function extractErrorText(data: unknown): string | null {
   }
 
   const record = data as Record<string, unknown>;
-  const preferredKeys = ["detail", "message", "non_field_errors", "phone_number"];
+  const preferredKeys = ["detail", "message", "non_field_errors", "code"];
 
   for (const key of preferredKeys) {
     const value = record[key];
-
-    if (typeof value === "string") {
-      return value;
-    }
-
-    if (Array.isArray(value) && typeof value[0] === "string") {
-      return value[0];
-    }
+    if (typeof value === "string") return value;
+    if (Array.isArray(value) && typeof value[0] === "string") return value[0];
   }
 
   const firstValue = Object.values(record)[0];
-
-  if (typeof firstValue === "string") {
-    return firstValue;
-  }
-
+  if (typeof firstValue === "string") return firstValue;
   if (Array.isArray(firstValue) && typeof firstValue[0] === "string") {
     return firstValue[0];
   }
-
   return null;
 }
 
@@ -80,15 +80,10 @@ export function getFriendlyAuthError(
   if (error instanceof APIError) {
     return extractErrorText(error.data) || error.message || fallback;
   }
-
   if (error instanceof TypeError) {
-    return "ارتباط با سرور برقرار نشد. لطفا اجرای بک‌اند و تنظیمات CORS را بررسی کنید.";
+    return "ارتباط با سرور برقرار نشد. لطفاً کمی بعد دوباره تلاش کنید.";
   }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
+  if (error instanceof Error) return error.message;
   return fallback;
 }
 
@@ -96,82 +91,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const logout = useCallback(() => {
-    clearTokens();
-    setUser(null);
-  }, []);
-
   useEffect(() => {
     let isMounted = true;
+    purgeLegacyBrowserTokens();
 
-    async function loadUser() {
-      const accessToken = getAccessToken();
-      const storedRefreshToken = getRefreshToken();
+    const unsubscribe = subscribeToSessionInvalidation(() => {
+      if (isMounted) setUser(null);
+    });
 
-      if (!accessToken && !storedRefreshToken) {
-        setIsLoading(false);
-        return;
-      }
-
+    async function hydrateSession() {
+      const hydrationGeneration = getSessionGeneration();
       try {
-        if (accessToken) {
-          try {
-            const currentUser = await getCurrentUser(accessToken);
-
-            if (isMounted) {
-              setUser(currentUser);
-            }
-
-            return;
-          } catch {
-            if (!storedRefreshToken) {
-              throw new Error("Stored access token is no longer valid.");
-            }
-          }
-        }
-
-        if (storedRefreshToken) {
-          const refreshed = await requestTokenRefresh(storedRefreshToken);
-          setTokens({
-            access: refreshed.access,
-            refresh: storedRefreshToken,
-          });
-          const currentUser = await getCurrentUser(refreshed.access);
-
-          if (isMounted) {
-            setUser(currentUser);
-          }
+        const access = await refreshSession();
+        const currentUser = await getCurrentUser(access);
+        if (
+          isMounted &&
+          hydrationGeneration === getSessionGeneration()
+        ) {
+          setUser(currentUser);
         }
       } catch {
-        clearTokens();
-
-        if (isMounted) {
+        if (
+          isMounted &&
+          hydrationGeneration === getSessionGeneration()
+        ) {
           setUser(null);
         }
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     }
 
-    loadUser();
-
+    hydrateSession();
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
   const login = useCallback(async (payload: LoginPayload) => {
     const response = await loginUser(payload);
-    setTokens(response);
+    replaceSessionAccessToken(response.access);
     setUser(response.user);
   }, []);
 
-  const register = useCallback(async (payload: RegisterPayload) => {
-    const response = await registerUser(payload);
-    setTokens(response);
+  const register = useCallback((payload: RegisterPayload) => {
+    return registerUser(payload);
+  }, []);
+
+  const verify = useCallback(async (payload: VerifyRegistrationPayload) => {
+    const response = await verifyRegistration(payload);
+    replaceSessionAccessToken(response.access);
     setUser(response.user);
+  }, []);
+
+  const resend = useCallback((payload: ResendRegistrationPayload) => {
+    return resendRegistration(payload);
+  }, []);
+
+  const logout = useCallback(async () => {
+    invalidateSession();
+    try {
+      await logoutUser();
+    } catch {
+      // Local invalidation is authoritative; the short-lived access token is gone
+      // and the server-side refresh cookie will be retried/cleared on a later visit.
+    }
   }, []);
 
   const value = useMemo<AuthContextValue>(
@@ -181,9 +166,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       login,
       register,
+      verifyRegistration: verify,
+      resendRegistration: resend,
       logout,
     }),
-    [isLoading, login, logout, register, user],
+    [isLoading, login, logout, register, resend, user, verify],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -191,10 +178,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
-
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 }

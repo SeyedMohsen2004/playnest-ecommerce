@@ -3,7 +3,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from accounts.views import CookieTokenRefreshView, LegacyTokenObtainView
 
 admin.site.site_header = "IpakToys Admin"
 admin.site.site_title = "IpakToys Admin"
@@ -17,10 +17,14 @@ urlpatterns = [
     path("api/v1/", include("products.urls")),
     path("api/v1/", include("orders.urls")),
     path("api/v1/payments/", include("payments.urls")),
-    path("api/v1/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path(
+        "api/v1/auth/token/",
+        LegacyTokenObtainView.as_view(),
+        name="token_obtain_pair",
+    ),
     path(
         "api/v1/auth/token/refresh/",
-        TokenRefreshView.as_view(),
+        CookieTokenRefreshView.as_view(),
         name="token_refresh",
     ),
     path("api/v1/schema/", SpectacularAPIView.as_view(), name="schema"),

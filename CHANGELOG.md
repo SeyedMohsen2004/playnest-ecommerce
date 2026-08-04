@@ -7,6 +7,10 @@ This changelog follows the principles of
 
 ### Added
 
+- Pending phone registration with hashed, single-use OTPs, delivery state,
+  database-backed cooldown/send limits, and concurrency-safe verification.
+- Database-backed bounded login throttling, CSRF bootstrap, cookie refresh,
+  blacklist-backed logout, and focused authentication architecture tests.
 - PostgreSQL concurrency regression coverage for checkout, cancellation,
   payment callbacks, coupon capacity, stock finalization, cart cleanup, and
   shipping updates.
@@ -28,6 +32,11 @@ This changelog follows the principles of
 
 ### Changed
 
+- Replaced browser-visible refresh tokens with a non-rotating Secure HttpOnly
+  cookie and moved access tokens from localStorage to runtime memory.
+- Disabled legacy direct token issuance and body-based refresh, made OTP
+  verification mandatory before activation, and added cooldown-aware resend to
+  the existing Persian registration UI.
 - Moved checkout, cancellation, payment preparation/finalization, and shipping
   mutation orchestration into atomic domain services with deterministic row
   locks and unchanged public endpoint contracts.
@@ -62,6 +71,9 @@ This changelog follows the principles of
 
 ### Security
 
+- Prevented pre-verification token issuance, plaintext OTP persistence,
+  rollback of failed OTP attempts, OTP reuse races, process-local-only login
+  controls, browser-readable refresh tokens, and unprotected cookie mutations.
 - Prevented Order/Payment lock inversion, coupon-capacity overcommit, repeated
   commerce side effects, paid-payment downgrades, negative stock, and shipping
   mutation races through PostgreSQL-backed transaction invariants.

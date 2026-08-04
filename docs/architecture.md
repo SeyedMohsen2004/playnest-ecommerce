@@ -32,7 +32,7 @@ deployment.
 
 | Application | Responsibility |
 | --- | --- |
-| `accounts` | Custom phone-number user model, JWT registration/login responses, profile API, and SMS/OTP support code. |
+| `accounts` | Custom phone-number users, pending OTP registration, login controls, JWT browser sessions, logout revocation, and profile API. |
 | `products` | Catalog, categories, brands, product images, homepage placement, filtering, wishlist, and reviews. |
 | `orders` | Cart, checkout, order snapshots, coupons, shipping settings, ownership rules, and fulfilment state. |
 | `payments` | ZarinPal requests, callback validation, server-side verification, safe public serialization, and payment finalization. |
@@ -53,16 +53,18 @@ as a trusted source for money or permission decisions.
 
 ## Authentication
 
-Users register and log in with an Iranian mobile number and password. The
-current registration endpoint creates an active, phone-verified account and
-returns JWT access and refresh tokens immediately. Login also returns JWTs, and
-authenticated endpoints use SimpleJWT.
+Users register with an Iranian mobile number, profile, and password. Registration
+creates an inactive pending account, sends a hashed-lifecycle OTP, and returns no
+tokens. Successful verification activates the user and returns a short-lived
+access token while placing the non-rotating refresh token in an HttpOnly cookie.
+Login follows the same browser-session response contract. Reloads restore access
+through the cookie refresh endpoint; logout blacklists the refresh session.
 
-The codebase includes an OTP model, Kavenegar/console delivery adapters, and a
-registration-verification endpoint. No OTP is created or sent by the active
-registration endpoint, so documentation and clients must not claim that OTP is
-currently required. Activating OTP in the future would be an authentication
-behavior change requiring dedicated security review and tests.
+OTP issuance, resend, and verification serialize through the pending user row.
+Delivery happens outside database transactions, and only confirmed-delivered
+codes are eligible. Login failure controls are PostgreSQL-backed. Cookie-backed
+authentication mutations explicitly enforce CSRF. Detailed invariants and
+configuration are in [Authentication and Browser Sessions](authentication.md).
 
 ## Cart and Checkout
 

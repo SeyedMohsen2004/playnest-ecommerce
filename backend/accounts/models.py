@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import RegexValidator
@@ -9,10 +7,6 @@ from django.utils import timezone
 iranian_mobile_validator = RegexValidator(
     regex=r"^09\d{9}$",
     message="Enter a valid Iranian mobile number starting with 09.",
-)
-otp_code_validator = RegexValidator(
-    regex=r"^\d{6}$",
-    message="OTP code must contain exactly 6 digits.",
 )
 
 
@@ -80,27 +74,62 @@ class PhoneOTP(models.Model):
     class Purpose(models.TextChoices):
         REGISTER = "register", "Register"
 
+    class DeliveryStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+        UNCERTAIN = "uncertain", "Uncertain"
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="registration_otps",
+        blank=True,
+        null=True,
+    )
     phone_number = models.CharField(
         max_length=11,
         db_index=True,
         validators=(iranian_mobile_validator,),
     )
-    code = models.CharField(max_length=6, validators=(otp_code_validator,))
+    code_hash = models.CharField(max_length=128, editable=False)
+    pending_first_name = models.CharField(max_length=150, blank=True, editable=False)
+    pending_last_name = models.CharField(max_length=150, blank=True, editable=False)
+    pending_email = models.EmailField(blank=True, editable=False)
+    pending_password_hash = models.CharField(
+        max_length=128,
+        blank=True,
+        editable=False,
+    )
     purpose = models.CharField(
         max_length=20,
         choices=Purpose.choices,
         default=Purpose.REGISTER,
     )
     is_used = models.BooleanField(default=False)
+    delivery_status = models.CharField(
+        max_length=10,
+        choices=DeliveryStatus.choices,
+        default=DeliveryStatus.PENDING,
+    )
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
     expires_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(blank=True, null=True)
     verified_at = models.DateTimeField(blank=True, null=True)
+    invalidated_at = models.DateTimeField(blank=True, null=True)
+    locked_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ("-created_at",)
         indexes = [
             models.Index(
-                fields=("phone_number", "purpose", "is_used", "-created_at"),
+                fields=(
+                    "phone_number",
+                    "purpose",
+                    "delivery_status",
+                    "-created_at",
+                ),
                 name="phone_otp_lookup_idx",
             )
         ]
@@ -111,11 +140,16 @@ class PhoneOTP(models.Model):
     def is_expired(self):
         return timezone.now() >= self.expires_at
 
-    def mark_used(self):
-        self.is_used = True
-        self.verified_at = timezone.now()
-        self.save(update_fields=("is_used", "verified_at"))
 
-    @classmethod
-    def expiration_time(cls):
-        return timezone.now() + timedelta(minutes=2)
+class LoginThrottle(models.Model):
+    identifier_hash = models.CharField(max_length=64, unique=True)
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
+    window_started_at = models.DateTimeField()
+    blocked_until = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self):
+        return f"Login throttle {self.pk}"

@@ -6,6 +6,24 @@ def test_openapi_contract_documents_redirects_and_excludes_payment_secrets():
     paths = schema["paths"]
     schemas = schema["components"]["schemas"]
 
+    register = paths["/api/v1/accounts/register/"]["post"]
+    assert set(register["responses"]) == {"202", "400", "429", "503"}
+    assert register["responses"]["202"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/PendingRegistrationResponse"
+    }
+    verify = paths["/api/v1/accounts/register/verify/"]["post"]
+    assert set(verify["responses"]) == {"200", "400"}
+    auth_fields = schemas["AuthResponse"]["properties"]
+    assert set(auth_fields) == {"access", "user"}
+    assert "refresh" not in auth_fields
+    refresh = paths["/api/v1/auth/token/refresh/"]["post"]
+    assert "requestBody" not in refresh
+    assert set(refresh["responses"]) == {"200", "401"}
+    assert set(schemas["AccessTokenResponse"]["properties"]) == {"access"}
+    legacy_token = paths["/api/v1/auth/token/"]["post"]
+    assert set(legacy_token["responses"]) == {"410"}
+    assert "requestBody" not in legacy_token
+
     health = paths["/api/v1/health/"]["get"]
     assert set(health["responses"]) == {"200"}
     assert health["responses"]["200"]["content"]["application/json"]["schema"] == {

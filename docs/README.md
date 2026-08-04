@@ -8,6 +8,9 @@ an opt-in production deployment workflow.
 - [Commerce Transaction Boundaries](commerce-domain.md) documents order and
   payment invariants, canonical row-lock ordering, coupon reservations,
   idempotency, and manual-review behavior.
+- [Authentication and Browser Sessions](authentication.md) documents pending
+  registration, hashed OTP lifecycle rules, login throttling, HttpOnly refresh
+  cookies, logout revocation, and CSRF handling.
 - [Production Deployment](deployment.md) documents prerequisites, backups,
   explicit migrations, static collection, health checks, reverse-proxy trust,
   and rollback.
