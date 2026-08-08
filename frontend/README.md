@@ -13,16 +13,20 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The development server uses `http://localhost:3000` by default. Configure the
-browser-visible API base URL through:
+The development server uses `http://localhost:3000` by default. Configure
+browser-visible API and media URLs together with the server-side Django API URL:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api/v1
+NEXT_PUBLIC_MEDIA_BASE_URL=http://localhost:3000/media
+INTERNAL_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
-This variable is public and is embedded at build time. Never place server-side
-secrets, merchant identifiers, credentials, or private API values in a
-`NEXT_PUBLIC_*` variable.
+The `NEXT_PUBLIC_*` variables are public and are embedded at build time. Never
+place server-side secrets, merchant identifiers, credentials, or private API
+values in them. `INTERNAL_API_BASE_URL` is server-side only and is used by
+Next.js for server-side API requests and local proxy rewrites. Docker Compose
+overrides it with the internal `http://api:8000/api/v1` service address.
 
 Authentication keeps the access token only in runtime memory. The refresh token
 is an HttpOnly API cookie and is never readable by frontend code. Page reloads
@@ -33,8 +37,11 @@ hydration and logout actively remove the historical `playnest_access_token` and
 without reading their values. Do not add JWTs, passwords, or OTP values to
 browser storage.
 
-Open the frontend as `http://localhost:3000` and keep the API on
-`http://localhost:8000`. Mixing `localhost` and `127.0.0.1` breaks the intended
+Open the frontend as `http://localhost:3000`. Browser API and media requests
+remain same-origin through the Next.js proxy, while Django may run on
+`http://localhost:8000` when the frontend is started directly. Docker Compose
+uses the `api` service hostname internally. Keep the browser origin consistently
+on `localhost`; mixing `localhost` and `127.0.0.1` can break the intended
 same-site cookie model.
 
 Some visual category and benefit content is static presentation data. Customer

@@ -9,6 +9,8 @@ import type {
 
 export type ProductSource = MockProduct | ApiProduct;
 
+const LOCAL_DJANGO_MEDIA_HOSTS = new Set(["api", "localhost", "127.0.0.1"]);
+
 const ageGroupLabels: Record<ApiProduct["age_group"], string> = {
   "0_2": "۰ تا ۲ سال",
   "3_5": "۳ تا ۵ سال",
@@ -175,13 +177,45 @@ export function normalizeImageUrl(imageUrl?: string | null) {
     return null;
   }
 
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    return imageUrl;
-  }
-
   try {
-    const apiOrigin = new URL(API_BASE_URL).origin;
-    return `${apiOrigin}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+    const publicApiOrigin = new URL(API_BASE_URL).origin;
+    const publicMediaBaseUrl =
+      process.env.NEXT_PUBLIC_MEDIA_BASE_URL?.replace(/\/+$/, "");
+
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      const parsedImageUrl = new URL(imageUrl);
+
+      if (
+        publicMediaBaseUrl &&
+        LOCAL_DJANGO_MEDIA_HOSTS.has(parsedImageUrl.hostname) &&
+        (parsedImageUrl.pathname === "/media" ||
+          parsedImageUrl.pathname.startsWith("/media/"))
+      ) {
+        const mediaPath = parsedImageUrl.pathname.slice("/media".length);
+
+        return (
+          `${publicMediaBaseUrl}${mediaPath}` +
+          `${parsedImageUrl.search}${parsedImageUrl.hash}`
+        );
+      }
+
+      return imageUrl;
+    }
+
+    const relativeMediaPath =
+      imageUrl === "media" || imageUrl.startsWith("media/")
+        ? `/${imageUrl}`
+        : imageUrl;
+
+    if (
+      publicMediaBaseUrl &&
+      (relativeMediaPath === "/media" ||
+        relativeMediaPath.startsWith("/media/"))
+    ) {
+      return `${publicMediaBaseUrl}${relativeMediaPath.slice("/media".length)}`;
+    }
+
+    return `${publicApiOrigin}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
   } catch {
     return imageUrl;
   }

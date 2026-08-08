@@ -14,9 +14,21 @@ function normalizeApiBaseUrl(baseUrl: string) {
   }
 }
 
-export const API_BASE_URL = normalizeApiBaseUrl(
+const PUBLIC_API_BASE_URL = normalizeApiBaseUrl(
   process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL,
 );
+
+const INTERNAL_API_BASE_URL = normalizeApiBaseUrl(
+  process.env.INTERNAL_API_BASE_URL || PUBLIC_API_BASE_URL,
+);
+
+export const API_BASE_URL = PUBLIC_API_BASE_URL;
+
+function getRequestApiBaseUrl() {
+  return typeof window === "undefined"
+    ? INTERNAL_API_BASE_URL
+    : PUBLIC_API_BASE_URL;
+}
 
 export type ApiMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
@@ -46,7 +58,7 @@ export class APIError extends Error {
 
 function buildUrl(path: string, params?: ApiRequestOptions["params"]) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const url = new URL(`${API_BASE_URL}${normalizedPath}`);
+  const url = new URL(`${getRequestApiBaseUrl()}${normalizedPath}`);
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
