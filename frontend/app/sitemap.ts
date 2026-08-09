@@ -20,7 +20,9 @@ export const revalidate = 3600;
 const PRODUCT_SITEMAP_PAGE_SIZE = 48;
 const PRODUCT_SITEMAP_MAX_PAGES = 20;
 const SITEMAP_API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_BASE_URL || `${SITE_URL}/api/v1`
+  process.env.INTERNAL_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  `${SITE_URL}/api/v1`
 ).replace(/\/+$/, "");
 
 type ProductSitemapItem = {
