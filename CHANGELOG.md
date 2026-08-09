@@ -5,8 +5,12 @@ This changelog follows the principles of
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-09
+
 ### Added
 
+- Torob-compatible product metadata on product detail pages, including
+  product identity, current and previous prices, and stock availability.
 - Pending phone registration with hashed, single-use OTPs, delivery state,
   database-backed cooldown/send limits, and concurrency-safe verification.
 - Database-backed bounded login throttling, CSRF bootstrap, cookie refresh,
@@ -71,6 +75,9 @@ This changelog follows the principles of
 
 ### Security
 
+- Kept forwarded HTTPS-header trust explicitly controlled by
+  `DJANGO_TRUST_X_FORWARDED_PROTO` and removed an unconditional proxy-header
+  override.
 - Prevented pre-verification token issuance, plaintext OTP persistence,
   rollback of failed OTP attempts, OTP reuse races, process-local-only login
   controls, browser-readable refresh tokens, and unprotected cookie mutations.
@@ -87,6 +94,11 @@ This changelog follows the principles of
   lint, build, standalone-server, and image-optimization validation.
 - Recorded point-in-time development and production audit results without
   presenting automated scans as proof of complete security.
+
+### Fixed
+
+- Restored local Docker API and media access by separating browser proxy URLs
+  from the internal Django service address used by Next.js.
 
 ## [1.0.0] - 2026-07-30
 
@@ -138,5 +150,6 @@ This changelog follows the principles of
 - Migrations and seed data never run automatically in production.
 - Uploaded media is persistent and documented as untrusted content.
 
-[Unreleased]: https://github.com/SeyedMohsen2004/playnest-ecommerce/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/SeyedMohsen2004/playnest-ecommerce/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/SeyedMohsen2004/playnest-ecommerce/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/SeyedMohsen2004/playnest-ecommerce/releases/tag/v1.0.0
