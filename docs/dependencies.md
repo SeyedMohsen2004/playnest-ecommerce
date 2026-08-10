@@ -94,10 +94,11 @@ cross a compatibility boundary without focused review.
 
 Next.js 15.5.22 is the latest stable 15.x release at this review point, but it
 pins PostCSS 8.4.31 and requests Sharp `^0.34.3`. The root override replaces
-those transitive selections with PostCSS 8.5.25 and Sharp 0.35.3. The override
-is retained only because Node.js 24 `npm ci`, dependency-tree checks, both npm
-audits, lint, production build, development and standalone production images,
-homepage startup, and the Sharp-backed Next.js image optimizer all passed.
+those transitive selections with PostCSS 8.5.26 and Sharp 0.35.3. The override
+is retained only because Node.js 24 `npm ci`, dependency-tree checks, production
+audit, full-audit review, lint, production build, development and standalone
+production images, homepage startup, and the Sharp-backed Next.js image
+optimizer all passed.
 Remove the override once a reviewed Next.js 15 update natively selects patched
 versions; do not let it conceal unrelated dependency conflicts.
 
@@ -132,7 +133,7 @@ images. Dependabot monitors both Dockerfile directories and the root
 `docker-compose` ecosystem for digest updates. Patch/minor proposals may be
 grouped, major updates remain separate, and nothing is automatically merged.
 
-## Advisory snapshot (2026-08-01)
+## Advisory snapshot (2026-08-11)
 
 The prior audit found advisories in direct runtime Pillow 11.3.0 and
 development-only Black 25.12.0 and pytest 8.4.2. The focused upgrades to Pillow
@@ -142,11 +143,18 @@ lint, development and production image builds, and environment consistency
 checks. Development and production `pip-audit` runs then reported no known
 vulnerabilities.
 
-The previous npm findings covered development-only brace-expansion plus
-Next.js's production transitive PostCSS and Sharp selections. Brace-expansion
-is locked at 1.1.18, and the tested Next.js overrides described above select
-PostCSS 8.5.25 and Sharp 0.35.3. Both `npm audit` and `npm audit --omit=dev`
-then reported zero advisories.
+The production dependency audit, `npm audit --omit=dev`, reports zero known
+vulnerabilities for the committed lockfile. The tested Next.js overrides select
+PostCSS 8.5.26 and Sharp 0.35.3; PostCSS resolves nanoid 3.3.18 in the current
+tree.
+
+The full development dependency audit, `npm audit`, reports two high-severity
+tooling-only advisories: brace-expansion 5.0.8 through
+`eslint-config-next -> @typescript-eslint/typescript-estree`, and js-yaml 4.3.0
+through ESLint configuration tooling. They do not enter the production-only npm
+tree. They remain deferred because this maintenance release does not force or
+broadly update unrelated lint tooling; they should be reassessed through a
+focused, compatible dependency update.
 
 These are point-in-time database results, not proof that the repository or its
 dependencies are vulnerability-free. Gitleaks, CodeQL, Dependabot, pip-audit,
