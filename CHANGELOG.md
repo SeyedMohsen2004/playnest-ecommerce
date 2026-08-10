@@ -5,6 +5,19 @@ This changelog follows the principles of
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-11
+
+### Changed
+
+- Synchronized release metadata, dependency documentation, and the verified
+  79.23% combined branch-aware coverage baseline for portfolio review.
+
+### Security
+
+- Updated PostCSS to 8.5.26 so the production tree resolves nanoid 3.3.18 and
+  the production-only npm audit reports zero known vulnerabilities, without a
+  framework major upgrade.
+
 ## [1.1.0] - 2026-08-09
 
 ### Added
@@ -92,8 +105,6 @@ This changelog follows the principles of
 - Overrode Next.js 15.5.22's fixed PostCSS 8.4.31 and Sharp 0.34.x transitive
   selections with PostCSS 8.5.25 and Sharp 0.35.3 after clean install, audit,
   lint, build, standalone-server, and image-optimization validation.
-- Updated PostCSS to 8.5.26 so production resolves the patched nanoid 3.3.17
-  dependency without a framework major upgrade.
 - Recorded point-in-time development and production audit results without
   presenting automated scans as proof of complete security.
 
@@ -152,6 +163,7 @@ This changelog follows the principles of
 - Migrations and seed data never run automatically in production.
 - Uploaded media is persistent and documented as untrusted content.
 
-[Unreleased]: https://github.com/SeyedMohsen2004/playnest-ecommerce/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/SeyedMohsen2004/playnest-ecommerce/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/SeyedMohsen2004/playnest-ecommerce/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/SeyedMohsen2004/playnest-ecommerce/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/SeyedMohsen2004/playnest-ecommerce/releases/tag/v1.0.0
