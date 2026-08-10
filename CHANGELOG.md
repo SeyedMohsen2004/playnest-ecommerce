@@ -92,6 +92,8 @@ This changelog follows the principles of
 - Overrode Next.js 15.5.22's fixed PostCSS 8.4.31 and Sharp 0.34.x transitive
   selections with PostCSS 8.5.25 and Sharp 0.35.3 after clean install, audit,
   lint, build, standalone-server, and image-optimization validation.
+- Updated PostCSS to 8.5.26 so production resolves the patched nanoid 3.3.17
+  dependency without a framework major upgrade.
 - Recorded point-in-time development and production audit results without
   presenting automated scans as proof of complete security.
 
