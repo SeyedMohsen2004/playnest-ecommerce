@@ -20,6 +20,7 @@ import { getCart } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
 import { applyCoupon, createCheckoutOrder } from "@/lib/api/checkout";
 import { getShippingRates } from "@/lib/api/shipping";
+import { trackEvent } from "@/lib/analytics";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import { formatToman, toPersianDigits } from "@/lib/format";
 import { getProductPrice } from "@/lib/product-display";
@@ -168,6 +169,13 @@ export default function CheckoutPage() {
       const response = await applyCoupon(accessToken, code);
       setCouponPreview(response);
       setAppliedCouponCode(code);
+      trackEvent("coupon_applied", {
+        discount: getNumberValue(
+          response.discount_amount,
+          response.discount,
+        ),
+        total: getNumberValue(response.total_amount, response.total),
+      });
       setCouponTone("success");
       setCouponMessage("کد تخفیف با موفقیت اعمال شد.");
     } catch (error) {
@@ -227,6 +235,13 @@ export default function CheckoutPage() {
       if (!orderId) {
         throw new Error("Checkout response did not include an order id.");
       }
+
+      const order = "order" in response ? response.order : response;
+      trackEvent("checkout_started", {
+        item_count: items.reduce((total, item) => total + item.quantity, 0),
+        shipping_zone: order.shipping_zone || formData.shipping_zone,
+        total: order.total_amount,
+      });
 
       router.push(`/payment/${orderId}`);
     } catch (error) {

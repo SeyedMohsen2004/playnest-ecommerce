@@ -12,10 +12,12 @@ import { Button } from "@/components/ui/button";
 import { addCartItem } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
 import { getCartErrorMessage } from "@/lib/api/errors";
+import { trackEvent } from "@/lib/analytics";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import { toPersianDigits } from "@/lib/format";
 import {
   getProductBadge,
+  getProductCategoryKey,
   getProductCategoryName,
   getProductImageClass,
   getProductImageUrl,
@@ -75,6 +77,12 @@ export function ProductCard({ product }: { product: ProductSource }) {
 
     try {
       await addCartItem(accessToken, productId, 1);
+      trackEvent("add_to_cart", {
+        category_slug: getProductCategoryKey(product),
+        product_id: productId,
+        product_slug: product.slug,
+        quantity: 1,
+      });
       setMessageTone("success");
       setMessage("محصول به سبد خرید اضافه شد.");
     } catch (error) {

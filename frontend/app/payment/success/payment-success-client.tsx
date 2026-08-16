@@ -9,6 +9,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { getCart } from "@/lib/api/cart";
 import { getOrder } from "@/lib/api/orders";
+import { trackEventOnce } from "@/lib/analytics";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import { toPersianDigits } from "@/lib/format";
 import type { Order } from "@/types/api";
@@ -37,6 +38,29 @@ export function PaymentSuccessClient() {
       try {
         const loadedOrder = await getOrder(accessToken, orderId);
         setOrder(loadedOrder);
+
+        const isAuthoritativelyPaid =
+          loadedOrder.payment_status === "paid" &&
+          ["paid", "processing", "shipped", "delivered"].includes(
+            loadedOrder.status,
+          );
+
+        if (isAuthoritativelyPaid) {
+          trackEventOnce(
+            `purchase_completed:${loadedOrder.id}`,
+            "purchase_completed",
+            {
+              item_count:
+                loadedOrder.items?.reduce(
+                  (total, item) => total + item.quantity,
+                  0,
+                ) || 0,
+              shipping_zone: loadedOrder.shipping_zone || "unknown",
+              total: loadedOrder.total_amount,
+            },
+          );
+        }
+
         await getCart(accessToken);
       } catch {
         setErrorMessage("امکان دریافت وضعیت نهایی سفارش وجود ندارد.");

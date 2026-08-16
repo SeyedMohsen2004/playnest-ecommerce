@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -51,6 +52,18 @@ const themeScript = `
 })();
 `;
 
+const umamiScriptUrl = getUmamiScriptUrl(
+  process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL,
+);
+const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID?.trim();
+const umamiDomains = process.env.NEXT_PUBLIC_UMAMI_DOMAINS?.split(",")
+  .map((domain) => domain.trim())
+  .filter(Boolean)
+  .join(",");
+const umamiPerformanceEnabled =
+  process.env.NEXT_PUBLIC_UMAMI_ENABLE_PERFORMANCE?.trim().toLowerCase() ===
+  "true";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -60,6 +73,18 @@ export default function RootLayout({
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {umamiScriptUrl && umamiWebsiteId ? (
+          <Script
+            data-domains={umamiDomains || undefined}
+            data-do-not-track="true"
+            data-exclude-search="true"
+            data-performance={umamiPerformanceEnabled ? "true" : undefined}
+            data-website-id={umamiWebsiteId}
+            id="umami-analytics"
+            src={umamiScriptUrl}
+            strategy="afterInteractive"
+          />
+        ) : null}
       </head>
       <body className="antialiased">
         <ThemeProvider>
@@ -72,4 +97,19 @@ export default function RootLayout({
       </body>
     </html>
   );
+}
+
+function getUmamiScriptUrl(value: string | undefined) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
 }
