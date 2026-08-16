@@ -9,6 +9,10 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { getOrder } from "@/lib/api/orders";
 import { requestPayment } from "@/lib/api/payments";
+import {
+  trackEventOnce,
+  type PaymentFailureReason,
+} from "@/lib/analytics";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import type { Order } from "@/types/api";
 
@@ -47,7 +51,17 @@ export function PaymentFailedClient() {
         return;
       }
       try {
-        setOrder(await getOrder(accessToken, orderId));
+        const loadedOrder = await getOrder(accessToken, orderId);
+        setOrder(loadedOrder);
+
+        if (loadedOrder.payment_status !== "paid") {
+          const failureReason = getAnalyticsFailureReason(reason);
+          trackEventOnce(
+            `payment_failed:${loadedOrder.id}:${failureReason}`,
+            "payment_failed",
+            { reason: failureReason },
+          );
+        }
       } catch {
         setErrorMessage("امکان دریافت وضعیت سفارش وجود ندارد.");
       } finally {
@@ -56,7 +70,7 @@ export function PaymentFailedClient() {
     }
 
     loadOrderState();
-  }, [isAuthenticated, isAuthLoading, orderId]);
+  }, [isAuthenticated, isAuthLoading, orderId, reason]);
 
   async function handleRetry() {
     if (!order) return;
@@ -135,4 +149,10 @@ function ResultCard({ children }: { children: React.ReactNode }) {
       </div>
     </section>
   );
+}
+
+function getAnalyticsFailureReason(reason: string): PaymentFailureReason {
+  return Object.prototype.hasOwnProperty.call(reasonMessages, reason)
+    ? (reason as PaymentFailureReason)
+    : "unknown";
 }

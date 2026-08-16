@@ -28,6 +28,27 @@ values in them. `INTERNAL_API_BASE_URL` is server-side only and is used by
 Next.js for server-side API requests and local proxy rewrites. Docker Compose
 overrides it with the internal `http://api:8000/api/v1` service address.
 
+## Optional analytics
+
+PlayNest can load a separately hosted Umami tracker when both
+`NEXT_PUBLIC_UMAMI_SCRIPT_URL` and `NEXT_PUBLIC_UMAMI_WEBSITE_ID` are set.
+`NEXT_PUBLIC_UMAMI_DOMAINS` optionally limits collection to a comma-separated
+hostname allowlist, and `NEXT_PUBLIC_UMAMI_ENABLE_PERFORMANCE=true` enables
+Umami v3.1+ performance metrics. Leaving either required value blank disables
+analytics, so local development and CI make no analytics requests.
+
+These variables are public build-time configuration, not secrets. Umami is
+deployed and operated separately from PlayNest. Tracker or network failures are
+non-blocking, URL query strings are excluded from pageviews, and custom event
+properties must never include names, phone numbers, addresses, credentials,
+tokens, payment authorities, payment references, or other personal data.
+Umami handles App Router pageviews automatically; PlayNest does not add manual
+pageview calls that could double-count navigation.
+
+Custom events are limited to successful cart, coupon, checkout, payment-start,
+purchase, and payment-failure outcomes. Their typed payloads contain only
+non-sensitive catalog, quantity, total, shipping-zone, or bounded failure data.
+
 Authentication keeps the access token only in runtime memory. The refresh token
 is an HttpOnly API cookie and is never readable by frontend code. Page reloads
 bootstrap CSRF and refresh once; registration completes through the OTP step and

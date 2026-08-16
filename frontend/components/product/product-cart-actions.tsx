@@ -9,16 +9,21 @@ import { Button } from "@/components/ui/button";
 import { addCartItem } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
 import { getCartErrorMessage, getStockLimitMessage } from "@/lib/api/errors";
+import { trackEvent } from "@/lib/analytics";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 
 type ProductCartActionsProps = {
   productId: number | null;
+  productSlug: string;
+  categorySlug: string;
   isInStock: boolean;
   availableStock?: number | null;
 };
 
 export function ProductCartActions({
   productId,
+  productSlug,
+  categorySlug,
   isInStock,
   availableStock,
 }: ProductCartActionsProps) {
@@ -72,6 +77,12 @@ export function ProductCartActions({
 
     try {
       await addCartItem(accessToken, productId, quantity);
+      trackEvent("add_to_cart", {
+        category_slug: categorySlug,
+        product_id: productId,
+        product_slug: productSlug,
+        quantity,
+      });
       setMessageTone("success");
       setMessage("محصول به سبد خرید اضافه شد.");
     } catch (error) {
