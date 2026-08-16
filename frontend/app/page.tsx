@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BenefitsSection } from "@/components/home/benefits-section";
 import { FeaturedProducts } from "@/components/home/featured-products";
 import { HeroSection } from "@/components/home/hero-section";
+import { HomepageProductSearch } from "@/components/home/homepage-product-search";
 import { LatestProductsCarousel } from "@/components/home/latest-products-carousel";
 import { NewsletterSection } from "@/components/home/newsletter-section";
 import {
@@ -51,6 +52,7 @@ export default function Home() {
   return (
     <HomepageMarqueeSpeedProvider>
       <HeroSection />
+      <HomepageProductSearch />
       <ProductMarquee
         fallbackToLatestProducts={false}
         section="board_games"
