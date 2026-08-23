@@ -7,10 +7,11 @@ def test_openapi_contract_documents_redirects_and_excludes_payment_secrets():
     schemas = schema["components"]["schemas"]
 
     register = paths["/api/v1/accounts/register/"]["post"]
-    assert set(register["responses"]) == {"202", "400", "429", "503"}
-    assert register["responses"]["202"]["content"]["application/json"]["schema"] == {
-        "$ref": "#/components/schemas/PendingRegistrationResponse"
+    assert set(register["responses"]) == {"201", "400"}
+    assert register["responses"]["201"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/AuthResponse"
     }
+    assert "refresh" not in schemas["AuthResponse"]["properties"]
     verify = paths["/api/v1/accounts/register/verify/"]["post"]
     assert set(verify["responses"]) == {"200", "400"}
     auth_fields = schemas["AuthResponse"]["properties"]

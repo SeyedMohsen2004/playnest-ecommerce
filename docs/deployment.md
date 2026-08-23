@@ -26,7 +26,9 @@ The development `docker-compose.yml`, development Dockerfiles, Django
 - A production host with adequate disk, memory, and backup capacity.
 - DNS and an external reverse proxy capable of terminating HTTPS.
 - Confirmed PostgreSQL and media backup and restore procedures.
-- Production SMS and payment credentials supplied out of band.
+- Production payment credentials supplied out of band. SMS credentials are
+  needed only if an operator intentionally retains the dormant OTP compatibility
+  endpoints.
 - An operator-approved maintenance and rollback window.
 
 Copy the tracked template and protect the resulting file:
@@ -48,7 +50,7 @@ Private values:
 | `POSTGRES_DB` | Production database name. |
 | `POSTGRES_USER` | Production database role. |
 | `POSTGRES_PASSWORD` | Production database password. |
-| `KAVENEGAR_API_KEY` | Production SMS provider API key. |
+| `KAVENEGAR_API_KEY` | SMS provider key retained by the current production Compose contract for dormant OTP compatibility endpoints; normal registration does not use it. |
 | `ZARINPAL_MERCHANT_ID` | Production payment merchant identifier. |
 
 Public routing values:
@@ -75,7 +77,7 @@ Security and integration policy:
 | `DJANGO_SESSION_COOKIE_SECURE` | Requires HTTPS for session cookies. |
 | `DJANGO_CSRF_COOKIE_SECURE` | Requires HTTPS for CSRF cookies. |
 | `DJANGO_TRUST_X_FORWARDED_PROTO` | Trusts the proxy-provided HTTPS scheme header. |
-| `SMS_PROVIDER` | SMS backend; production normally uses `kavenegar`. |
+| `SMS_PROVIDER` | SMS backend retained for dormant OTP compatibility endpoints; it is not used by normal registration. |
 | `KAVENEGAR_SENDER` | Optional sender when a verification template is not used. |
 | `KAVENEGAR_VERIFY_TEMPLATE` | Optional Kavenegar verification template. |
 | `ZARINPAL_SANDBOX` | Explicit payment gateway sandbox selection. |

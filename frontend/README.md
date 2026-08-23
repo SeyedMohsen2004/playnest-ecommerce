@@ -51,8 +51,8 @@ non-sensitive catalog, quantity, total, shipping-zone, or bounded failure data.
 
 Authentication keeps the access token only in runtime memory. The refresh token
 is an HttpOnly API cookie and is never readable by frontend code. Page reloads
-bootstrap CSRF and refresh once; registration completes through the OTP step and
-the resend control follows the server-provided cooldown. The initial client
+bootstrap CSRF and refresh once; registration creates the authenticated session
+directly without an SMS or verification-code step. The initial client
 hydration and logout actively remove the historical `playnest_access_token` and
 `playnest_refresh_token` keys from both `localStorage` and `sessionStorage`
 without reading their values. Do not add JWTs, passwords, or OTP values to

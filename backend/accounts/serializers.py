@@ -1,6 +1,7 @@
 import re
 
 from django.contrib.auth import password_validation
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
 
 from accounts.models import User
@@ -48,6 +49,20 @@ class PendingRegistrationResponseSerializer(MessageSerializer):
     retry_after = serializers.IntegerField(read_only=True, min_value=1)
 
 
+class RegisterErrorResponseSerializer(serializers.Serializer):
+    phone_number = serializers.ListField(child=serializers.CharField(), required=False)
+    first_name = serializers.ListField(child=serializers.CharField(), required=False)
+    last_name = serializers.ListField(child=serializers.CharField(), required=False)
+    email = serializers.ListField(child=serializers.CharField(), required=False)
+    password = serializers.ListField(child=serializers.CharField(), required=False)
+    password_confirm = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+    non_field_errors = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+
+
 class ErrorResponseSerializer(serializers.Serializer):
     detail = serializers.CharField(read_only=True)
     retry_after = serializers.IntegerField(
@@ -78,6 +93,32 @@ class RegisterSerializer(serializers.Serializer):
             )
         password_validation.validate_password(attrs["password"])
         return attrs
+
+    def create(self, validated_data):
+        data = dict(validated_data)
+        data.pop("password_confirm")
+        phone_number = data.pop("phone_number")
+        password = data.pop("password")
+
+        try:
+            with transaction.atomic():
+                if User.objects.filter(phone_number=phone_number).exists():
+                    raise serializers.ValidationError(
+                        {"phone_number": ["An account already uses this phone number."]}
+                    )
+                return User.objects.create_user(
+                    phone_number=phone_number,
+                    password=password,
+                    is_active=True,
+                    is_phone_verified=True,
+                    **data,
+                )
+        except IntegrityError as exc:
+            if User.objects.filter(phone_number=phone_number).exists():
+                raise serializers.ValidationError(
+                    {"phone_number": ["An account already uses this phone number."]}
+                ) from exc
+            raise
 
 
 class VerifyRegistrationSerializer(serializers.Serializer):

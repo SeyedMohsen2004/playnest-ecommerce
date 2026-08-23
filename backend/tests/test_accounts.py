@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 from django.conf import settings
-from django.contrib.auth.hashers import check_password, make_password
-from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
+from django.contrib.auth.hashers import make_password
+from django.core.exceptions import ImproperlyConfigured
 from django.db import close_old_connections, connections
 from django.test import Client, override_settings
 from django.urls import reverse
@@ -16,12 +16,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import LoginThrottle, PhoneOTP, User
 from accounts.services import (
+    OTPDeliveryUnavailable,
     OTPRateLimited,
     RegistrationUnavailable,
     _complete_otp_delivery,
     _prepare_registration_otp,
     SMSDeliveryError,
     VerificationStatus,
+    issue_registration_otp,
     resend_registration_otp,
     send_sms_otp,
     verify_registration_otp,
@@ -74,14 +76,12 @@ def create_sent_otp(*, user=None, code=OTP_CODE, expires_at=None):
     )
 
 
-def register_with_mocked_delivery(client, phone_number=PHONE_NUMBER):
+def issue_otp_with_mocked_delivery(phone_number=PHONE_NUMBER):
+    payload = registration_payload(phone_number)
+    payload.pop("password_confirm")
     with patch("accounts.services.send_sms_otp") as delivery:
-        response = client.post(
-            reverse("accounts:register"),
-            registration_payload(phone_number),
-            content_type="application/json",
-        )
-    return response, delivery.call_args.args[1]
+        retry_after = issue_registration_otp(phone_number, payload)
+    return retry_after, delivery.call_args.args[1]
 
 
 def login(client, phone_number=PHONE_NUMBER, password=PASSWORD):
@@ -92,28 +92,8 @@ def login(client, phone_number=PHONE_NUMBER, password=PASSWORD):
     )
 
 
-def test_registration_creates_pending_user_and_hashed_delivered_otp(client):
-    response, code = register_with_mocked_delivery(client)
-
-    assert response.status_code == 202
-    assert "access" not in response.json()
-    assert "refresh" not in response.json()
-    user = User.objects.get(phone_number=PHONE_NUMBER)
-    otp = PhoneOTP.objects.get(phone_number=PHONE_NUMBER)
-    assert user.is_active is False
-    assert user.is_phone_verified is False
-    assert user.has_usable_password() is False
-    assert otp.delivery_status == PhoneOTP.DeliveryStatus.SENT
-    assert otp.code_hash != code
-    assert check_password(code, otp.code_hash)
-    with pytest.raises(FieldDoesNotExist):
-        PhoneOTP._meta.get_field("code")
-
-
-def test_verified_account_cannot_be_overwritten_by_registration(client):
-    user = create_user(verified=True)
-    old_password = user.password
-
+@override_settings(REFRESH_COOKIE_SECURE=True)
+def test_registration_creates_authenticated_user_without_sms_or_otp(client):
     with patch("accounts.services.send_sms_otp") as delivery:
         response = client.post(
             reverse("accounts:register"),
@@ -121,13 +101,78 @@ def test_verified_account_cannot_be_overwritten_by_registration(client):
             content_type="application/json",
         )
 
-    assert response.status_code == 202
+    assert response.status_code == 201
+    assert response.json()["access"]
+    assert "refresh" not in response.json()
+    user = User.objects.get(phone_number=PHONE_NUMBER)
+    assert response.json()["user"]["id"] == user.pk
+    assert user.is_active is True
+    assert user.is_phone_verified is True
+    assert user.check_password(PASSWORD)
+    assert user.email == "tester@example.com"
+    assert not PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).exists()
+    delivery.assert_not_called()
+
+    cookie = response.cookies[settings.REFRESH_COOKIE_NAME]
+    assert cookie["httponly"] is True
+    assert cookie["secure"] is True
+    assert cookie["samesite"] == settings.REFRESH_COOKIE_SAMESITE
+    assert cookie["path"] == settings.REFRESH_COOKIE_PATH
+    assert int(cookie["max-age"]) == settings.REFRESH_TOKEN_LIFETIME_SECONDS
+    assert login(Client(), PHONE_NUMBER).status_code == 200
+
+
+def test_registration_session_can_refresh_and_is_revoked_by_logout(client):
+    registered = client.post(
+        reverse("accounts:register"),
+        registration_payload(),
+        content_type="application/json",
+    )
+    raw_refresh = registered.cookies[settings.REFRESH_COOKIE_NAME].value
+
+    assert client.post(reverse("token_refresh")).status_code == 200
+    assert client.post(reverse("accounts:logout")).status_code == 200
+
+    client.cookies[settings.REFRESH_COOKIE_NAME] = raw_refresh
+    assert client.post(reverse("token_refresh")).status_code == 401
+
+
+def test_verified_account_cannot_be_overwritten_by_registration(client):
+    user = create_user(verified=True)
+    old_password = user.password
+
+    response = client.post(
+        reverse("accounts:register"),
+        registration_payload(),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
     user.refresh_from_db()
     assert user.password == old_password
     assert user.is_active is True
     assert user.is_phone_verified is True
     assert not PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).exists()
-    delivery.assert_not_called()
+
+
+def test_registration_does_not_mutate_existing_inactive_unverified_user(client):
+    user = create_user()
+    old_password = user.password
+    old_profile = (user.first_name, user.last_name, user.email)
+
+    response = client.post(
+        reverse("accounts:register"),
+        registration_payload(),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    user.refresh_from_db()
+    assert user.password == old_password
+    assert (user.first_name, user.last_name, user.email) == old_profile
+    assert user.is_active is False
+    assert user.is_phone_verified is False
+    assert not PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).exists()
 
 
 def test_registration_password_mismatch_fails_before_user_creation(client):
@@ -139,6 +184,30 @@ def test_registration_password_mismatch_fails_before_user_creation(client):
 
     assert response.status_code == 400
     assert not User.objects.filter(phone_number=PHONE_NUMBER).exists()
+
+
+@pytest.mark.parametrize("phone_number", ("", "9123456789", "0912345678a"))
+def test_registration_rejects_invalid_iranian_phone_numbers(client, phone_number):
+    response = client.post(
+        reverse("accounts:register"),
+        registration_payload(phone_number),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert not User.objects.exists()
+
+
+def test_registration_applies_django_password_validation(client):
+    payload = registration_payload()
+    payload["password"] = payload["password_confirm"] = "short"
+
+    response = client.post(
+        reverse("accounts:register"), payload, content_type="application/json"
+    )
+
+    assert response.status_code == 400
+    assert not User.objects.exists()
 
 
 @override_settings(SMS_CONSOLE_ALLOWED=True, SMS_PROVIDER="console")
@@ -157,18 +226,21 @@ def test_console_sms_provider_fails_closed_when_not_explicitly_allowed():
         send_sms_otp(PHONE_NUMBER, OTP_CODE)
 
 
-@override_settings(SMS_CONSOLE_ALLOWED=True, SMS_PROVIDER="console")
-def test_console_registration_returns_503_and_never_creates_an_eligible_otp(client):
+@override_settings(
+    SMS_CONSOLE_ALLOWED=True,
+    SMS_PROVIDER="console",
+    KAVENEGAR_API_KEY="",
+)
+def test_registration_is_independent_of_sms_configuration(client):
     response = client.post(
         reverse("accounts:register"),
         registration_payload(),
         content_type="application/json",
     )
 
-    assert response.status_code == 503
-    otp = PhoneOTP.objects.get(phone_number=PHONE_NUMBER)
-    assert otp.delivery_status == PhoneOTP.DeliveryStatus.UNCERTAIN
-    assert otp.invalidated_at is not None
+    assert response.status_code == 201
+    assert User.objects.get(phone_number=PHONE_NUMBER).is_phone_verified is True
+    assert not PhoneOTP.objects.exists()
 
 
 @override_settings(
@@ -203,14 +275,12 @@ def test_kavenegar_template_delivery_is_mocked(kavenegar_api):
 
 
 @patch("accounts.services.send_sms_otp", side_effect=SMSDeliveryError("unavailable"))
-def test_failed_delivery_leaves_no_usable_otp(delivery, client):
-    response = client.post(
-        reverse("accounts:register"),
-        registration_payload(),
-        content_type="application/json",
-    )
+def test_failed_legacy_otp_delivery_leaves_no_usable_otp(delivery):
+    payload = registration_payload()
+    payload.pop("password_confirm")
+    with pytest.raises(OTPDeliveryUnavailable):
+        issue_registration_otp(PHONE_NUMBER, payload)
 
-    assert response.status_code == 503
     otp = PhoneOTP.objects.get(phone_number=PHONE_NUMBER)
     assert otp.delivery_status == PhoneOTP.DeliveryStatus.UNCERTAIN
     assert otp.invalidated_at is not None
@@ -315,14 +385,14 @@ def test_concurrent_verification_consumes_otp_once():
 
 @override_settings(OTP_RESEND_COOLDOWN_SECONDS=60)
 def test_resend_cooldown_is_database_backed(client):
-    register_response, _ = register_with_mocked_delivery(client)
+    retry_after, _ = issue_otp_with_mocked_delivery()
     resend_response = client.post(
         reverse("accounts:register-resend"),
         {"phone_number": PHONE_NUMBER},
         content_type="application/json",
     )
 
-    assert register_response.status_code == 202
+    assert retry_after == settings.OTP_RESEND_COOLDOWN_SECONDS
     assert resend_response.status_code == 429
     assert resend_response.json()["retry_after"] > 0
     assert PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).count() == 1
@@ -605,54 +675,56 @@ def test_all_cookie_auth_mutations_require_realistic_csrf_origin_and_header():
     csrf_token = bootstrap.json()["csrf_token"]
 
     register_payload = registration_payload(OTHER_PHONE_NUMBER)
-    with (
-        patch("accounts.services.generate_otp_code", return_value=OTP_CODE),
-        patch("accounts.services.send_sms_otp"),
-    ):
-        assert (
-            csrf_client.post(
-                reverse("accounts:register"),
-                register_payload,
-                content_type="application/json",
-                HTTP_ORIGIN=trusted_origin,
-            ).status_code
-            == 403
-        )
-        assert (
-            csrf_client.post(
-                reverse("accounts:register"),
-                register_payload,
-                content_type="application/json",
-                HTTP_ORIGIN=untrusted_origin,
-                HTTP_X_CSRFTOKEN=csrf_token,
-            ).status_code
-            == 403
-        )
-        registered = csrf_client.post(
-            reverse("accounts:register"),
-            register_payload,
-            content_type="application/json",
-            HTTP_ORIGIN=trusted_origin,
-            HTTP_X_CSRFTOKEN=csrf_token,
-        )
-    assert registered.status_code == 202
-
-    PhoneOTP.objects.filter(phone_number=OTHER_PHONE_NUMBER).update(
-        created_at=timezone.now() - timedelta(minutes=2)
-    )
     assert (
         csrf_client.post(
-            reverse("accounts:register-resend"),
-            {"phone_number": OTHER_PHONE_NUMBER},
+            reverse("accounts:register"),
+            register_payload,
             content_type="application/json",
             HTTP_ORIGIN=trusted_origin,
         ).status_code
         == 403
     )
-    with patch("accounts.services.send_sms_otp"):
+    assert (
+        csrf_client.post(
+            reverse("accounts:register"),
+            register_payload,
+            content_type="application/json",
+            HTTP_ORIGIN=untrusted_origin,
+            HTTP_X_CSRFTOKEN=csrf_token,
+        ).status_code
+        == 403
+    )
+    registered = csrf_client.post(
+        reverse("accounts:register"),
+        register_payload,
+        content_type="application/json",
+        HTTP_ORIGIN=trusted_origin,
+        HTTP_X_CSRFTOKEN=csrf_token,
+    )
+    assert registered.status_code == 201
+
+    pending_phone = "09112223344"
+    pending_user = create_user(phone_number=pending_phone)
+    pending_otp = create_sent_otp(user=pending_user, code="111111")
+    PhoneOTP.objects.filter(pk=pending_otp.pk).update(
+        created_at=timezone.now() - timedelta(minutes=2)
+    )
+    assert (
+        csrf_client.post(
+            reverse("accounts:register-resend"),
+            {"phone_number": pending_phone},
+            content_type="application/json",
+            HTTP_ORIGIN=trusted_origin,
+        ).status_code
+        == 403
+    )
+    with (
+        patch("accounts.services.generate_otp_code", return_value=OTP_CODE),
+        patch("accounts.services.send_sms_otp"),
+    ):
         resent = csrf_client.post(
             reverse("accounts:register-resend"),
-            {"phone_number": OTHER_PHONE_NUMBER},
+            {"phone_number": pending_phone},
             content_type="application/json",
             HTTP_ORIGIN=trusted_origin,
             HTTP_X_CSRFTOKEN=csrf_token,
@@ -662,19 +734,16 @@ def test_all_cookie_auth_mutations_require_realistic_csrf_origin_and_header():
     assert (
         csrf_client.post(
             reverse("accounts:register-verify"),
-            {"phone_number": OTHER_PHONE_NUMBER, "code": OTP_CODE},
+            {"phone_number": pending_phone, "code": OTP_CODE},
             content_type="application/json",
             HTTP_ORIGIN=trusted_origin,
         ).status_code
         == 403
     )
 
-    latest = PhoneOTP.objects.filter(phone_number=OTHER_PHONE_NUMBER).latest("pk")
-    latest.code_hash = make_password(OTP_CODE)
-    latest.save(update_fields=("code_hash",))
     verified = csrf_client.post(
         reverse("accounts:register-verify"),
-        {"phone_number": OTHER_PHONE_NUMBER, "code": OTP_CODE},
+        {"phone_number": pending_phone, "code": OTP_CODE},
         content_type="application/json",
         HTTP_ORIGIN=trusted_origin,
         HTTP_X_CSRFTOKEN=csrf_token,
@@ -736,12 +805,13 @@ def test_auth_responses_and_logs_do_not_expose_sensitive_values(client, caplog):
             registration_payload(),
             content_type="application/json",
         )
-    otp_code = delivery.call_args.args[1]
     serialized = response.content.decode()
+    access_token = response.json()["access"]
     assert PASSWORD not in serialized
-    assert otp_code not in serialized
+    assert "refresh" not in response.json()
     assert PASSWORD not in caplog.text
-    assert otp_code not in caplog.text
+    assert access_token not in caplog.text
+    delivery.assert_not_called()
 
 
 def test_me_requires_authentication_and_returns_verified_user(client):
@@ -761,12 +831,14 @@ def test_failed_new_delivery_cannot_change_payload_authorized_by_old_otp(client)
         patch("accounts.services.generate_otp_code", return_value="111111"),
         patch("accounts.services.send_sms_otp"),
     ):
-        first = client.post(
-            reverse("accounts:register"),
-            payload_a,
-            content_type="application/json",
+        issue_registration_otp(
+            PHONE_NUMBER,
+            {
+                key: value
+                for key, value in payload_a.items()
+                if key != "password_confirm"
+            },
         )
-    assert first.status_code == 202
     PhoneOTP.objects.update(created_at=timezone.now() - timedelta(minutes=2))
 
     payload_b = registration_payload()
@@ -783,12 +855,15 @@ def test_failed_new_delivery_cannot_change_payload_authorized_by_old_otp(client)
             side_effect=SMSDeliveryError("unavailable"),
         ),
     ):
-        second = client.post(
-            reverse("accounts:register"),
-            payload_b,
-            content_type="application/json",
-        )
-    assert second.status_code == 503
+        with pytest.raises(OTPDeliveryUnavailable):
+            issue_registration_otp(
+                PHONE_NUMBER,
+                {
+                    key: value
+                    for key, value in payload_b.items()
+                    if key != "password_confirm"
+                },
+            )
 
     result = verify_registration_otp(PHONE_NUMBER, "111111")
     assert result.status is VerificationStatus.VERIFIED
@@ -807,13 +882,13 @@ def test_successfully_delivered_new_payload_invalidates_old_otp(client):
         patch("accounts.services.generate_otp_code", return_value="111111"),
         patch("accounts.services.send_sms_otp"),
     ):
-        assert (
-            client.post(
-                reverse("accounts:register"),
-                payload_a,
-                content_type="application/json",
-            ).status_code
-            == 202
+        issue_registration_otp(
+            PHONE_NUMBER,
+            {
+                key: value
+                for key, value in payload_a.items()
+                if key != "password_confirm"
+            },
         )
     PhoneOTP.objects.update(created_at=timezone.now() - timedelta(minutes=2))
 
@@ -827,13 +902,13 @@ def test_successfully_delivered_new_payload_invalidates_old_otp(client):
         patch("accounts.services.generate_otp_code", return_value="222222"),
         patch("accounts.services.send_sms_otp"),
     ):
-        assert (
-            client.post(
-                reverse("accounts:register"),
-                payload_b,
-                content_type="application/json",
-            ).status_code
-            == 202
+        issue_registration_otp(
+            PHONE_NUMBER,
+            {
+                key: value
+                for key, value in payload_b.items()
+                if key != "password_confirm"
+            },
         )
 
     assert verify_registration_otp(PHONE_NUMBER, "111111").status is (
@@ -1003,7 +1078,7 @@ def test_delivery_completion_fails_closed_after_user_recreation():
     assert not PhoneOTP.objects.filter(pk=otp_id).exists()
 
 
-def test_active_unverified_user_can_recover_only_after_bound_otp(client):
+def test_active_unverified_user_is_not_changed_by_simple_registration(client):
     user = User.objects.create_user(
         phone_number=PHONE_NUMBER,
         password="OldPassword!42",
@@ -1014,27 +1089,19 @@ def test_active_unverified_user_can_recover_only_after_bound_otp(client):
     )
     payload = registration_payload()
     payload.update(first_name="Recovered", last_name="Account")
-    with (
-        patch("accounts.services.generate_otp_code", return_value="333333"),
-        patch("accounts.services.send_sms_otp"),
-    ):
-        response = client.post(
-            reverse("accounts:register"),
-            payload,
-            content_type="application/json",
-        )
-    assert response.status_code == 202
+    response = client.post(
+        reverse("accounts:register"),
+        payload,
+        content_type="application/json",
+    )
+    assert response.status_code == 400
     user.refresh_from_db()
     assert user.first_name == "Old"
+    assert user.last_name == "Profile"
     assert user.check_password("OldPassword!42")
-
-    assert verify_registration_otp(PHONE_NUMBER, "333333").status is (
-        VerificationStatus.VERIFIED
-    )
-    user.refresh_from_db()
-    assert user.first_name == "Recovered"
-    assert user.last_name == "Account"
-    assert user.check_password(PASSWORD)
+    assert user.is_active is True
+    assert user.is_phone_verified is False
+    assert not PhoneOTP.objects.filter(phone_number=PHONE_NUMBER).exists()
 
 
 def test_old_otp_cannot_survive_user_deletion_and_recreation():
