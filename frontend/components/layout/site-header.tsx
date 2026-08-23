@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { ProductSearch } from "@/components/layout/product-search";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,8 +49,8 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/60 bg-cream/78 shadow-[0_10px_40px_rgba(23,32,51,0.06)] backdrop-blur-xl dark:border-white/10 dark:bg-[rgb(var(--surface)/0.88)]">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8 xl:flex-nowrap xl:gap-4">
+        <Link href="/" className="flex shrink-0 items-center gap-3">
           <span className="relative block size-11 shrink-0 overflow-hidden rounded-[1.05rem] shadow-[0_10px_24px_rgba(23,32,51,0.10)] sm:size-12">
             <Image
               alt="لوگوی ایپک تویز"
@@ -90,6 +91,10 @@ export function SiteHeader() {
             );
           })}
         </nav>
+
+        <div className="order-last basis-full border-t border-ink/5 pt-3 dark:border-white/10 xl:order-none xl:basis-auto xl:flex-1 xl:border-0 xl:pt-0">
+          <ProductSearch />
+        </div>
 
         <div className="hidden items-center gap-3 lg:flex">
           <ThemeToggle />
