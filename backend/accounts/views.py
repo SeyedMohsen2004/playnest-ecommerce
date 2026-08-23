@@ -23,6 +23,7 @@ from accounts.serializers import (
     LoginSerializer,
     MessageSerializer,
     PendingRegistrationResponseSerializer,
+    RegisterErrorResponseSerializer,
     RegisterSerializer,
     ResendRegistrationSerializer,
     UserSerializer,
@@ -34,7 +35,6 @@ from accounts.services import (
     RegistrationUnavailable,
     VerificationStatus,
     authenticate_with_throttle,
-    issue_registration_otp,
     resend_registration_otp,
     verify_registration_otp,
 )
@@ -87,7 +87,7 @@ def _tracked_refresh(raw_token):
     return refresh, user, outstanding
 
 
-def authenticated_response(user):
+def authenticated_response(user, *, response_status=status.HTTP_200_OK):
     if not user.is_active or not user.is_phone_verified:
         raise ValueError("Tokens may only be issued for verified active users.")
     refresh = RefreshToken.for_user(user)
@@ -95,7 +95,8 @@ def authenticated_response(user):
         {
             "access": str(refresh.access_token),
             "user": UserSerializer(user).data,
-        }
+        },
+        status=response_status,
     )
     set_refresh_cookie(response, refresh)
     return response
@@ -108,52 +109,23 @@ class RegisterView(APIView):
     @extend_schema(
         request=RegisterSerializer,
         responses={
-            202: PendingRegistrationResponseSerializer,
-            400: ErrorResponseSerializer,
-            429: ErrorResponseSerializer,
-            503: ErrorResponseSerializer,
+            201: AuthResponseSerializer,
+            400: RegisterErrorResponseSerializer,
         },
         description=(
-            "Creates or safely updates a pending registration and sends an OTP. "
-            "No JWT is issued until verification succeeds. Requires a valid CSRF "
-            "cookie/header pair."
+            "Creates an active customer account after validating the profile and "
+            "password, returns a short-lived access token, and sets the refresh "
+            "token only in an HttpOnly cookie. Existing accounts are never updated. "
+            "Requires a valid CSRF cookie/header pair."
         ),
     )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = dict(serializer.validated_data)
-        data.pop("password_confirm", None)
-        try:
-            retry_after = issue_registration_otp(data["phone_number"], data)
-        except RegistrationUnavailable:
-            return Response(
-                {
-                    "message": "Registration is pending phone verification.",
-                    "retry_after": settings.OTP_RESEND_COOLDOWN_SECONDS,
-                },
-                status=status.HTTP_202_ACCEPTED,
-            )
-        except OTPRateLimited as exc:
-            return Response(
-                {
-                    "detail": "Please wait before requesting another code.",
-                    "retry_after": exc.retry_after,
-                },
-                status=status.HTTP_429_TOO_MANY_REQUESTS,
-            )
-        except OTPDeliveryUnavailable:
-            return Response(
-                {"detail": "Verification delivery is temporarily unavailable."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        return Response(
-            {
-                "message": "Registration is pending phone verification.",
-                "retry_after": retry_after,
-            },
-            status=status.HTTP_202_ACCEPTED,
+        user = serializer.save()
+        return authenticated_response(
+            user,
+            response_status=status.HTTP_201_CREATED,
         )
 
 

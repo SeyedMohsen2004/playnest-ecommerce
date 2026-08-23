@@ -1,14 +1,19 @@
 # Authentication and Browser Sessions
 
-PlayNest uses a pending-registration OTP flow and short-lived JWT access tokens.
-The browser never receives a refresh token in JSON: refresh sessions live only
-in an HttpOnly cookie, while access tokens exist only in JavaScript runtime
-memory.
+PlayNest uses direct phone-number registration and short-lived JWT access
+tokens. The browser never receives a refresh token in JSON: refresh sessions
+live only in an HttpOnly cookie, while access tokens exist only in JavaScript
+runtime memory.
 
 ## Security invariants
 
-- Registration creates or updates only an inactive, unverified pending user.
-- No token is issued until the latest successfully delivered OTP is consumed.
+- Registration atomically creates a new active, phone-verified account after
+  profile, phone, and Django password validation. It never updates an existing
+  account and does not invoke SMS or OTP delivery.
+- Registration and login issue the same hardened browser session: `{access,
+  user}` in JSON and a tracked refresh token only in an HttpOnly cookie.
+- The retained OTP compatibility endpoints operate only on eligible historical
+  pending registrations and are not used by the storefront registration flow.
 - OTP plaintext exists only transiently while calling the delivery adapter. The
   database stores a Django password hash; responses, admin, and logs omit both
   codes and hashes.
@@ -26,13 +31,27 @@ memory.
 - Passwords, OTPs, JWTs, provider keys, and complete authentication payloads
   must not be logged.
 
-## Registration and delivery
+## Storefront registration
 
 `POST /api/v1/accounts/register/` validates the profile and Django password
-rules, stores the password through Django's password hasher, creates a pending
-OTP record, and calls the SMS adapter outside the database transaction. It
-returns HTTP 202 without tokens. A successfully delivered candidate supersedes
-the prior eligible OTP under the pending user's row lock.
+rules, stores the password through Django's password hasher, and atomically
+creates an active, phone-verified user. It returns HTTP 201 with `{access, user}`
+and sets the tracked refresh token only as an HttpOnly cookie. The storefront
+does not call an SMS adapter, create a `PhoneOTP`, show a verification page, or
+offer a resend action. A duplicate phone number returns a validation error and
+cannot change the existing user's profile or password.
+
+## Dormant OTP compatibility
+
+`POST /api/v1/accounts/register/verify/` and
+`POST /api/v1/accounts/register/resend/` remain available to avoid an
+unnecessary compatibility or migration change. Normal storefront registration
+does not create the pending state these endpoints require.
+
+When explicitly used for an eligible historical pending registration, the OTP
+service stores only a code hash and calls the SMS adapter outside the database
+transaction. A successfully delivered candidate supersedes the prior eligible
+OTP under the pending user's row lock.
 
 Provider failure or an uncertain provider response leaves the new OTP unusable
 and returns HTTP 503. The console adapter never prints or delivers the code and
@@ -46,7 +65,7 @@ cooldown and rolling send limits include persisted issuance attempts, so
 multiple workers share the same policy. Failed-delivery attempts consume rate
 capacity but do not become verifiable.
 
-## Verification and login controls
+## Compatibility verification and login controls
 
 Verification locks the pending user and latest eligible OTP. A wrong code
 increments `failed_attempts` and commits that update before the view returns an
@@ -60,11 +79,11 @@ block duration have elapsed.
 
 ## Cookie refresh, logout, and CSRF
 
-Login and successful OTP verification return `{access, user}` and set one
-non-rotating refresh token cookie. Non-rotation avoids stale cross-tab responses
-overwriting newer cookies. Logout blacklists that refresh token through
-SimpleJWT and clears the cookie; access tokens remain valid only for their short
-configured lifetime.
+Registration, login, and successful compatibility OTP verification return
+`{access, user}` and set one non-rotating refresh token cookie. Non-rotation
+avoids stale cross-tab responses overwriting newer cookies. Logout blacklists
+that refresh token through SimpleJWT and clears the cookie; access tokens remain
+valid only for their short configured lifetime.
 
 The cookie is HttpOnly, uses an explicit Path and a same-site `Lax` or `Strict`
 policy, has a refresh-lifetime Max-Age, and is Secure whenever

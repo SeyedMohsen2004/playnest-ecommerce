@@ -1,12 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  useEffect,
-  useState,
-  type ChangeEventHandler,
-  type FormEvent,
-} from "react";
+import { useState, type ChangeEventHandler, type FormEvent } from "react";
 
 import {
   getFriendlyAuthError,
@@ -14,48 +9,28 @@ import {
 } from "@/components/providers/auth-provider";
 import { AuthCard } from "@/components/shared/auth-card";
 import { Button } from "@/components/ui/button";
-import { APIError } from "@/lib/api/client";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, resendRegistration, verifyRegistration } = useAuth();
-  const [phase, setPhase] = useState<"details" | "verify">("details");
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     phone_number: "",
     first_name: "",
     last_name: "",
+    email: "",
     password: "",
     password_confirm: "",
   });
-  const [code, setCode] = useState("");
-  const [cooldown, setCooldown] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
-  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = window.setInterval(() => {
-      setCooldown((current) => Math.max(0, current - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [cooldown]);
 
   function updateField(field: keyof typeof formData, value: string) {
     setFormData((current) => ({ ...current, [field]: value }));
   }
 
-  function applyRetryAfter(error: unknown) {
-    if (error instanceof APIError && error.data && typeof error.data === "object") {
-      const retryAfter = (error.data as { retry_after?: unknown }).retry_after;
-      if (typeof retryAfter === "number") setCooldown(retryAfter);
-    }
-  }
-
-  async function submitDetails(event: FormEvent<HTMLFormElement>) {
+  async function submitRegistration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
-    setMessage("");
     if (formData.password !== formData.password_confirm) {
       setErrorMessage("رمز عبور و تکرار آن یکسان نیستند.");
       return;
@@ -63,23 +38,16 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await register({
+      await register({
         phone_number: formData.phone_number.trim(),
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
+        email: formData.email.trim(),
         password: formData.password,
         password_confirm: formData.password_confirm,
       });
-      setCooldown(response.retry_after);
-      setFormData((current) => ({
-        ...current,
-        password: "",
-        password_confirm: "",
-      }));
-      setMessage(response.message);
-      setPhase("verify");
+      router.push("/");
     } catch (error) {
-      applyRetryAfter(error);
       setErrorMessage(
         getFriendlyAuthError(
           error,
@@ -91,152 +59,86 @@ export default function RegisterPage() {
     }
   }
 
-  async function submitVerification(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setErrorMessage("");
-    setMessage("");
-    setIsSubmitting(true);
-    try {
-      await verifyRegistration({
-        phone_number: formData.phone_number.trim(),
-        code: code.trim(),
-      });
-      setCode("");
-      router.push("/");
-    } catch (error) {
-      setErrorMessage(
-        getFriendlyAuthError(error, "کد تأیید نامعتبر یا منقضی شده است."),
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function resend() {
-    setErrorMessage("");
-    setMessage("");
-    setIsSubmitting(true);
-    try {
-      const response = await resendRegistration({
-        phone_number: formData.phone_number.trim(),
-      });
-      setCooldown(response.retry_after);
-      setMessage(response.message);
-    } catch (error) {
-      applyRetryAfter(error);
-      setErrorMessage(
-        getFriendlyAuthError(error, "ارسال دوباره کد امکان‌پذیر نیست."),
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
   return (
     <AuthCard
-      description={
-        phase === "details"
-          ? "برای ایجاد حساب، اطلاعات زیر را وارد کنید."
-          : `کد ارسال‌شده به ${formData.phone_number} را وارد کنید.`
-      }
+      description="برای ایجاد حساب، اطلاعات زیر را وارد کنید."
       footerHref="/login"
       footerLink="وارد شوید"
       footerText="قبلاً ثبت‌نام کرده‌اید؟"
-      title={phase === "details" ? "ثبت‌نام در IpakToys" : "تأیید شماره موبایل"}
+      title="ثبت‌نام در IpakToys"
     >
-      {phase === "details" ? (
-        <form className="space-y-4" onSubmit={submitDetails}>
+      <form className="space-y-4" onSubmit={submitRegistration}>
+        <Field
+          label="شماره موبایل"
+          ltr
+          onChange={(event) => updateField("phone_number", event.target.value)}
+          placeholder="09121111111"
+          type="tel"
+          value={formData.phone_number}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field
-            label="شماره موبایل"
-            ltr
-            onChange={(event) => updateField("phone_number", event.target.value)}
-            placeholder="09121111111"
-            type="tel"
-            value={formData.phone_number}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="نام"
-              onChange={(event) => updateField("first_name", event.target.value)}
-              placeholder="نام"
-              type="text"
-              value={formData.first_name}
-            />
-            <Field
-              label="نام خانوادگی"
-              onChange={(event) => updateField("last_name", event.target.value)}
-              placeholder="نام خانوادگی"
-              type="text"
-              value={formData.last_name}
-            />
-          </div>
-          <Field
-            label="رمز عبور"
-            ltr
-            onChange={(event) => updateField("password", event.target.value)}
-            placeholder="••••••••"
-            type="password"
-            value={formData.password}
-          />
-          <Field
-            label="تکرار رمز عبور"
-            ltr
-            onChange={(event) =>
-              updateField("password_confirm", event.target.value)
-            }
-            placeholder="••••••••"
-            type="password"
-            value={formData.password_confirm}
-          />
-          <StatusMessages error={errorMessage} message={message} />
-          <Button className="w-full" disabled={isSubmitting} type="submit" variant="coral">
-            {isSubmitting ? "در حال ثبت‌نام..." : "ادامه و دریافت کد"}
-          </Button>
-        </form>
-      ) : (
-        <form className="space-y-4" onSubmit={submitVerification}>
-          <Field
-            label="کد شش‌رقمی"
-            ltr
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="123456"
+            label="نام"
+            onChange={(event) => updateField("first_name", event.target.value)}
+            placeholder="نام"
             type="text"
-            value={code}
+            value={formData.first_name}
           />
-          <StatusMessages error={errorMessage} message={message} />
-          <Button className="w-full" disabled={isSubmitting} type="submit" variant="coral">
-            {isSubmitting ? "در حال بررسی..." : "تأیید و ورود"}
-          </Button>
-          <Button
-            className="w-full"
-            disabled={isSubmitting || cooldown > 0}
-            onClick={resend}
-            type="button"
-            variant="outline"
-          >
-            {cooldown > 0 ? `ارسال دوباره تا ${cooldown} ثانیه` : "ارسال دوباره کد"}
-          </Button>
-        </form>
-      )}
+          <Field
+            label="نام خانوادگی"
+            onChange={(event) => updateField("last_name", event.target.value)}
+            placeholder="نام خانوادگی"
+            type="text"
+            value={formData.last_name}
+          />
+        </div>
+        <Field
+          label="ایمیل (اختیاری)"
+          ltr
+          onChange={(event) => updateField("email", event.target.value)}
+          placeholder="name@example.com"
+          required={false}
+          type="email"
+          value={formData.email}
+        />
+        <Field
+          label="رمز عبور"
+          ltr
+          onChange={(event) => updateField("password", event.target.value)}
+          placeholder="••••••••"
+          type="password"
+          value={formData.password}
+        />
+        <Field
+          label="تکرار رمز عبور"
+          ltr
+          onChange={(event) =>
+            updateField("password_confirm", event.target.value)
+          }
+          placeholder="••••••••"
+          type="password"
+          value={formData.password_confirm}
+        />
+        <StatusMessages error={errorMessage} />
+        <Button
+          className="w-full"
+          disabled={isSubmitting}
+          type="submit"
+          variant="coral"
+        >
+          {isSubmitting ? "در حال ثبت‌نام..." : "ثبت‌نام"}
+        </Button>
+      </form>
     </AuthCard>
   );
 }
 
-function StatusMessages({ error, message }: { error: string; message: string }) {
-  return (
-    <>
-      {error ? (
-        <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold leading-7 text-rose-700">
-          {error}
-        </p>
-      ) : null}
-      {message ? (
-        <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold leading-7 text-emerald-700">
-          {message}
-        </p>
-      ) : null}
-    </>
-  );
+function StatusMessages({ error }: { error: string }) {
+  return error ? (
+    <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold leading-7 text-rose-700">
+      {error}
+    </p>
+  ) : null;
 }
 
 function Field({
@@ -250,6 +152,7 @@ function Field({
   value: string;
   onChange: ChangeEventHandler<HTMLInputElement>;
   ltr?: boolean;
+  required?: boolean;
 }) {
   return (
     <label className="block">
@@ -257,7 +160,7 @@ function Field({
       <input
         className="mt-2 h-12 w-full rounded-2xl border border-ink/10 bg-cream px-4 text-sm outline-none transition placeholder:text-ink/30 focus:border-coral"
         dir={ltr ? "ltr" : "rtl"}
-        required
+        required={props.required ?? true}
         {...props}
       />
     </label>

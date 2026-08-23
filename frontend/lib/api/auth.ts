@@ -16,7 +16,7 @@ const cookieMutationOptions = {
 };
 
 export function registerUser(payload: RegisterPayload) {
-  return apiClient.post<PendingRegistrationResponse>(
+  return apiClient.post<AuthResponse>(
     "/accounts/register/",
     payload,
     cookieMutationOptions,

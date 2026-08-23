@@ -32,7 +32,7 @@ deployment.
 
 | Application | Responsibility |
 | --- | --- |
-| `accounts` | Custom phone-number users, pending OTP registration, login controls, JWT browser sessions, logout revocation, and profile API. |
+| `accounts` | Custom phone-number users, direct registration, login controls, JWT browser sessions, logout revocation, profile API, and dormant OTP compatibility endpoints. |
 | `products` | Catalog, categories, brands, product images, homepage placement, filtering, wishlist, and reviews. |
 | `orders` | Cart, checkout, order snapshots, coupons, shipping settings, ownership rules, and fulfilment state. |
 | `payments` | ZarinPal requests, callback validation, server-side verification, safe public serialization, and payment finalization. |
@@ -54,17 +54,17 @@ as a trusted source for money or permission decisions.
 ## Authentication
 
 Users register with an Iranian mobile number, profile, and password. Registration
-creates an inactive pending account, sends a hashed-lifecycle OTP, and returns no
-tokens. Successful verification activates the user and returns a short-lived
-access token while placing the non-rotating refresh token in an HttpOnly cookie.
+atomically creates an active, authentication-eligible account, returns a
+short-lived access token, and places the non-rotating refresh token in an
+HttpOnly cookie. No SMS delivery is used by the storefront registration flow.
 Login follows the same browser-session response contract. Reloads restore access
 through the cookie refresh endpoint; logout blacklists the refresh session.
 
-OTP issuance, resend, and verification serialize through the pending user row.
-Delivery happens outside database transactions, and only confirmed-delivered
-codes are eligible. Login failure controls are PostgreSQL-backed. Cookie-backed
-authentication mutations explicitly enforce CSRF. Detailed invariants and
-configuration are in [Authentication and Browser Sessions](authentication.md).
+The retained OTP issuance, resend, and verification compatibility services
+serialize through the pending user row, but normal registration does not call
+them. Login failure controls are PostgreSQL-backed. Cookie-backed authentication
+mutations explicitly enforce CSRF. Detailed invariants and configuration are in
+[Authentication and Browser Sessions](authentication.md).
 
 ## Cart and Checkout
 

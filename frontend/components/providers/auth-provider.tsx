@@ -41,7 +41,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<PendingRegistrationResponse>;
+  register: (payload: RegisterPayload) => Promise<void>;
   verifyRegistration: (payload: VerifyRegistrationPayload) => Promise<void>;
   resendRegistration: (
     payload: ResendRegistrationPayload,
@@ -135,8 +135,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   }, []);
 
-  const register = useCallback((payload: RegisterPayload) => {
-    return registerUser(payload);
+  const register = useCallback(async (payload: RegisterPayload) => {
+    const response = await registerUser(payload);
+    replaceSessionAccessToken(response.access);
+    setUser(response.user);
   }, []);
 
   const verify = useCallback(async (payload: VerifyRegistrationPayload) => {

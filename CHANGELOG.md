@@ -5,6 +5,12 @@ This changelog follows the principles of
 
 ## [Unreleased]
 
+### Changed
+
+- Restored direct storefront registration without SMS or OTP while retaining
+  the hardened HttpOnly refresh-cookie, CSRF, login-throttling, and logout
+  revocation architecture.
+
 ## [1.1.1] - 2026-08-11
 
 ### Changed
