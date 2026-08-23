@@ -12,11 +12,9 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const navigation = [
+const primaryNavigation = [
   { label: "خانه", href: "/" },
   { label: "محصولات", href: "/products" },
-  { label: "دسته‌بندی‌ها", href: "/products#filters" },
-  { label: "پیشنهادها", href: "/#offers" },
 ];
 
 export function SiteHeader() {
@@ -26,6 +24,13 @@ export function SiteHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const displayName =
     user?.first_name?.trim() || user?.phone_number || "حساب کاربری";
+  const desktopNavigation = [
+    ...primaryNavigation,
+    { label: "سبد خرید", href: "/cart" },
+    ...(isAuthenticated
+      ? [{ label: "سفارش‌های من", href: "/account/orders" }]
+      : []),
+  ];
 
   async function handleLogout() {
     await logout();
@@ -71,8 +76,8 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-2 rounded-full bg-white/55 p-1 shadow-sm ring-1 ring-white/70 dark:bg-white/10 dark:ring-white/10 lg:flex">
-          {navigation.map((item) => {
+        <nav className="hidden shrink-0 items-center gap-1 rounded-full bg-white/55 p-1 shadow-sm ring-1 ring-white/70 dark:bg-white/10 dark:ring-white/10 lg:flex">
+          {desktopNavigation.map((item) => {
             const isActive = isActiveLink(item.href);
 
             return (
@@ -80,7 +85,7 @@ export function SiteHeader() {
                 href={item.href}
                 key={item.label}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-bold text-ink/70 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral/70 hover:bg-white hover:text-coral hover:shadow-sm dark:text-ink/90 dark:hover:bg-white/10 dark:hover:text-sunshine",
+                  "rounded-full px-3 py-2 text-sm font-bold text-ink/70 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral/70 hover:bg-white hover:text-coral hover:shadow-sm dark:text-ink/90 dark:hover:bg-white/10 dark:hover:text-sunshine",
                   isActive
                     ? "bg-white text-coral shadow-sm dark:bg-white/15 dark:text-sunshine"
                     : "",
@@ -92,38 +97,15 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="order-last basis-full border-t border-ink/5 pt-3 dark:border-white/10 xl:order-none xl:basis-auto xl:flex-1 xl:border-0 xl:pt-0">
+        <div className="order-last basis-full border-t border-ink/5 pt-3 dark:border-white/10 xl:order-none xl:min-w-72 xl:basis-auto xl:flex-1 xl:border-0 xl:pt-0">
           <ProductSearch />
         </div>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden shrink-0 items-center gap-3 lg:flex">
           <ThemeToggle />
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            aria-label="باز کردن سبد خرید"
-            className="bg-white/65 shadow-sm"
-          >
-            <Link href="/cart">
-              <ShoppingCart className="size-5" />
-              سبد خرید
-            </Link>
-          </Button>
 
           {isAuthenticated ? (
             <>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="bg-white/65 shadow-sm"
-              >
-                <Link href="/account/orders">
-                  <ClipboardList className="size-5" />
-                  سفارش‌های من
-                </Link>
-              </Button>
               <span className="max-w-32 truncate rounded-full bg-white px-4 py-2 text-xs font-black text-ink shadow-sm">
                 {displayName}
               </span>
@@ -168,7 +150,7 @@ export function SiteHeader() {
       >
         <div className="overflow-hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 sm:px-6">
-            {navigation.map((item) => {
+            {primaryNavigation.map((item) => {
               const isActive = isActiveLink(item.href);
 
               return (
