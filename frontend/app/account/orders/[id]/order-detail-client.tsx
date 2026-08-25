@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { APIError } from "@/lib/api/client";
+import { getFriendlyApiError } from "@/lib/api/errors";
 import { cancelOrder, getOrder, updateOrderShipping } from "@/lib/api/orders";
 import { requestPayment } from "@/lib/api/payments";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
@@ -249,7 +250,11 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
                 </p>
               ) : null}
               {errorMessage ? (
-                <p className="rounded-3xl bg-rose-50 px-5 py-4 text-sm font-bold leading-7 text-rose-700 dark:bg-rose-950/45 dark:text-rose-100">
+                <p
+                  className="rounded-3xl bg-rose-50 px-5 py-4 text-right text-sm font-bold leading-7 text-rose-700 [overflow-wrap:anywhere] dark:bg-rose-950/45 dark:text-rose-100"
+                  dir="rtl"
+                  role="alert"
+                >
                   {errorMessage}
                 </p>
               ) : null}
@@ -604,22 +609,22 @@ function getPaymentRetryError(error: unknown) {
 }
 
 function getOrderActionError(error: unknown, fallbackMessage: string) {
+  const friendlyMessage = getFriendlyApiError(error, fallbackMessage);
+
   if (error instanceof APIError) {
     const data = error.data as
       | { detail?: unknown; items?: Array<{ product_name?: string }> }
       | undefined;
 
-    const detail = Array.isArray(data?.detail) ? data.detail[0] : data?.detail;
-
-    if (typeof detail === "string") {
+    if (friendlyMessage.includes("موجودی")) {
       const itemNames = data?.items
         ?.map((item) => item.product_name)
         .filter(Boolean)
         .join("، ");
 
-      return itemNames ? `${detail} (${itemNames})` : detail;
+      return itemNames ? `${friendlyMessage} (${itemNames})` : friendlyMessage;
     }
   }
 
-  return fallbackMessage;
+  return friendlyMessage;
 }

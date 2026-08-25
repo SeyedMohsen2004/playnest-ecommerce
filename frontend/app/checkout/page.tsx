@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { getCart } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
 import { applyCoupon, createCheckoutOrder } from "@/lib/api/checkout";
+import { getFriendlyApiError } from "@/lib/api/errors";
 import { getShippingRates } from "@/lib/api/shipping";
 import { trackEvent } from "@/lib/analytics";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
@@ -110,7 +111,12 @@ export default function CheckoutPage() {
       if (error instanceof APIError && error.status === 401) {
         handleUnauthorized();
       } else {
-        setPageError("خطا در دریافت سبد خرید. لطفا کمی بعد دوباره تلاش کنید.");
+        setPageError(
+          getFriendlyApiError(
+            error,
+            "دریافت اطلاعات سبد خرید انجام نشد. لطفاً کمی بعد دوباره تلاش کنید.",
+          ),
+        );
       }
     } finally {
       setIsCartLoading(false);
@@ -189,7 +195,12 @@ export default function CheckoutPage() {
         setCouponPreview(null);
         setAppliedCouponCode("");
         setCouponTone("error");
-        setCouponMessage("کد تخفیف معتبر نیست یا شرایط استفاده را ندارد.");
+        setCouponMessage(
+          getFriendlyApiError(
+            error,
+            "کد تخفیف معتبر نیست یا شرایط استفاده را ندارد.",
+          ),
+        );
       }
     } finally {
       setIsCouponLoading(false);
@@ -252,7 +263,12 @@ export default function CheckoutPage() {
       if (error instanceof APIError && error.status === 401) {
         handleUnauthorized();
       } else {
-        setPageError("خطا در ثبت سفارش. لطفاً اطلاعات را بررسی کنید.");
+        setPageError(
+          getFriendlyApiError(
+            error,
+            "ثبت سفارش انجام نشد. لطفاً اطلاعات را بررسی کنید.",
+          ),
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -405,8 +421,10 @@ export default function CheckoutPage() {
                   className={
                     couponTone === "success"
                       ? "mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700"
-                      : "mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700"
+                      : "mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-right text-sm font-bold leading-7 text-rose-700 [overflow-wrap:anywhere]"
                   }
+                  dir="rtl"
+                  role={couponTone === "error" ? "alert" : "status"}
                 >
                   {couponMessage}
                 </p>
@@ -432,7 +450,11 @@ export default function CheckoutPage() {
               </label>
 
               {pageError ? (
-                <p className="mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold leading-7 text-rose-700">
+                <p
+                  className="mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-right text-sm font-bold leading-7 text-rose-700 [overflow-wrap:anywhere]"
+                  dir="rtl"
+                  role="alert"
+                >
                   {pageError}
                 </p>
               ) : null}

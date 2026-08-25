@@ -8,6 +8,7 @@ import {
   useAuth,
 } from "@/components/providers/auth-provider";
 import { AuthCard } from "@/components/shared/auth-card";
+import { PasswordField } from "@/components/shared/password-field";
 import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
@@ -101,22 +102,16 @@ export default function RegisterPage() {
           type="email"
           value={formData.email}
         />
-        <Field
+        <PasswordField
           label="رمز عبور"
-          ltr
           onChange={(event) => updateField("password", event.target.value)}
-          placeholder="••••••••"
-          type="password"
           value={formData.password}
         />
-        <Field
+        <PasswordField
           label="تکرار رمز عبور"
-          ltr
           onChange={(event) =>
             updateField("password_confirm", event.target.value)
           }
-          placeholder="••••••••"
-          type="password"
           value={formData.password_confirm}
         />
         <StatusMessages error={errorMessage} />
@@ -135,7 +130,11 @@ export default function RegisterPage() {
 
 function StatusMessages({ error }: { error: string }) {
   return error ? (
-    <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold leading-7 text-rose-700">
+    <p
+      className="rounded-2xl bg-rose-50 px-4 py-3 text-right text-sm font-bold leading-7 text-rose-700 [overflow-wrap:anywhere]"
+      dir="rtl"
+      role="alert"
+    >
       {error}
     </p>
   ) : null;

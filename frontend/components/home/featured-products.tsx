@@ -112,8 +112,12 @@ export function FeaturedProducts() {
         ) : null}
 
         {!isLoading && hasError ? (
-          <div className="mt-8 rounded-[2rem] border border-rose-100 bg-rose-50 p-6 text-center text-sm font-bold leading-7 text-rose-700">
-            خطا در دریافت محصولات صفحه اصلی. لطفا اتصال بک‌اند را بررسی کنید.
+          <div
+            className="mt-8 rounded-[2rem] border border-rose-100 bg-rose-50 p-6 text-center text-sm font-bold leading-7 text-rose-700"
+            dir="rtl"
+            role="alert"
+          >
+            نمایش محصولات با مشکل روبه‌رو شد. لطفاً کمی بعد دوباره تلاش کنید.
           </div>
         ) : null}
 

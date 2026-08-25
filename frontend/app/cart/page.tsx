@@ -16,6 +16,7 @@ import {
   updateCartItem,
 } from "@/lib/api/cart";
 import { APIError } from "@/lib/api/client";
+import { getFriendlyApiError } from "@/lib/api/errors";
 import { getShippingRates } from "@/lib/api/shipping";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-storage";
 import { formatToman } from "@/lib/format";
@@ -72,7 +73,12 @@ export default function CartPage() {
       if (error instanceof APIError && error.status === 401) {
         handleUnauthorized();
       } else {
-        setErrorMessage("خطا در دریافت سبد خرید. لطفا کمی بعد دوباره تلاش کنید.");
+        setErrorMessage(
+          getFriendlyApiError(
+            error,
+            "دریافت سبد خرید انجام نشد. لطفاً کمی بعد دوباره تلاش کنید.",
+          ),
+        );
       }
     } finally {
       setIsLoading(false);
@@ -108,7 +114,12 @@ export default function CartPage() {
       if (error instanceof APIError && error.status === 401) {
         handleUnauthorized();
       } else {
-        setErrorMessage("خطا در به‌روزرسانی سبد خرید.");
+        setErrorMessage(
+          getFriendlyApiError(
+            error,
+            "به‌روزرسانی سبد خرید انجام نشد. لطفاً دوباره تلاش کنید.",
+          ),
+        );
       }
     } finally {
       setMutatingItemId(null);
@@ -151,7 +162,11 @@ export default function CartPage() {
           <>
             <div className="space-y-4">
               {errorMessage ? (
-                <p className="rounded-3xl bg-rose-50 px-5 py-4 text-sm font-bold leading-7 text-rose-700">
+                <p
+                  className="rounded-3xl bg-rose-50 px-5 py-4 text-right text-sm font-bold leading-7 text-rose-700 [overflow-wrap:anywhere]"
+                  dir="rtl"
+                  role="alert"
+                >
                   {errorMessage}
                 </p>
               ) : null}

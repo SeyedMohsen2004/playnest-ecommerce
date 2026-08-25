@@ -9,6 +9,7 @@ import {
   useAuth,
 } from "@/components/providers/auth-provider";
 import { AuthCard } from "@/components/shared/auth-card";
+import { PasswordField } from "@/components/shared/password-field";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -56,17 +57,19 @@ export default function LoginPage() {
           type="tel"
           value={phoneNumber}
         />
-        <Field
+        <PasswordField
           helper="رمز عبور خود را وارد کنید."
           label="رمز عبور"
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="••••••••"
-          type="password"
           value={password}
         />
 
         {errorMessage ? (
-          <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold leading-7 text-rose-700">
+          <p
+            className="rounded-2xl bg-rose-50 px-4 py-3 text-right text-sm font-bold leading-7 text-rose-700 [overflow-wrap:anywhere]"
+            dir="rtl"
+            role="alert"
+          >
             {errorMessage}
           </p>
         ) : null}
