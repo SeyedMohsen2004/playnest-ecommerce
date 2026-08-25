@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from "react";
 
-import { APIError } from "@/lib/api/client";
 import {
   getCurrentUser,
   loginUser,
@@ -20,6 +19,7 @@ import {
   resendRegistration,
   verifyRegistration,
 } from "@/lib/api/auth";
+import { getFriendlyApiError } from "@/lib/api/errors";
 import {
   getSessionGeneration,
   invalidateSession,
@@ -51,40 +51,11 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function extractErrorText(data: unknown): string | null {
-  if (!data || typeof data !== "object") {
-    return null;
-  }
-
-  const record = data as Record<string, unknown>;
-  const preferredKeys = ["detail", "message", "non_field_errors", "code"];
-
-  for (const key of preferredKeys) {
-    const value = record[key];
-    if (typeof value === "string") return value;
-    if (Array.isArray(value) && typeof value[0] === "string") return value[0];
-  }
-
-  const firstValue = Object.values(record)[0];
-  if (typeof firstValue === "string") return firstValue;
-  if (Array.isArray(firstValue) && typeof firstValue[0] === "string") {
-    return firstValue[0];
-  }
-  return null;
-}
-
 export function getFriendlyAuthError(
   error: unknown,
   fallback = "در ارتباط با سرور مشکلی پیش آمد. کمی بعد دوباره تلاش کنید.",
 ) {
-  if (error instanceof APIError) {
-    return extractErrorText(error.data) || error.message || fallback;
-  }
-  if (error instanceof TypeError) {
-    return "ارتباط با سرور برقرار نشد. لطفاً کمی بعد دوباره تلاش کنید.";
-  }
-  if (error instanceof Error) return error.message;
-  return fallback;
+  return getFriendlyApiError(error, fallback);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
