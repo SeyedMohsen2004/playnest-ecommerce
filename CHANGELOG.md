@@ -10,6 +10,10 @@ This changelog follows the principles of
 - Restored direct storefront registration without SMS or OTP while retaining
   the hardened HttpOnly refresh-cookie, CSRF, login-throttling, and logout
   revocation architecture.
+- Aligned the opt-in production Compose contract with the audited host topology:
+  explicit reuse of an existing external PostgreSQL volume, host-served
+  static/media bind mounts, loopback-only Gunicorn and standalone Next.js, and
+  a fail-fast deployment preflight and rollback runbook.
 
 ### Security
 

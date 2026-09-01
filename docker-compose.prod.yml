@@ -42,9 +42,9 @@ services:
       DJANGO_SESSION_COOKIE_SECURE: ${DJANGO_SESSION_COOKIE_SECURE:?Set DJANGO_SESSION_COOKIE_SECURE}
       DJANGO_CSRF_COOKIE_SECURE: ${DJANGO_CSRF_COOKIE_SECURE:?Set DJANGO_CSRF_COOKIE_SECURE}
       DJANGO_TRUST_X_FORWARDED_PROTO: ${DJANGO_TRUST_X_FORWARDED_PROTO:?Set DJANGO_TRUST_X_FORWARDED_PROTO}
-      SMS_PROVIDER: ${SMS_PROVIDER:?Set SMS_PROVIDER}
+      SMS_PROVIDER: ${SMS_PROVIDER:-disabled}
       SMS_CONSOLE_ALLOWED: ${SMS_CONSOLE_ALLOWED:-False}
-      KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:?Set KAVENEGAR_API_KEY}
+      KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:-}
       KAVENEGAR_SENDER: ${KAVENEGAR_SENDER:-}
       KAVENEGAR_VERIFY_TEMPLATE: ${KAVENEGAR_VERIFY_TEMPLATE:-}
       OTP_EXPIRY_SECONDS: ${OTP_EXPIRY_SECONDS:-120}
@@ -79,8 +79,16 @@ services:
     ports:
       - "${PRODUCTION_BIND_ADDRESS:-127.0.0.1}:${PRODUCTION_API_PORT:-8000}:8000"
     volumes:
-      - static_data:/app/staticfiles
-      - media_data:/app/media
+      - type: bind
+        source: ${PRODUCTION_STATIC_PATH:-./backend/staticfiles}
+        target: /app/staticfiles
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PRODUCTION_MEDIA_PATH:-./backend/media}
+        target: /app/media
+        bind:
+          create_host_path: false
     depends_on:
       db:
         condition: service_healthy
@@ -106,6 +114,7 @@ services:
       dockerfile: Dockerfile.prod
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?Set NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:?Set NEXT_PUBLIC_MEDIA_BASE_URL}
         NEXT_PUBLIC_UMAMI_SCRIPT_URL: ${NEXT_PUBLIC_UMAMI_SCRIPT_URL:-}
         NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
         NEXT_PUBLIC_UMAMI_DOMAINS: ${NEXT_PUBLIC_UMAMI_DOMAINS:-}
@@ -113,6 +122,8 @@ services:
     init: true
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?Set NEXT_PUBLIC_API_BASE_URL}
+      NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:?Set NEXT_PUBLIC_MEDIA_BASE_URL}
+      INTERNAL_API_BASE_URL: ${INTERNAL_API_BASE_URL:-http://api:8000/api/v1}
       NEXT_PUBLIC_UMAMI_SCRIPT_URL: ${NEXT_PUBLIC_UMAMI_SCRIPT_URL:-}
       NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
       NEXT_PUBLIC_UMAMI_DOMAINS: ${NEXT_PUBLIC_UMAMI_DOMAINS:-}
@@ -142,5 +153,5 @@ services:
 
 volumes:
   postgres_data:
-  static_data:
-  media_data:
+    name: ${PRODUCTION_POSTGRES_VOLUME_NAME:-playnest-production-postgres-data}
+    external: true
