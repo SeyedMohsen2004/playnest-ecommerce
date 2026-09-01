@@ -228,10 +228,12 @@ jobs:
           readonly media_backup=/tmp/playnest-production-ci-media.tar.gz
 
           install -m 0600 .env.production.example "$env_file"
-          sudo install -d -o 10001 -g 10001 -m 0755 \
+          install -d -m 0755 \
             "$PRODUCTION_STATIC_PATH" "$PRODUCTION_MEDIA_PATH"
           printf 'synthetic media fixture\n' > "$PRODUCTION_MEDIA_PATH/synthetic.txt"
           chmod 0644 "$PRODUCTION_MEDIA_PATH/synthetic.txt"
+          sudo chown -R 10001:10001 \
+            "$PRODUCTION_STATIC_PATH" "$PRODUCTION_MEDIA_PATH"
 
           docker volume create "$PRODUCTION_POSTGRES_VOLUME_NAME" >/dev/null
           docker compose --env-file "$env_file" -f "$compose_file" \
