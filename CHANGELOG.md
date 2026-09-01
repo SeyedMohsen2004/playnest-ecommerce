@@ -11,6 +11,13 @@ This changelog follows the principles of
   the hardened HttpOnly refresh-cookie, CSRF, login-throttling, and logout
   revocation architecture.
 
+### Security
+
+- Removed demo coupon disclosure from checkout, blocked development seed data
+  in production-like settings, rate-limited coupon validation, unified
+  enumeration-sensitive failures, and added optional concurrency-safe
+  per-user coupon limits.
+
 ## [1.1.1] - 2026-08-11
 
 ### Changed

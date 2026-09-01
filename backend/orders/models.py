@@ -63,6 +63,7 @@ class Coupon(models.Model):
     max_discount_amount = models.PositiveIntegerField(blank=True, null=True)
     min_order_amount = models.PositiveIntegerField(default=0)
     usage_limit = models.PositiveIntegerField(blank=True, null=True)
+    per_user_usage_limit = models.PositiveIntegerField(blank=True, null=True)
     used_count = models.PositiveIntegerField(default=0)
     starts_at = models.DateTimeField(blank=True, null=True)
     expires_at = models.DateTimeField(blank=True, null=True)
@@ -82,6 +83,11 @@ class Coupon(models.Model):
                 condition=Q(usage_limit__isnull=True)
                 | Q(used_count__lte=F("usage_limit")),
                 name="coupon_used_count_within_limit",
+            ),
+            models.CheckConstraint(
+                condition=Q(per_user_usage_limit__isnull=True)
+                | Q(per_user_usage_limit__gte=1),
+                name="coupon_per_user_usage_limit_positive",
             ),
         ]
 
@@ -283,3 +289,17 @@ class CouponRedemption(models.Model):
 
     def __str__(self):
         return f"{self.coupon.code} for order #{self.order_id}: {self.state}"
+
+
+class CouponValidationThrottle(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="coupon_validation_throttle",
+    )
+    attempt_count = models.PositiveIntegerField(default=0)
+    window_started_at = models.DateTimeField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Coupon validation throttle for user #{self.user_id}"

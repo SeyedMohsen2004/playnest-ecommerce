@@ -3,31 +3,35 @@ from django.utils import timezone
 
 from orders.models import Coupon, Order, ShippingSettings
 
+COUPON_UNAVAILABLE_MESSAGE = (
+    "کد تخفیف واردشده معتبر نیست یا در حال حاضر قابل استفاده نیست."
+)
+
 
 def validate_coupon(coupon, subtotal):
     now = timezone.now()
     if not coupon.is_active:
-        raise ValidationError({"coupon": "Coupon is inactive."})
+        raise ValidationError({"coupon": COUPON_UNAVAILABLE_MESSAGE})
     if coupon.starts_at and now < coupon.starts_at:
-        raise ValidationError({"coupon": "Coupon is not active yet."})
+        raise ValidationError({"coupon": COUPON_UNAVAILABLE_MESSAGE})
     if coupon.expires_at and now >= coupon.expires_at:
-        raise ValidationError({"coupon": "Coupon has expired."})
+        raise ValidationError({"coupon": COUPON_UNAVAILABLE_MESSAGE})
     if coupon.usage_limit is not None and coupon.used_count >= coupon.usage_limit:
-        raise ValidationError({"coupon": "Coupon usage limit has been reached."})
+        raise ValidationError({"coupon": COUPON_UNAVAILABLE_MESSAGE})
     if subtotal < coupon.min_order_amount:
         raise ValidationError(
-            {"coupon": "Order amount does not meet the coupon minimum."}
+            {"coupon": "مبلغ سفارش به حداقل لازم برای استفاده از این کد نرسیده است."}
         )
     if (
         coupon.discount_type == Coupon.DiscountType.PERCENTAGE
         and coupon.discount_value > 100
     ):
-        raise ValidationError({"coupon": "Percentage discount cannot exceed 100."})
+        raise ValidationError({"coupon": COUPON_UNAVAILABLE_MESSAGE})
     if (
         coupon.discount_type == Coupon.DiscountType.FIXED
         and coupon.discount_value > subtotal
     ):
-        raise ValidationError({"coupon": "Fixed discount cannot exceed order total."})
+        raise ValidationError({"coupon": COUPON_UNAVAILABLE_MESSAGE})
     return coupon
 
 

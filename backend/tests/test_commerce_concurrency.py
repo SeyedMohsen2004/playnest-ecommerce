@@ -434,6 +434,65 @@ def test_concurrent_checkouts_cannot_overreserve_final_coupon_capacity(product):
     assert order.coupon_redemption.state == CouponRedemption.State.CONSUMED
 
 
+def test_concurrent_same_user_checkouts_cannot_bypass_per_user_coupon_limit(
+    product,
+):
+    ShippingSettings.load()
+    user = create_user(29)
+    CartItem.objects.create(
+        cart=Cart.objects.create(user=user),
+        product=product,
+        quantity=1,
+    )
+    coupon = Coupon.objects.create(
+        code="ONE-PER-USER-CONCURRENT",
+        discount_type=Coupon.DiscountType.FIXED,
+        discount_value=100,
+        per_user_usage_limit=1,
+    )
+
+    def attempt():
+        try:
+            return checkout_for(user, coupon_code=coupon.code).id
+        except CouponCapacityUnavailable:
+            return None
+
+    order_ids = run_concurrently(attempt, attempt)
+
+    assert sum(order_id is not None for order_id in order_ids) == 1
+    assert (
+        CouponRedemption.objects.filter(
+            coupon=coupon,
+            order__user=user,
+            state=CouponRedemption.State.RESERVED,
+        ).count()
+        == 1
+    )
+
+
+def test_legacy_payment_preparation_cannot_bypass_per_user_coupon_limit(product):
+    user = create_user(30)
+    coupon = Coupon.objects.create(
+        code="LEGACY-PER-USER-LIMIT",
+        discount_type=Coupon.DiscountType.FIXED,
+        discount_value=100,
+        per_user_usage_limit=1,
+        used_count=1,
+    )
+    consumed_order = create_order(user, product, coupon=coupon)
+    CouponRedemption.objects.create(
+        coupon=coupon,
+        order=consumed_order,
+        state=CouponRedemption.State.CONSUMED,
+    )
+    legacy_order = create_order(user, product, coupon=coupon)
+
+    with pytest.raises(CouponCapacityUnavailable):
+        prepare_payment_attempt(legacy_order.id)
+
+    assert Payment.objects.filter(order=legacy_order).exists() is False
+
+
 def test_retry_reuses_one_coupon_reservation_and_consumes_once(product):
     ShippingSettings.load()
     user = create_user(7)

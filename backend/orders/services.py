@@ -12,7 +12,12 @@ from orders.models import (
     Order,
     OrderItem,
 )
-from orders.pricing import calculate_order_totals, get_shipping_cost, validate_coupon
+from orders.pricing import (
+    COUPON_UNAVAILABLE_MESSAGE,
+    calculate_order_totals,
+    get_shipping_cost,
+    validate_coupon,
+)
 from products.models import Product
 
 
@@ -113,12 +118,35 @@ def ensure_coupon_capacity_for_reservation(coupon):
         return
     allocated = coupon.used_count + _reserved_coupon_count(coupon)
     if allocated >= coupon.usage_limit:
-        raise CouponCapacityUnavailable(
-            {"coupon": "Coupon usage limit has been reached."}
-        )
+        raise CouponCapacityUnavailable({"coupon": COUPON_UNAVAILABLE_MESSAGE})
 
 
-def ensure_coupon_can_be_consumed(coupon, redemption):
+def ensure_coupon_capacity_for_user(coupon, user_id, *, exclude_order_id=None):
+    """Enforce an optional per-user allocation cap for a locked coupon.
+
+    Authoritative checkout/payment callers hold the coupon row lock before
+    invoking this function, so reservations for the same coupon serialize
+    across users and processes. The apply-coupon preview uses the same count as
+    advisory feedback, but checkout always rechecks under lock. Released
+    reservations do not count; reserved and consumed redemptions do.
+    """
+    if coupon.per_user_usage_limit is None:
+        return
+    redemptions = CouponRedemption.objects.filter(
+        coupon=coupon,
+        order__user_id=user_id,
+        state__in=(
+            CouponRedemption.State.RESERVED,
+            CouponRedemption.State.CONSUMED,
+        ),
+    )
+    if exclude_order_id is not None:
+        redemptions = redemptions.exclude(order_id=exclude_order_id)
+    if redemptions.count() >= coupon.per_user_usage_limit:
+        raise CouponCapacityUnavailable({"coupon": COUPON_UNAVAILABLE_MESSAGE})
+
+
+def ensure_coupon_can_be_consumed(order, coupon, redemption):
     if coupon is None or (
         redemption is not None and redemption.state == CouponRedemption.State.CONSUMED
     ):
@@ -126,6 +154,12 @@ def ensure_coupon_can_be_consumed(coupon, redemption):
     if redemption is not None and redemption.state != CouponRedemption.State.RESERVED:
         raise CouponRedemptionInconsistent(
             {"coupon": "Coupon reservation is no longer available."}
+        )
+    if redemption is None:
+        ensure_coupon_capacity_for_user(
+            coupon,
+            order.user_id,
+            exclude_order_id=order.id,
         )
     if coupon.usage_limit is None:
         return
@@ -136,9 +170,7 @@ def ensure_coupon_can_be_consumed(coupon, redemption):
             coupon.used_count + _reserved_coupon_count(coupon) < coupon.usage_limit
         )
     if not has_capacity:
-        raise CouponCapacityUnavailable(
-            {"coupon": "Coupon usage limit has been reached."}
-        )
+        raise CouponCapacityUnavailable({"coupon": COUPON_UNAVAILABLE_MESSAGE})
 
 
 def consume_coupon(order, coupon, redemption):
@@ -189,7 +221,7 @@ def finalize_locked_order_inventory(order):
         return order
 
     coupon, redemption = lock_coupon_redemption(order)
-    ensure_coupon_can_be_consumed(coupon, redemption)
+    ensure_coupon_can_be_consumed(order, coupon, redemption)
     order_items, products = _lock_order_products(order)
     _validate_locked_stock(order_items, products)
 
@@ -238,7 +270,7 @@ def checkout_cart(
             .first()
         )
         if coupon is None:
-            raise ValidationError({"coupon_code": "Coupon was not found."})
+            raise ValidationError({"coupon_code": COUPON_UNAVAILABLE_MESSAGE})
 
     product_ids = sorted({item["product_id"] for item in item_snapshot})
     products = {
@@ -285,6 +317,7 @@ def checkout_cart(
     if coupon is not None:
         validate_coupon(coupon, subtotal_amount)
         ensure_coupon_capacity_for_reservation(coupon)
+        ensure_coupon_capacity_for_user(coupon, user.id)
     totals = calculate_order_totals(
         subtotal_amount,
         coupon,

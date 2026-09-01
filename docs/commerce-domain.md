@@ -24,7 +24,8 @@ outside long-lived database transactions.
   one transaction, so stock cannot become negative or be reduced twice.
 - Coupon use is represented once per order. A reservation can be consumed once
   or released once, and `Coupon.used_count` cannot exceed a finite
-  `usage_limit`.
+  `usage_limit`. An optional `per_user_usage_limit` counts that user's reserved
+  and consumed redemptions; released reservations do not consume the allowance.
 - Cart cleanup is an order side effect even when more than one payment attempt
   exists. It happens at most once, and cart rows created after checkout are not
   mistaken for the rows captured by the order.
@@ -82,6 +83,13 @@ does not clear the cart or reserve stock.
 A limited coupon is reserved at checkout while its coupon row is locked.
 Capacity is `used_count` plus active reservations. Unlimited coupons use the
 same per-order state without a capacity ceiling.
+
+The same coupon row lock serializes the optional per-user limit. Reserved and
+consumed redemptions for the ordering user count toward the limit; a released
+reservation no longer counts. Different users have independent allowances,
+while the global limit remains authoritative across all users. Existing coupons
+have a `NULL` per-user limit and retain their previous unlimited-per-user
+behavior.
 
 - Successful verified finalization changes `reserved` to `consumed` and
   increments `used_count` in the same transaction.
@@ -162,4 +170,25 @@ to an ineligible fulfilment transition.
   not expire silently.
 - Reducing a coupon usage limit below `used_count` is blocked by the database,
   but reducing it below already allocated capacity (`used_count` plus active
-  reservations) remains an operator risk requiring manual review.
+  reservations), or lowering a per-user limit below that user's existing
+  allocations, remains an operator risk requiring manual review.
+
+## Production Coupon Operations
+
+- `seed_data` is development-only and refuses to run when `DEBUG` is false. It
+  must never be used to initialize or repair production data.
+- Demo coupon codes must not be reused for real campaigns or disclosed in
+  storefront placeholders, help text, or source examples.
+- The authenticated coupon-preview endpoint allows eight attempts per minute
+  per user. Its bounded database row makes the limit consistent across web
+  workers; checkout still revalidates every rule authoritatively under locks.
+- Prefer an expiry, a global usage limit, and a per-user usage limit whenever a
+  campaign does not intentionally need to be unlimited. The admin list marks
+  each missing boundary visibly for staff review.
+- Review active coupons regularly and disable obsolete coupons instead of
+  deleting their historical evidence.
+- Coupon reservations are released only through explicit order cancellation;
+  they do not expire silently.
+- Database backups and exports must remain outside Git. The repository ignores
+  common SQL and dump extensions, but operators remain responsible for secure,
+  access-controlled backup storage.
