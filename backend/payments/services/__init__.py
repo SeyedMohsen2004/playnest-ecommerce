@@ -12,6 +12,7 @@ from orders.services import (
     CouponRedemptionInconsistent,
     InventoryUnavailable,
     ensure_coupon_capacity_for_reservation,
+    ensure_coupon_capacity_for_user,
     finalize_locked_order_inventory,
     lock_cart_items,
     lock_coupon_redemption,
@@ -105,6 +106,7 @@ def prepare_payment_attempt(order_id):
     if coupon is not None:
         if redemption is None:
             ensure_coupon_capacity_for_reservation(coupon)
+            ensure_coupon_capacity_for_user(coupon, order.user_id)
             redemption = CouponRedemption.objects.create(
                 coupon=coupon,
                 order=order,

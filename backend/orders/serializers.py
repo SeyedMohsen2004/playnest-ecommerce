@@ -4,8 +4,13 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem
-from orders.pricing import calculate_order_totals
-from orders.services import checkout_cart
+from orders.pricing import COUPON_UNAVAILABLE_MESSAGE, calculate_order_totals
+from orders.services import (
+    CouponCapacityUnavailable,
+    checkout_cart,
+    ensure_coupon_capacity_for_reservation,
+    ensure_coupon_capacity_for_user,
+)
 from products.models import Product
 from products.serializers import ProductImageSerializer
 
@@ -85,18 +90,29 @@ class ApplyCouponSerializer(serializers.Serializer):
     def validate_code(self, value):
         coupon = Coupon.objects.filter(code__iexact=value.strip()).first()
         if coupon is None:
-            raise serializers.ValidationError("Coupon was not found.")
+            raise serializers.ValidationError(COUPON_UNAVAILABLE_MESSAGE)
         self.coupon = coupon
         return value
 
     def create(self, validated_data):
         try:
+            ensure_coupon_capacity_for_reservation(self.coupon)
+            ensure_coupon_capacity_for_user(
+                self.coupon,
+                self.context["cart"].user_id,
+            )
             return calculate_order_totals(
                 self.context["cart"].subtotal,
                 self.coupon,
             )
+        except CouponCapacityUnavailable as exc:
+            raise serializers.ValidationError(
+                {"code": exc.message_dict.get("coupon", [COUPON_UNAVAILABLE_MESSAGE])}
+            ) from exc
         except DjangoValidationError as exc:
-            raise serializers.ValidationError(exc.message_dict) from exc
+            raise serializers.ValidationError(
+                {"code": exc.message_dict.get("coupon", [COUPON_UNAVAILABLE_MESSAGE])}
+            ) from exc
 
 
 class CartItemCreateSerializer(serializers.Serializer):

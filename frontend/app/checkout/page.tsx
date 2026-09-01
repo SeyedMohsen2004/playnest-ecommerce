@@ -335,11 +335,10 @@ export default function CheckoutPage() {
                   <Field
                     error={validationErrors.coupon_code}
                     label="کد تخفیف"
-                    ltr
                     onChange={(event) =>
                       updateField("coupon_code", event.target.value)
                     }
-                    placeholder="OFF10"
+                    placeholder="کد تخفیف خود را وارد کنید"
                     value={formData.coupon_code}
                   />
                   <Button

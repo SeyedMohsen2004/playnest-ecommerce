@@ -111,8 +111,7 @@ def test_consolidated_order_migration_applies_from_0011(
     )
 
     migrations = applied_order_migrations(database_name, config)
-    assert migrations[-1] == "0012_couponredemption_and_more"
-    assert not any(name.startswith("0013") for name in migrations)
+    assert migrations[-1] == "0013_coupon_per_user_usage_limit"
     with database_connection(database_name, config) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -126,13 +125,28 @@ def test_consolidated_order_migration_applies_from_0011(
             )
             coupon_constraint = cursor.fetchone()
             cursor.execute(
+                "SELECT conname FROM pg_constraint "
+                "WHERE conname = 'coupon_per_user_usage_limit_positive'"
+            )
+            per_user_constraint = cursor.fetchone()
+            cursor.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'orders_coupon'"
+            )
+            coupon_columns = {row[0] for row in cursor.fetchall()}
+            cursor.execute(
                 "SELECT indexname FROM pg_indexes "
                 "WHERE indexname = 'coupon_redemption_state_idx'"
             )
             redemption_index = cursor.fetchone()
+            cursor.execute("SELECT to_regclass('orders_couponvalidationthrottle')")
+            throttle_table = cursor.fetchone()
     assert "cart_item_id_snapshot" in order_item_columns
+    assert "per_user_usage_limit" in coupon_columns
     assert coupon_constraint == ("coupon_used_count_within_limit",)
+    assert per_user_constraint == ("coupon_per_user_usage_limit_positive",)
     assert redemption_index == ("coupon_redemption_state_idx",)
+    assert throttle_table == ("orders_couponvalidationthrottle",)
 
 
 def test_fresh_migration_graph_applies_from_zero(disposable_postgres_database):
@@ -155,5 +169,46 @@ def test_fresh_migration_graph_applies_from_zero(disposable_postgres_database):
 
     assert check.returncode == 0
     migrations = applied_order_migrations(database_name, config)
-    assert migrations[-1] == "0012_couponredemption_and_more"
-    assert not any(name.startswith("0013") for name in migrations)
+    assert migrations[-1] == "0013_coupon_per_user_usage_limit"
+
+
+def test_per_user_limit_migration_preserves_existing_coupons_as_unlimited(
+    disposable_postgres_database,
+):
+    database_name, config = disposable_postgres_database
+    run_manage(
+        database_name,
+        config,
+        "migrate",
+        "orders",
+        "0012_couponredemption_and_more",
+        "--noinput",
+        "--verbosity=0",
+    )
+    with database_connection(database_name, config) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO orders_coupon "
+                "(code, discount_type, discount_value, min_order_amount, "
+                "used_count, is_active, created_at, updated_at) "
+                "VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())",
+                ("HISTORICAL", "percentage", 10, 0, 0, True),
+            )
+        connection.commit()
+
+    run_manage(
+        database_name,
+        config,
+        "migrate",
+        "orders",
+        "--noinput",
+        "--verbosity=0",
+    )
+
+    with database_connection(database_name, config) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT per_user_usage_limit FROM orders_coupon " "WHERE code = %s",
+                ("HISTORICAL",),
+            )
+            assert cursor.fetchone() == (None,)

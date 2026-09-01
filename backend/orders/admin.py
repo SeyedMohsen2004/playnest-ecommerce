@@ -91,7 +91,8 @@ class CouponAdmin(admin.ModelAdmin):
         "discount_value",
         "max_discount_amount",
         "min_order_amount",
-        "usage_limit",
+        "global_limit",
+        "per_user_limit",
         "used_count",
         "starts_at",
         "ends_at",
@@ -115,14 +116,51 @@ class CouponAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Usage", {"fields": ("usage_limit", "used_count")}),
-        ("Schedule", {"fields": ("starts_at", "expires_at")}),
+        (
+            "Usage",
+            {
+                "fields": (
+                    "usage_limit",
+                    "per_user_usage_limit",
+                    "used_count",
+                ),
+                "description": (
+                    "برای کمپین‌های محدود، سقف کلی و سقف هر کاربر را مشخص کنید. "
+                    "مقدار خالی به معنی نامحدود است."
+                ),
+            },
+        ),
+        (
+            "Schedule",
+            {
+                "fields": ("starts_at", "expires_at"),
+                "description": (
+                    "کوپن فعال بدون تاریخ انقضا تا زمان غیرفعال‌سازی دستی "
+                    "معتبر می‌ماند."
+                ),
+            },
+        ),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
 
     @admin.display(description="Ends at", ordering="expires_at")
     def ends_at(self, obj):
-        return obj.expires_at
+        if obj.expires_at:
+            return obj.expires_at
+        return "بدون انقضا ⚠" if obj.is_active else "بدون انقضا"
+
+    @admin.display(description="Global limit", ordering="usage_limit")
+    def global_limit(self, obj):
+        if obj.usage_limit is not None:
+            return obj.usage_limit
+        return "نامحدود ⚠" if obj.is_active else "نامحدود"
+
+    @admin.display(description="Per-user limit", ordering="per_user_usage_limit")
+    def per_user_limit(self, obj):
+        limit = obj.per_user_usage_limit
+        if limit is not None:
+            return limit
+        return "نامحدود ⚠" if obj.is_active else "نامحدود"
 
 
 class CartItemInline(admin.TabularInline):

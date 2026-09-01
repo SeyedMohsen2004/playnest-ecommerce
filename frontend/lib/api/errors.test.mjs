@@ -102,6 +102,14 @@ test("normalizes authorization and commerce validation safely", () => {
     "کد تخفیف معتبر نیست یا شرایط استفاده از آن فراهم نشده است.",
   );
   assert.equal(
+    getFriendlyApiError(
+      apiError(400, {
+        coupon: ["Order amount does not meet the coupon minimum."],
+      }),
+    ),
+    "مبلغ سفارش به حداقل لازم برای استفاده از این کد نرسیده است.",
+  );
+  assert.equal(
     getCartErrorMessage(
       apiError(400, { quantity: ["Insufficient stock."] }),
       undefined,

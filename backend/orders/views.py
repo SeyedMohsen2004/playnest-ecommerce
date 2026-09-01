@@ -25,6 +25,7 @@ from orders.services import (
     cancel_order,
     update_order_shipping,
 )
+from orders.throttles import CouponApplyThrottle
 from products.models import ProductImage
 
 
@@ -72,6 +73,7 @@ class CartView(APIView):
 
 class ApplyCouponView(APIView):
     permission_classes = (IsAuthenticated,)
+    throttle_classes = (CouponApplyThrottle,)
 
     @extend_schema(
         request=ApplyCouponSerializer,

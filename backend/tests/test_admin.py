@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib import admin
+from django.contrib.admin.models import ADDITION, CHANGE, DELETION, LogEntry
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -134,6 +135,77 @@ def test_major_models_are_registered_in_admin(model):
     admin.autodiscover()
 
     assert model in admin.site._registry
+
+
+def test_coupon_admin_highlights_unbounded_campaigns_and_keeps_standard_logging():
+    admin.autodiscover()
+    coupon_admin = admin.site._registry[Coupon]
+    coupon = Coupon.objects.create(
+        code="ADMIN-UNBOUNDED",
+        discount_type=Coupon.DiscountType.PERCENTAGE,
+        discount_value=10,
+    )
+
+    assert "global_limit" in coupon_admin.list_display
+    assert "per_user_limit" in coupon_admin.list_display
+    assert coupon_admin.global_limit(coupon) == "نامحدود ⚠"
+    assert coupon_admin.per_user_limit(coupon) == "نامحدود ⚠"
+    assert coupon_admin.ends_at(coupon) == "بدون انقضا ⚠"
+    assert coupon_admin.__class__.save_model is admin.ModelAdmin.save_model
+    assert coupon_admin.__class__.delete_model is admin.ModelAdmin.delete_model
+
+
+def test_coupon_admin_create_change_and_delete_are_logged(client, admin_user):
+    client.force_login(admin_user)
+    add_response = client.post(
+        reverse("admin:orders_coupon_add"),
+        {
+            "code": "AUDITED-COUPON",
+            "discount_type": Coupon.DiscountType.PERCENTAGE,
+            "discount_value": 10,
+            "max_discount_amount": "",
+            "min_order_amount": 0,
+            "usage_limit": "",
+            "per_user_usage_limit": 1,
+            "starts_at_0": "",
+            "starts_at_1": "",
+            "expires_at_0": "",
+            "expires_at_1": "",
+            "is_active": "on",
+            "_save": "Save",
+        },
+    )
+    coupon = Coupon.objects.get(code="AUDITED-COUPON")
+
+    change_response = client.post(
+        reverse("admin:orders_coupon_change", args=(coupon.pk,)),
+        {
+            "code": coupon.code,
+            "discount_type": coupon.discount_type,
+            "discount_value": 15,
+            "max_discount_amount": "",
+            "min_order_amount": 0,
+            "usage_limit": "",
+            "per_user_usage_limit": 1,
+            "starts_at_0": "",
+            "starts_at_1": "",
+            "expires_at_0": "",
+            "expires_at_1": "",
+            "is_active": "on",
+            "_save": "Save",
+        },
+    )
+    delete_response = client.post(
+        reverse("admin:orders_coupon_delete", args=(coupon.pk,)),
+        {"post": "yes"},
+    )
+
+    assert add_response.status_code == 302
+    assert change_response.status_code == 302
+    assert delete_response.status_code == 302
+    assert LogEntry.objects.filter(action_flag=ADDITION).exists()
+    assert LogEntry.objects.filter(action_flag=CHANGE).exists()
+    assert LogEntry.objects.filter(action_flag=DELETION).exists()
 
 
 def test_store_manager_admin_actions_are_available():

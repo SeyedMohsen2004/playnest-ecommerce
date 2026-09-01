@@ -1,5 +1,6 @@
+from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from accounts.models import User
@@ -255,7 +256,7 @@ PRODUCTS = (
 
 COUPONS = (
     {
-        "code": "OFF10",
+        "code": "DEMO-OFF10",
         "discount_type": Coupon.DiscountType.PERCENTAGE,
         "discount_value": 10,
         "max_discount_amount": 500_000,
@@ -264,7 +265,7 @@ COUPONS = (
         "is_active": True,
     },
     {
-        "code": "GAME50000",
+        "code": "DEMO-GAME50000",
         "discount_type": Coupon.DiscountType.FIXED,
         "discount_value": 50_000,
         "max_discount_amount": None,
@@ -324,6 +325,11 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError(
+                "seed_data is development-only and cannot run when DEBUG is false."
+            )
+
         self.seed_users()
         categories = self.seed_categories()
         brands = self.seed_brands()
@@ -447,7 +453,9 @@ class Command(BaseCommand):
             code = defaults.pop("code")
             Coupon.objects.update_or_create(code=code, defaults=defaults)
 
-        Coupon.objects.filter(code="TOY50000").update(is_active=False)
+        Coupon.objects.filter(code__in=("OFF10", "GAME50000", "TOY50000")).update(
+            is_active=False
+        )
 
     def deactivate_old_seed_content(self):
         Product.objects.filter(slug__in=OLD_SEED_PRODUCT_SLUGS).update(

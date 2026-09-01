@@ -2,12 +2,22 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.db import IntegrityError, transaction
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
-from orders.models import Cart, CartItem, Coupon, Order
+from orders.models import (
+    Cart,
+    CartItem,
+    Coupon,
+    CouponRedemption,
+    CouponValidationThrottle,
+    Order,
+)
+from orders.pricing import COUPON_UNAVAILABLE_MESSAGE
+from orders.services import cancel_order
 from payments.models import Payment
 from payments.services.zarinpal import PaymentVerificationResult
 from products.models import Brand, Category, Product
@@ -99,12 +109,12 @@ def verified_result():
 def test_valid_percentage_coupon(client, user, product):
     add_to_cart(user, product)
     Coupon.objects.create(
-        code="OFF10",
+        code="TEST-OFF10",
         discount_type=Coupon.DiscountType.PERCENTAGE,
         discount_value=10,
     )
 
-    response = apply_coupon(client, user, "OFF10")
+    response = apply_coupon(client, user, "TEST-OFF10")
 
     assert response.status_code == 200
     assert response.json() == {
@@ -157,7 +167,7 @@ def test_fixed_coupon_cannot_exceed_order_subtotal(client, user, product):
     response = apply_coupon(client, user, "TOO-LARGE")
 
     assert response.status_code == 400
-    assert "exceed order total" in str(response.json()).lower()
+    assert response.json()["code"] == [COUPON_UNAVAILABLE_MESSAGE]
 
 
 def test_expired_coupon_is_rejected(client, user, product):
@@ -172,7 +182,7 @@ def test_expired_coupon_is_rejected(client, user, product):
     response = apply_coupon(client, user, "EXPIRED")
 
     assert response.status_code == 400
-    assert "expired" in str(response.json()).lower()
+    assert response.json()["code"] == [COUPON_UNAVAILABLE_MESSAGE]
 
 
 def test_future_coupon_is_rejected(client, user, product):
@@ -187,7 +197,7 @@ def test_future_coupon_is_rejected(client, user, product):
     response = apply_coupon(client, user, "FUTURE")
 
     assert response.status_code == 400
-    assert "not active yet" in str(response.json()).lower()
+    assert response.json()["code"] == [COUPON_UNAVAILABLE_MESSAGE]
 
 
 def test_inactive_coupon_is_rejected(client, user, product):
@@ -202,7 +212,7 @@ def test_inactive_coupon_is_rejected(client, user, product):
     response = apply_coupon(client, user, "INACTIVE")
 
     assert response.status_code == 400
-    assert "inactive" in str(response.json()).lower()
+    assert response.json()["code"] == [COUPON_UNAVAILABLE_MESSAGE]
 
 
 def test_coupon_min_order_amount_is_enforced(client, user, product):
@@ -217,7 +227,9 @@ def test_coupon_min_order_amount_is_enforced(client, user, product):
     response = apply_coupon(client, user, "MINIMUM")
 
     assert response.status_code == 400
-    assert "minimum" in str(response.json()).lower()
+    assert response.json()["code"] == [
+        "مبلغ سفارش به حداقل لازم برای استفاده از این کد نرسیده است."
+    ]
 
 
 def test_coupon_usage_limit_is_enforced(client, user, product):
@@ -233,7 +245,156 @@ def test_coupon_usage_limit_is_enforced(client, user, product):
     response = apply_coupon(client, user, "LIMITED")
 
     assert response.status_code == 400
-    assert "usage limit" in str(response.json()).lower()
+    assert response.json()["code"] == [COUPON_UNAVAILABLE_MESSAGE]
+
+
+def test_coupon_apply_requires_authentication(client):
+    response = client.post(
+        reverse("orders:apply-coupon"),
+        {"code": "ANY-CODE"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 401
+
+
+def test_coupon_enumeration_sensitive_failures_share_one_message(
+    client,
+    user,
+    product,
+):
+    add_to_cart(user, product)
+
+    response = apply_coupon(client, user, "DOES-NOT-EXIST")
+
+    assert response.status_code == 400
+    assert response.json()["code"] == [COUPON_UNAVAILABLE_MESSAGE]
+
+
+def test_coupon_apply_is_scoped_and_rate_limited_per_user(
+    client,
+    user,
+    product,
+):
+    add_to_cart(user, product)
+    second_user = User.objects.create_user(
+        phone_number="09123456780",
+        password="StrongPassword!42",
+        is_active=True,
+        is_phone_verified=True,
+    )
+    add_to_cart(second_user, product)
+    allowed = [apply_coupon(client, user, f"INVALID-{attempt}") for attempt in range(8)]
+    blocked = apply_coupon(client, user, "INVALID-9")
+    unrelated_user = apply_coupon(client, second_user, "INVALID-OTHER-USER")
+
+    assert all(response.status_code == 400 for response in allowed)
+    assert blocked.status_code == 429
+    assert unrelated_user.status_code == 400
+    assert CouponValidationThrottle.objects.get(user=user).attempt_count == 8
+    assert CouponValidationThrottle.objects.get(user=second_user).attempt_count == 1
+
+    throttle = CouponValidationThrottle.objects.get(user=user)
+    throttle.window_started_at = timezone.now() - timedelta(minutes=2)
+    throttle.save(update_fields=("window_started_at", "updated_at"))
+    recovered = apply_coupon(client, user, "INVALID-AFTER-WINDOW")
+    throttle.refresh_from_db()
+    assert recovered.status_code == 400
+    assert throttle.attempt_count == 1
+
+
+def test_per_user_coupon_limit_counts_reservations_and_is_user_specific(
+    client,
+    user,
+    product,
+):
+    add_to_cart(user, product)
+    coupon = Coupon.objects.create(
+        code="ONE-PER-CUSTOMER",
+        discount_type=Coupon.DiscountType.PERCENTAGE,
+        discount_value=10,
+        per_user_usage_limit=1,
+    )
+
+    first = checkout(client, user, coupon.code)
+    repeated = checkout(client, user, coupon.code)
+
+    second_user = User.objects.create_user(
+        phone_number="09123456780",
+        password="StrongPassword!42",
+        is_active=True,
+        is_phone_verified=True,
+    )
+    add_to_cart(second_user, product)
+    other_customer = checkout(client, second_user, coupon.code)
+
+    assert first.status_code == 201
+    assert repeated.status_code == 400
+    assert repeated.json()["coupon"] == [COUPON_UNAVAILABLE_MESSAGE]
+    assert other_customer.status_code == 201
+
+
+def test_released_coupon_reservation_restores_per_user_allowance(
+    client,
+    user,
+    product,
+):
+    add_to_cart(user, product)
+    coupon = Coupon.objects.create(
+        code="REUSABLE-AFTER-CANCEL",
+        discount_type=Coupon.DiscountType.PERCENTAGE,
+        discount_value=10,
+        per_user_usage_limit=1,
+    )
+    first = checkout(client, user, coupon.code)
+    first_order = Order.objects.get(pk=first.json()["id"])
+
+    cancel_order(first_order.id)
+    second = checkout(client, user, coupon.code)
+
+    assert second.status_code == 201
+    assert (
+        CouponRedemption.objects.filter(
+            coupon=coupon,
+            state=CouponRedemption.State.RELEASED,
+        ).count()
+        == 1
+    )
+    assert (
+        CouponRedemption.objects.filter(
+            coupon=coupon,
+            state=CouponRedemption.State.RESERVED,
+        ).count()
+        == 1
+    )
+
+
+def test_null_per_user_coupon_limit_preserves_unlimited_behavior(
+    client,
+    user,
+    product,
+):
+    add_to_cart(user, product)
+    coupon = Coupon.objects.create(
+        code="UNLIMITED-PER-CUSTOMER",
+        discount_type=Coupon.DiscountType.PERCENTAGE,
+        discount_value=10,
+        per_user_usage_limit=None,
+    )
+
+    assert checkout(client, user, coupon.code).status_code == 201
+    assert checkout(client, user, coupon.code).status_code == 201
+    assert coupon.redemptions.count() == 2
+
+
+def test_per_user_coupon_limit_must_be_positive():
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Coupon.objects.create(
+            code="INVALID-PER-USER-LIMIT",
+            discount_type=Coupon.DiscountType.PERCENTAGE,
+            discount_value=10,
+            per_user_usage_limit=0,
+        )
 
 
 def test_checkout_stores_coupon_discount_and_shipping(client, user, product):
@@ -282,6 +443,7 @@ def test_coupon_used_count_increments_after_payment_success(
         code="PAY10",
         discount_type=Coupon.DiscountType.PERCENTAGE,
         discount_value=10,
+        per_user_usage_limit=1,
     )
     checkout(client, user, coupon.code)
     order = Order.objects.get(user=user)
@@ -304,6 +466,16 @@ def test_coupon_used_count_increments_after_payment_success(
     assert response.status_code == 302
     coupon.refresh_from_db()
     assert coupon.used_count == 1
+    assert order.coupon_redemption.state == CouponRedemption.State.CONSUMED
+
+    CartItem.objects.create(
+        cart=Cart.objects.get(user=user),
+        product=product,
+        quantity=1,
+    )
+    repeated = checkout(client, user, coupon.code)
+    assert repeated.status_code == 400
+    assert repeated.json()["coupon"] == [COUPON_UNAVAILABLE_MESSAGE]
 
 
 def test_coupon_used_count_does_not_increment_twice(client, settings, user, product):

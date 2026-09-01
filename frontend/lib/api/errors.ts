@@ -225,12 +225,18 @@ function localizeMessage(entry: ErrorEntry): string | null {
   }
 
   if (
+    normalized.includes("minimum order") ||
+    normalized.includes("coupon minimum")
+  ) {
+    return "مبلغ سفارش به حداقل لازم برای استفاده از این کد نرسیده است.";
+  }
+
+  if (
     normalized.includes("coupon was not found") ||
     normalized.includes("coupon is inactive") ||
     normalized.includes("coupon is not active yet") ||
     normalized.includes("coupon has expired") ||
-    normalized.includes("coupon usage limit") ||
-    normalized.includes("minimum order")
+    normalized.includes("coupon usage limit")
   ) {
     return "کد تخفیف معتبر نیست یا شرایط استفاده از آن فراهم نشده است.";
   }
