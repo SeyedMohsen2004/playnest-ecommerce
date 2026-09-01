@@ -336,14 +336,14 @@ current advisory review.
 
 Production support is additive and manual. It uses separate multi-stage
 Dockerfiles, digest-pinned external bases, non-root runtime users, named
-PostgreSQL/static/media volumes, health checks, loopback-bound application
-ports, explicit migration and `collectstatic` steps, and no automatic demo-data
-loading.
+external PostgreSQL storage, configurable host static/media bind mounts, health
+checks, loopback-bound application ports, explicit migration and `collectstatic`
+steps, and no automatic demo-data loading.
 
-The workflow has not been confirmed as the topology used by the linked live
-deployment. An operator must verify the real server, reverse proxy, storage,
-backup, HTTPS, and rollback arrangements before adoption. See
-[Production Deployment](docs/deployment.md).
+The workflow is aligned with the audited host-Nginx topology but remains an
+operator-controlled transition: its exact existing database volume, bind paths,
+backups, image tags, permissions, and rollback inputs must pass preflight before
+adoption. See [Production Deployment](docs/deployment.md).
 
 ## Security and Privacy
 

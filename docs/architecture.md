@@ -162,16 +162,18 @@ must not be treated as production configuration.
 
 `docker-compose.prod.yml` is a separate, manually adopted workflow:
 
-- PostgreSQL has a persistent named volume and no published host port.
+- PostgreSQL requires an explicitly named external volume and has no published
+  host port; a missing expected volume fails instead of creating an empty one.
 - Django is built from `backend/Dockerfile.prod`, runs under Gunicorn as UID/GID
-  10001, and uses named static and media volumes.
+  10001, and mounts configurable host static and media paths shared with host
+  Nginx.
 - Next.js is built from `frontend/Dockerfile.prod`, copies standalone server
   traces and static/public assets, and runs as UID/GID 10001.
 - Application ports bind to loopback by default for an external reverse proxy.
 - Health checks cover PostgreSQL readiness, the API health endpoint, and the
   frontend production server.
-- There are no source bind mounts, development commands, automatic migrations,
-  or automatic seed imports.
+- There are no application-source bind mounts, development commands, automatic
+  migrations, or automatic seed imports.
 
 Migrations, `collectstatic`, backups, health verification, and rollback are
 explicit operator steps described in
@@ -180,9 +182,11 @@ mean it has been adopted by any current production server.
 
 ## Static Files and Uploaded Media
 
-Django static files are collected explicitly into a persistent static volume.
-Uploaded media uses a separate persistent volume or an operator-approved
-external store; it must never depend on an ephemeral application layer.
+Django static files are collected explicitly into the configured host static
+directory. Uploaded media uses the configured host media directory or an
+operator-approved external store; neither may depend on an ephemeral
+application layer. Automatic bind-path creation is disabled so a typo cannot
+silently hide existing host content behind an empty directory.
 
 The external reverse proxy must safely serve or proxy static and media content.
 User uploads are untrusted: they require conservative content types, no

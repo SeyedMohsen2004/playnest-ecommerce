@@ -130,6 +130,9 @@ jobs:
       - name: Run lint checks
         run: npm run lint
 
+      - name: Test production runtime contracts
+        run: node --test production-runtime.test.mjs
+
       - name: Build frontend
         run: npm run build
 
@@ -139,11 +142,14 @@ jobs:
 
     env:
       PRODUCTION_COMPOSE_PROJECT_NAME: playnest-production-ci
+      PRODUCTION_POSTGRES_VOLUME_NAME: playnest-production-postgres-ci
+      PRODUCTION_STATIC_PATH: /tmp/playnest-staticfiles
+      PRODUCTION_MEDIA_PATH: /tmp/playnest-media
       DJANGO_SECRET_KEY: ci-only-production-secret-key-not-for-real-use-0123456789
       DJANGO_ALLOWED_HOSTS: api.example.invalid
       CSRF_TRUSTED_ORIGINS: https://shop.example.invalid,https://api.example.invalid
       CORS_ALLOWED_ORIGINS: https://shop.example.invalid
-      DJANGO_SECURE_SSL_REDIRECT: "True"
+      DJANGO_SECURE_SSL_REDIRECT: "False"
       DJANGO_SECURE_HSTS_SECONDS: "0"
       DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: "False"
       DJANGO_SECURE_HSTS_PRELOAD: "False"
@@ -153,13 +159,14 @@ jobs:
       POSTGRES_DB: playnest_ci
       POSTGRES_USER: playnest_ci
       POSTGRES_PASSWORD: ci-only-database-password
-      SMS_PROVIDER: kavenegar
-      KAVENEGAR_API_KEY: ci-only-kavenegar-key
+      SMS_PROVIDER: disabled
       ZARINPAL_MERCHANT_ID: ci-only-zarinpal-merchant
       ZARINPAL_SANDBOX: "True"
       ZARINPAL_CALLBACK_URL: https://api.example.invalid/api/v1/payments/zarinpal/callback/
       FRONTEND_BASE_URL: https://shop.example.invalid
       NEXT_PUBLIC_API_BASE_URL: https://api.example.invalid/api/v1
+      NEXT_PUBLIC_MEDIA_BASE_URL: https://shop.example.invalid/media
+      INTERNAL_API_BASE_URL: http://api:8000/api/v1
 
     steps:
       - name: Check out repository
@@ -168,7 +175,80 @@ jobs:
           persist-credentials: false
 
       - name: Validate production Compose configuration
-        run: docker compose -f docker-compose.prod.yml config --quiet
+        run: |
+          bash -n scripts/production-preflight.sh
+          docker compose -f docker-compose.prod.yml config --quiet
+          docker compose -f docker-compose.prod.yml config --format json > /tmp/production-compose.json
+          python - <<'PY'
+          import json
+
+          with open("/tmp/production-compose.json", encoding="utf-8") as config_file:
+              config = json.load(config_file)
+
+          assert config["name"] == "playnest-production-ci"
+          assert config["volumes"]["postgres_data"] == {
+              "name": "playnest-production-postgres-ci",
+              "external": True,
+          }
+
+          api = config["services"]["api"]
+          mounts = {mount["target"]: mount for mount in api["volumes"]}
+          assert mounts["/app/staticfiles"] == {
+              "type": "bind",
+              "source": "/tmp/playnest-staticfiles",
+              "target": "/app/staticfiles",
+              "bind": {},
+          }
+          assert mounts["/app/media"] == {
+              "type": "bind",
+              "source": "/tmp/playnest-media",
+              "target": "/app/media",
+              "bind": {},
+          }
+          assert api["ports"][0]["host_ip"] == "127.0.0.1"
+          assert api["environment"]["SMS_PROVIDER"] == "disabled"
+          assert api["environment"]["KAVENEGAR_API_KEY"] == ""
+
+          frontend = config["services"]["frontend"]
+          assert frontend["ports"][0]["host_ip"] == "127.0.0.1"
+          assert frontend["build"]["args"]["NEXT_PUBLIC_MEDIA_BASE_URL"] == (
+              "https://shop.example.invalid/media"
+          )
+          assert frontend["environment"]["INTERNAL_API_BASE_URL"] == (
+              "http://api:8000/api/v1"
+          )
+          PY
+
+      - name: Exercise production preflight with synthetic storage
+        run: |
+          set -euo pipefail
+          readonly compose_file=docker-compose.prod.yml
+          readonly env_file=/tmp/playnest-production-ci.env
+          readonly db_backup=/tmp/playnest-production-ci.dump
+          readonly media_backup=/tmp/playnest-production-ci-media.tar.gz
+
+          install -m 0600 .env.production.example "$env_file"
+          install -d -o 10001 -g 10001 -m 0755 \
+            "$PRODUCTION_STATIC_PATH" "$PRODUCTION_MEDIA_PATH"
+          printf 'synthetic media fixture\n' > "$PRODUCTION_MEDIA_PATH/synthetic.txt"
+          chmod 0644 "$PRODUCTION_MEDIA_PATH/synthetic.txt"
+
+          docker volume create "$PRODUCTION_POSTGRES_VOLUME_NAME" >/dev/null
+          docker compose --env-file "$env_file" -f "$compose_file" \
+            up -d --wait db
+          docker compose --env-file "$env_file" -f "$compose_file" \
+            exec -T db sh -c \
+            'exec pg_dump --format=custom --username "$POSTGRES_USER" "$POSTGRES_DB"' \
+            > "$db_backup"
+          tar -C "$PRODUCTION_MEDIA_PATH" -czf "$media_backup" .
+
+          scripts/production-preflight.sh \
+            "$env_file" \
+            "$GITHUB_SHA" \
+            "$PRODUCTION_COMPOSE_PROJECT_NAME" \
+            "$PRODUCTION_POSTGRES_VOLUME_NAME" \
+            "$db_backup" \
+            "$media_backup"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
@@ -190,5 +270,20 @@ jobs:
           push: false
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=${{ env.NEXT_PUBLIC_API_BASE_URL }}
+            NEXT_PUBLIC_MEDIA_BASE_URL=${{ env.NEXT_PUBLIC_MEDIA_BASE_URL }}
           cache-from: type=gha,scope=production-frontend
           cache-to: type=gha,mode=max,scope=production-frontend
+
+      - name: Remove synthetic preflight resources
+        if: always()
+        run: |
+          docker compose --env-file /tmp/playnest-production-ci.env \
+            -f docker-compose.prod.yml rm --stop --force db || true
+          docker network rm playnest-production-ci_default || true
+          docker volume rm playnest-production-postgres-ci || true
+          rm -rf \
+            /tmp/playnest-production-ci.env \
+            /tmp/playnest-production-ci.dump \
+            /tmp/playnest-production-ci-media.tar.gz \
+            /tmp/playnest-staticfiles \
+            /tmp/playnest-media
