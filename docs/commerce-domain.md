@@ -192,3 +192,22 @@ to an ineligible fulfilment transition.
 - Database backups and exports must remain outside Git. The repository ignores
   common SQL and dump extensions, but operators remain responsible for secure,
   access-controlled backup storage.
+# Postal shipment tracking
+
+Each order has one optional postal tracking code (not per item or payment).
+Existing orders may remain blank, including historical shipped/delivered orders.
+Staff approve PAID orders into PROCESSING, enter tracking in the order admin,
+then mark SHIPPED. Tracking can only be edited in PROCESSING or SHIPPED;
+DELIVERED preserves it read-only. A bulk shipping action with any eligible
+order missing tracking makes no changes. Other existing transition/manual-review
+guards remain in place.
+
+Fulfillment transitions and tracking edits lock Order rows first (bulk rows in
+primary-key order), consistent with the domain lock order. Admin change-form
+POST holds that lock through validation, save and standard LogEntry history.
+Customer order responses expose the read-only code only in SHIPPED/DELIVERED;
+other statuses return null, including PROCESSING and CANCELLED. Existing order
+ownership filtering applies. This does not implement multiple shipments or a
+carrier API. Apply the additive orders migration explicitly before application
+rollout; startup does not migrate, and previous application code remains
+compatible with the additional blank-default column.

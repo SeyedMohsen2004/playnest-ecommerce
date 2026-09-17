@@ -18,6 +18,7 @@ from orders.pricing import (
     get_shipping_cost,
     validate_coupon,
 )
+from orders.tracking import normalize_postal_tracking_code
 from products.models import Product
 
 
@@ -407,3 +408,47 @@ def mark_order_as_paid(order):
     order.stock_reduced = finalized_order.stock_reduced
     order.status = finalized_order.status
     return finalized_order
+
+
+@transaction.atomic
+def update_order_postal_tracking(order_id, code):
+    order = Order.objects.select_for_update().get(pk=order_id)
+    if order.status not in (Order.Status.PROCESSING, Order.Status.SHIPPED):
+        raise ValidationError("کد رهگیری فقط هنگام آماده‌سازی یا ارسال قابل تغییر است.")
+    order.postal_tracking_code = normalize_postal_tracking_code(
+        code, required=order.status == Order.Status.SHIPPED
+    )
+    order.save(update_fields=("postal_tracking_code", "updated_at"))
+    return order
+
+
+@transaction.atomic
+def transition_fulfillment_orders(order_ids, *, to_status):
+    predecessors = {
+        Order.Status.PROCESSING: Order.Status.PAID,
+        Order.Status.SHIPPED: Order.Status.PROCESSING,
+        Order.Status.DELIVERED: Order.Status.SHIPPED,
+    }
+    if to_status not in predecessors:
+        raise ValidationError("تغییر وضعیت سفارش مجاز نیست.")
+    orders = list(
+        Order.objects.select_for_update().filter(pk__in=order_ids).order_by("pk")
+    )
+    eligible = [
+        order
+        for order in orders
+        if order.status == predecessors[to_status] and not order.requires_manual_review
+    ]
+    # Validate the entire eligible selection before changing any row.
+    if to_status == Order.Status.SHIPPED:
+        for order in eligible:
+            normalize_postal_tracking_code(order.postal_tracking_code, required=True)
+    changed = []
+    now = timezone.now()
+    for order in eligible:
+        changed.append((order, order.status))
+        order.status = to_status
+        order.updated_at = now
+    if changed:
+        Order.objects.bulk_update(eligible, ("status", "updated_at"))
+    return changed

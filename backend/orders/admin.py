@@ -1,13 +1,20 @@
+from django import forms
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Prefetch
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.html import format_html
 
 from orders.models import Cart, CartItem, Coupon, Order, OrderItem, ShippingSettings
-from orders.services import OrderCancellationNotAllowed, cancel_order
+from orders.services import (
+    OrderCancellationNotAllowed,
+    cancel_order,
+    transition_fulfillment_orders,
+    update_order_postal_tracking,
+)
+from orders.tracking import normalize_postal_tracking_code
 from payments.models import Payment
 from payments.services.zarinpal import mask_card_pan
 
@@ -293,8 +300,27 @@ class PaymentInline(admin.TabularInline):
         return mask_card_pan(obj.card_pan) or "—"
 
 
+class OrderAdminForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = "__all__"
+        field_classes = {"postal_tracking_code": forms.CharField}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "postal_tracking_code" in self.fields:
+            self.fields["postal_tracking_code"].strip = False
+
+    def clean_postal_tracking_code(self):
+        return normalize_postal_tracking_code(
+            self.cleaned_data["postal_tracking_code"],
+            required=self.instance.status == Order.Status.SHIPPED,
+        )
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
+    form = OrderAdminForm
     list_display = (
         "order_number",
         "customer_full_name",
@@ -390,6 +416,7 @@ class OrderAdmin(admin.ModelAdmin):
                     "shipping_zone",
                     "shipping_address",
                     "postal_code",
+                    "postal_tracking_code",
                 )
             },
         ),
@@ -434,6 +461,29 @@ class OrderAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        if obj is None or obj.status not in (
+            Order.Status.PROCESSING,
+            Order.Status.SHIPPED,
+        ):
+            return (*fields, "postal_tracking_code")
+        return fields
+
+    def get_object(self, request, object_id, from_field=None):
+        obj = super().get_object(request, object_id, from_field)
+        if obj is not None and request.method == "POST":
+            # Django wraps changeform POST in atomic(); hold the Order lock
+            # through form validation, save and standard admin history logging.
+            return Order.objects.select_for_update().get(pk=obj.pk)
+        return obj
+
+    def save_model(self, request, obj, form, change):
+        if change and "postal_tracking_code" in form.changed_data:
+            updated = update_order_postal_tracking(obj.pk, obj.postal_tracking_code)
+            obj.postal_tracking_code = updated.postal_tracking_code
+        super().save_model(request, obj, form, change)
 
     def get_queryset(self, request):
         return (
@@ -572,7 +622,6 @@ class OrderAdmin(admin.ModelAdmin):
         self._transition_orders(
             request,
             queryset,
-            from_statuses=(Order.Status.PAID,),
             to_status=Order.Status.PROCESSING,
             success_message="{} سفارش تایید شد و وارد مرحله آماده‌سازی شد.",
         )
@@ -582,7 +631,6 @@ class OrderAdmin(admin.ModelAdmin):
         self._transition_orders(
             request,
             queryset,
-            from_statuses=(Order.Status.PROCESSING,),
             to_status=Order.Status.SHIPPED,
             success_message="{} سفارش به وضعیت ارسال شده تغییر کرد.",
         )
@@ -592,7 +640,6 @@ class OrderAdmin(admin.ModelAdmin):
         self._transition_orders(
             request,
             queryset,
-            from_statuses=(Order.Status.SHIPPED,),
             to_status=Order.Status.DELIVERED,
             success_message="{} سفارش به وضعیت تحویل داده شده تغییر کرد.",
         )
@@ -638,31 +685,14 @@ class OrderAdmin(admin.ModelAdmin):
         request,
         queryset,
         *,
-        from_statuses,
         to_status,
         success_message,
     ):
         selected_ids = set(queryset.values_list("pk", flat=True))
-        changed_orders = []
-        now = timezone.now()
-        with transaction.atomic():
-            locked_orders = list(
-                Order.objects.select_for_update()
-                .filter(pk__in=selected_ids)
-                .order_by("pk")
-            )
-            for order in locked_orders:
-                if order.status not in from_statuses or order.requires_manual_review:
-                    continue
-                old_status = order.status
-                order.status = to_status
-                order.updated_at = now
-                changed_orders.append((order, old_status))
-
-            if changed_orders:
-                Order.objects.bulk_update(
-                    [order for order, _old_status in changed_orders],
-                    ("status", "updated_at"),
+        try:
+            with transaction.atomic():
+                changed_orders = transition_fulfillment_orders(
+                    selected_ids, to_status=to_status
                 )
                 for order, old_status in changed_orders:
                     self.log_change(
@@ -674,6 +704,14 @@ class OrderAdmin(admin.ModelAdmin):
                             f"{self._status_label(to_status)}"
                         ),
                     )
+        except ValidationError:
+            self.message_user(
+                request,
+                "هیچ سفارشی تغییر نکرد. ابتدا کد رهگیری معتبر تمام سفارش‌های "
+                "آماده ارسال را در صفحه هر سفارش ثبت کنید.",
+                level=messages.ERROR,
+            )
+            return
 
         changed_count = len(changed_orders)
         skipped_count = len(selected_ids) - changed_count

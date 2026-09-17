@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { PostalTracking } from "@/components/orders/postal-tracking";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -243,7 +244,8 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
           <StateCard>{errorMessage}</StateCard>
         ) : order ? (
           <div className="grid gap-6 lg:grid-cols-[1fr_24rem]">
-            <div className="space-y-5">
+            <div className="min-w-0 space-y-5">
+              <PostalTracking order={order} />
               {successMessage ? (
                 <p className="rounded-3xl bg-emerald-50 px-5 py-4 text-sm font-bold leading-7 text-emerald-700 dark:bg-emerald-950/45 dark:text-emerald-100">
                   {successMessage}
