@@ -131,7 +131,7 @@ jobs:
         run: npm run lint
 
       - name: Test production runtime contracts
-        run: node --test production-runtime.test.mjs
+        run: node --test production-runtime.test.mjs postal-tracking.test.mjs
 
       - name: Build frontend
         run: npm run build

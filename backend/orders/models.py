@@ -219,6 +219,16 @@ class Order(models.Model):
     postal_code = models.CharField(max_length=20)
     recipient_name = models.CharField(max_length=255)
     recipient_phone = models.CharField(max_length=20)
+    postal_tracking_code = models.CharField(
+        "کد رهگیری پستی",
+        max_length=100,
+        blank=True,
+        default="",
+        help_text=(
+            "کد رهگیری پس از تغییر وضعیت سفارش به ارسال‌شده "
+            "برای مشتری نمایش داده می‌شود."
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -232,6 +242,16 @@ class Order(models.Model):
         from orders.services import mark_order_as_paid
 
         return mark_order_as_paid(self)
+
+    def save(self, *args, **kwargs):
+        from orders.tracking import normalize_postal_tracking_code
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is None or "postal_tracking_code" in update_fields:
+            self.postal_tracking_code = normalize_postal_tracking_code(
+                self.postal_tracking_code
+            )
+        return super().save(*args, **kwargs)
 
 
 class OrderItem(models.Model):

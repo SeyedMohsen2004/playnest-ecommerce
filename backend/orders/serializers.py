@@ -199,6 +199,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
+    postal_tracking_code = serializers.SerializerMethodField()
     items = OrderItemSerializer(many=True, read_only=True)
     status_label = serializers.SerializerMethodField()
     payment_status = serializers.SerializerMethodField()
@@ -236,11 +237,17 @@ class OrderSerializer(serializers.ModelSerializer):
             "postal_code",
             "recipient_name",
             "recipient_phone",
+            "postal_tracking_code",
             "items",
             "created_at",
             "updated_at",
         )
         read_only_fields = fields
+
+    def get_postal_tracking_code(self, obj) -> str | None:
+        if obj.status in (Order.Status.SHIPPED, Order.Status.DELIVERED):
+            return obj.postal_tracking_code or None
+        return None
 
     def get_status_label(self, obj) -> str:
         labels = {

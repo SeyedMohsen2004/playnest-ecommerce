@@ -211,6 +211,7 @@ export type OrderItem = {
 };
 
 export type Order = {
+  postal_tracking_code?: string | null;
   id: number;
   user?: number | User;
   status:

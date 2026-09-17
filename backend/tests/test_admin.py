@@ -358,6 +358,9 @@ def test_processing_order_can_move_to_shipped(admin_user, customer, admin_produc
     )
     order_admin = admin.site._registry[Order]
 
+    order.postal_tracking_code = "123456789012345678901234"
+    order.save(update_fields=("postal_tracking_code",))
+
     run_order_action(
         order_admin,
         "mark_as_shipped",

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { PostalTracking } from "@/components/orders/postal-tracking";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -208,7 +209,7 @@ function OrderCard({
       id={`order-${order.id}`}
       className="grid gap-4 rounded-[2rem] bg-white p-5 shadow-sm dark:bg-slate-900/80 md:grid-cols-[1fr_auto] md:items-center"
     >
-      <div className="grid gap-4 sm:grid-cols-4 sm:items-center">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-4 sm:items-center">
         <div>
           <p className="text-xs font-bold text-ink/45 dark:text-white/45">
             شماره سفارش
@@ -263,6 +264,9 @@ function OrderCard({
         <Button asChild variant="outline">
           <Link href={`/account/orders/${order.id}`}>جزئیات سفارش</Link>
         </Button>
+      </div>
+      <div className="min-w-0 md:col-span-2">
+        <PostalTracking order={order} />
       </div>
     </article>
   );

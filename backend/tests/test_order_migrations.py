@@ -111,7 +111,7 @@ def test_consolidated_order_migration_applies_from_0011(
     )
 
     migrations = applied_order_migrations(database_name, config)
-    assert migrations[-1] == "0013_coupon_per_user_usage_limit"
+    assert migrations[-1] == "0014_order_postal_tracking_code"
     with database_connection(database_name, config) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -169,7 +169,7 @@ def test_fresh_migration_graph_applies_from_zero(disposable_postgres_database):
 
     assert check.returncode == 0
     migrations = applied_order_migrations(database_name, config)
-    assert migrations[-1] == "0013_coupon_per_user_usage_limit"
+    assert migrations[-1] == "0014_order_postal_tracking_code"
 
 
 def test_per_user_limit_migration_preserves_existing_coupons_as_unlimited(
